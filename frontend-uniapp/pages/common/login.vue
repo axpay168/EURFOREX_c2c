@@ -14,8 +14,8 @@
       <div class="status success" :class="{ show: successShow }" id="successBox">{{ successMessage }}</div>
 
       <div class="mode-switch">
-        <button class="mode-btn" :class="{ active: currentMode === 'account' }" id="tabAccount" type="button" @click="switchMode('account')">郵箱 / 用戶名</button>
-        <button class="mode-btn" :class="{ active: currentMode === 'phone' }" id="tabPhone" type="button" @click="switchMode('phone')">手機號登入</button>
+          <button class="mode-btn" :class="{ active: currentMode === 'account' }" id="tabAccount" type="button" @click="switchMode('account')">{{ localizedText('郵箱 / 用戶名', 'Email / Username') }}</button>
+        <button class="mode-btn" :class="{ active: currentMode === 'phone' }" id="tabPhone" type="button" @click="switchMode('phone')">{{ localizedText('手機號登入', 'Login with phone') }}</button>
       </div>
 
       <form class="form" id="loginForm" @submit.prevent="handleLogin">
@@ -27,14 +27,14 @@
                 <circle cx="12" cy="8" r="4"/>
               </svg>
             </span>
-            <input type="text" id="account" placeholder="請輸入郵箱或用戶名" v-model="accountValue" />
+            <input type="text" id="account" :placeholder="localizedText('請輸入郵箱或用戶名', 'Please enter email or username')" v-model="accountValue" />
           </div>
         </div>
 
         <div class="panel" :class="{ active: currentMode === 'phone' }" id="panelPhone">
           <div class="phone-row">
             <div class="country-wrap">
-              <button type="button" class="country-code" id="countryCodeLink" aria-haspopup="dialog" aria-label="選擇區碼" @click="openAreaPicker"><span id="countryCodeText">{{ countryCode }}</span></button>
+              <button type="button" class="country-code" id="countryCodeLink" aria-haspopup="dialog" :aria-label="localizedText('選擇區碼', 'Select country code')" @click="openAreaPicker"><span id="countryCodeText">{{ countryCode }}</span></button>
             </div>
 
             <div class="field">
@@ -44,7 +44,7 @@
                   <path d="M10 18.2h4"/>
                 </svg>
               </span>
-              <input type="tel" id="phone" placeholder="請輸入手機號" v-model="phoneValue" />
+              <input type="tel" id="phone" :placeholder="localizedText('請輸入手機號', 'Please enter phone number')" v-model="phoneValue" />
             </div>
           </div>
         </div>
@@ -56,8 +56,8 @@
               <path d="M8 11V8a4 4 0 1 1 8 0v3"/>
             </svg>
           </span>
-          <input class="password-input" :type="passwordHidden ? 'password' : 'text'" id="password" placeholder="請輸入密碼" v-model="passwordValue" />
-          <button type="button" class="toggle-password" id="togglePasswordBtn" aria-label="顯示或隱藏密碼" @click="togglePassword">
+          <input class="password-input" :type="passwordHidden ? 'password' : 'text'" id="password" :placeholder="localizedText('請輸入密碼', 'Please enter password')" v-model="passwordValue" />
+          <button type="button" class="toggle-password" id="togglePasswordBtn" :aria-label="passwordHidden ? localizedText('顯示密碼', 'Show password') : localizedText('隱藏密碼', 'Hide password')" @click="togglePassword">
             <svg v-show="passwordHidden" id="eyeOpen" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
               <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"/>
               <circle cx="12" cy="12" r="3"/>
@@ -74,13 +74,13 @@
         <div class="row">
           <label class="remember">
             <input type="checkbox" id="rememberCheckbox" v-model="rememberChecked" />
-            <span>記住密碼</span>
+            <span>{{ localizedText('記住密碼', 'Remember password') }}</span>
           </label>
-          <a href="#/pages/common/resetpwd" class="link">忘記密碼？</a>
+          <a href="#/pages/common/resetpwd" class="link">{{ localizedText('忘記密碼？', 'Forgot password?') }}</a>
         </div>
 
         <button class="submit" type="submit">
-          <span>立即登入</span>
+          <span>{{ localizedText('立即登入', 'Sign in') }}</span>
           <svg viewBox="0 0 24 24" fill="none" width="18" height="18" stroke="currentColor" stroke-width="2">
             <path d="M5 12h14"/>
             <path d="M13 6l6 6-6 6"/>
@@ -88,24 +88,24 @@
         </button>
 
         <div class="secondary-actions">
-          <a class="ghost-btn" href="#/pages/common/register">註冊帳戶</a>
-          <a class="ghost-btn" href="javascript:void(0)" @click="openChatwoot($event)">聯繫客服</a>
+          <a class="ghost-btn" href="#/pages/common/register">{{ localizedText('註冊帳戶', 'Register Account') }}</a>
+          <a class="ghost-btn" href="javascript:void(0)" @click="openChatwoot($event)">{{ localizedText('聯繫客服', 'Contact Support') }}</a>
         </div>
 
       </form>
 
 
       <div class="safe-bar">
-        <div class="safe-item"><span class="safe-dot"></span> 資金安全</div>
-        <div class="safe-item"><span class="safe-dot"></span> 實名認證</div>
-        <div class="safe-item"><span class="safe-dot"></span> 加密防護</div>
+        <div class="safe-item"><span class="safe-dot"></span> {{ localizedText('資金安全', 'Fund security') }}</div>
+        <div class="safe-item"><span class="safe-dot"></span> {{ localizedText('實名認證', 'Identity verification') }}</div>
+        <div class="safe-item"><span class="safe-dot"></span> {{ localizedText('加密防護', 'Encryption protection') }}</div>
       </div>
 
       <div class="footer-note">
-        登入即代表您同意
-        <a href="#/pages/common/article">用戶協議</a>
-        與
-        <a href="#/pages/common/article">隱私政策</a>
+        {{ localizedText('登入即代表您同意', 'By logging in, you agree') }}
+        <a href="#/pages/common/article">{{ localizedText('用戶協議', 'User Agreement') }}</a>
+        {{ localizedText('與', 'and') }}
+        <a href="#/pages/common/article">{{ localizedText('隱私政策', 'Privacy Policy') }}</a>
       </div>
     </div>
   </div>
@@ -214,12 +214,13 @@ export default {
       if (document.querySelector('script[data-eurforex-area-picker]')) return;
       var pathname = window.location && window.location.pathname ? window.location.pathname : "";
       var isH5Path = /^\/h5(?:\/|$)/.test(pathname);
+      var areaPickerVersion = "20260823-lang-sync";
       var candidates = isH5Path
-        ? ["/h5/static/previews/shared/area-picker.js"]
+        ? ["/h5/static/previews/shared/area-picker.js?v=" + areaPickerVersion]
         : [
-          "./static/previews/shared/area-picker.js",
-          "/static/previews/shared/area-picker.js",
-          "/h5/static/previews/shared/area-picker.js"
+          "./static/previews/shared/area-picker.js?v=" + areaPickerVersion,
+          "/static/previews/shared/area-picker.js?v=" + areaPickerVersion,
+          "/h5/static/previews/shared/area-picker.js?v=" + areaPickerVersion
         ];
       var loadNext = function (index) {
         if (index >= candidates.length || window.EurforexAreaPicker) return;
@@ -236,6 +237,10 @@ export default {
       loadNext(0);
     },
     openAreaPicker: function () {
+      try {
+        window.__EURFOREX_CURRENT_LANG = getStoredLang();
+        localStorage.setItem("lang", window.__EURFOREX_CURRENT_LANG);
+      } catch (e) {}
       if (window.EurforexAreaPicker && typeof window.EurforexAreaPicker.open === "function") {
         window.EurforexAreaPicker.open();
       } else {
@@ -243,6 +248,10 @@ export default {
         var self = this;
         setTimeout(function () {
           if (window.EurforexAreaPicker && typeof window.EurforexAreaPicker.open === "function") {
+            try {
+              window.__EURFOREX_CURRENT_LANG = getStoredLang();
+              localStorage.setItem("lang", window.__EURFOREX_CURRENT_LANG);
+            } catch (e) {}
             window.EurforexAreaPicker.open();
           } else {
             self.showError(self.$t("phrases.區碼選擇器尚未載入完成，請稍後再試。"));

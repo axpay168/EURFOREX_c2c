@@ -12,6 +12,8 @@ function mysql_schema_queries(): array
             email VARCHAR(191) NULL,
             mobile VARCHAR(64) NULL,
             country_code VARCHAR(16) NULL,
+            residence_country_code VARCHAR(16) NULL,
+            preferred_fiat VARCHAR(32) NOT NULL DEFAULT "EUR",
             mobile_e164 VARCHAR(64) NULL UNIQUE,
             password_hash VARCHAR(255) NOT NULL,
             provider VARCHAR(32) NULL,
@@ -104,6 +106,7 @@ function mysql_schema_queries(): array
             id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
             user_id BIGINT UNSIGNED NOT NULL,
             product_id BIGINT UNSIGNED NOT NULL,
+            admin_group_code VARCHAR(64) NULL,
             product_code VARCHAR(191) NOT NULL,
             asset_code VARCHAR(32) NOT NULL,
             wallet_code VARCHAR(64) NOT NULL,
@@ -121,7 +124,8 @@ function mysql_schema_queries(): array
             settled_at VARCHAR(64) NULL,
             returned_by_admin_id BIGINT UNSIGNED NULL,
             created_at VARCHAR(64) NOT NULL,
-            updated_at VARCHAR(64) NOT NULL
+            updated_at VARCHAR(64) NOT NULL,
+            KEY idx_financial_subscriptions_group (admin_group_code, id)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
 
         'CREATE TABLE IF NOT EXISTS user_tier_profiles (
@@ -138,6 +142,11 @@ function mysql_schema_queries(): array
             margin_ratio VARCHAR(64) NOT NULL DEFAULT "0.0000",
             risk_status VARCHAR(32) NOT NULL DEFAULT "normal",
             violation_message TEXT NULL,
+            withdrawal_restricted TINYINT(1) NOT NULL DEFAULT 0,
+            trade_restricted TINYINT(1) NOT NULL DEFAULT 0,
+            login_restricted TINYINT(1) NOT NULL DEFAULT 0,
+            restriction_reason VARCHAR(64) NULL,
+            admin_risk_note TEXT NULL,
             created_at VARCHAR(64) NOT NULL,
             updated_at VARCHAR(64) NOT NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
@@ -164,7 +173,7 @@ function mysql_schema_queries(): array
             status VARCHAR(32) NOT NULL DEFAULT "enabled",
             created_at VARCHAR(64) NOT NULL,
             updated_at VARCHAR(64) NOT NULL,
-            UNIQUE KEY uniq_deposit_address (asset_code, network_code, address),
+            KEY idx_deposit_address_lookup (asset_code, network_code, address),
             KEY idx_deposit_addresses_user_asset (user_id, asset_code)
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
 
@@ -222,6 +231,9 @@ function mysql_schema_queries(): array
             amount VARCHAR(64) NOT NULL,
             price VARCHAR(64) NOT NULL,
             total_amount VARCHAR(64) NOT NULL,
+            fee_rate VARCHAR(64) NULL,
+            fee_amount VARCHAR(64) NULL,
+            actual_amount VARCHAR(64) NULL,
             asset_code VARCHAR(32) NOT NULL,
             fiat_code VARCHAR(32) NOT NULL,
             payment_method_summary TEXT NULL,
@@ -311,6 +323,9 @@ function mysql_schema_queries(): array
             bank_name VARCHAR(191) NULL,
             account_holder VARCHAR(191) NULL,
             account_no_masked VARCHAR(191) NULL,
+            currency_code VARCHAR(16) NULL,
+            bank_swift VARCHAR(64) NULL,
+            holder_address VARCHAR(255) NULL,
             usdt_network VARCHAR(64) NULL,
             payout_address TEXT NULL,
             pix_key VARCHAR(191) NULL,
@@ -435,6 +450,7 @@ function mysql_schema_queries(): array
             display_name VARCHAR(191) NOT NULL,
             level INT NOT NULL DEFAULT 1,
             group_code VARCHAR(191) NOT NULL,
+            admin_group_code VARCHAR(64) NULL,
             score INT NOT NULL DEFAULT 0,
             merchant_enabled TINYINT(1) NOT NULL DEFAULT 0,
             is_verified TINYINT(1) NOT NULL DEFAULT 0,
@@ -490,6 +506,11 @@ function mysql_schema_queries(): array
 function mysql_schema_missing_columns(): array
 {
     return [
+        'user_payout_methods' => [
+            'currency_code' => 'VARCHAR(16) NULL',
+            'bank_swift' => 'VARCHAR(64) NULL',
+            'holder_address' => 'VARCHAR(255) NULL',
+        ],
         'audit_logs' => [
             'ip' => 'VARCHAR(64) NULL',
             'account' => 'VARCHAR(191) NULL',
@@ -519,6 +540,16 @@ function mysql_schema_missing_columns(): array
         'admin_groups' => [
             'created_by_admin_id' => 'BIGINT UNSIGNED NULL',
         ],
+        'tier_templates' => [
+            'admin_group_code' => 'VARCHAR(64) NULL',
+        ],
+        'user_tier_profiles' => [
+            'withdrawal_restricted' => 'TINYINT(1) NOT NULL DEFAULT 0',
+            'trade_restricted' => 'TINYINT(1) NOT NULL DEFAULT 0',
+            'login_restricted' => 'TINYINT(1) NOT NULL DEFAULT 0',
+            'restriction_reason' => 'VARCHAR(64) NULL',
+            'admin_risk_note' => 'TEXT NULL',
+        ],
         'users' => [
             'invited_by_admin_id' => 'BIGINT UNSIGNED NULL',
             'admin_group_code' => 'VARCHAR(64) NULL',
@@ -526,6 +557,8 @@ function mysql_schema_missing_columns(): array
             'avatar_url' => 'VARCHAR(512) NULL',
             'provider' => 'VARCHAR(32) NULL',
             'nickname' => 'VARCHAR(191) NULL',
+            'residence_country_code' => 'VARCHAR(16) NULL',
+            'preferred_fiat' => 'VARCHAR(32) NOT NULL DEFAULT "EUR"',
         ],
         'deposit_addresses' => [
             'user_id' => 'BIGINT UNSIGNED NULL',
@@ -546,6 +579,7 @@ function mysql_schema_missing_columns(): array
             'default_return_delay_days' => 'INT NOT NULL DEFAULT 0',
         ],
         'user_financial_subscriptions' => [
+            'admin_group_code' => 'VARCHAR(64) NULL',
             'return_mode' => 'VARCHAR(32) NOT NULL DEFAULT "manual"',
             'return_delay_days' => 'INT NOT NULL DEFAULT 0',
             'return_scheduled_at' => 'VARCHAR(64) NULL',
@@ -564,6 +598,9 @@ function mysql_schema_missing_columns(): array
         'c2c_orders' => [
             'listing_id' => 'BIGINT UNSIGNED NULL',
             'admin_group_code' => 'VARCHAR(64) NULL',
+            'fee_rate' => 'VARCHAR(64) NULL',
+            'fee_amount' => 'VARCHAR(64) NULL',
+            'actual_amount' => 'VARCHAR(64) NULL',
         ],
     ];
 }
@@ -598,9 +635,15 @@ function mysql_schema_missing_indexes(): array
             'idx_payout_methods_user' => '(user_id, id)',
             'idx_payout_methods_status' => '(status, id)',
         ],
+        'tier_templates' => [
+            'idx_tier_templates_admin_group' => '(admin_group_code, level, id)',
+        ],
         'support_tickets' => [
             'idx_support_tickets_user' => '(user_id, id)',
             'idx_support_tickets_status' => '(status, id)',
+        ],
+        'user_financial_subscriptions' => [
+            'idx_financial_subscriptions_group' => '(admin_group_code, id)',
         ],
     ];
 }

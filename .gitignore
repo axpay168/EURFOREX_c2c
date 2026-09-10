@@ -23,6 +23,7 @@ frontend-uniapp/playwright-report/
 *.tmp
 *.bak
 
+backend-api/storage/
 backend-api/storage/uploads/
 backend-api/storage/cache/
 backend-api/storage/db.json

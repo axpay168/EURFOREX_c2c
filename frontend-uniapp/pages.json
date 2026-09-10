@@ -162,6 +162,13 @@
       }
     },
     {
+      "path": "pages/setting/swap",
+      "style": {
+        "navigationBarTitleText": "",
+        "enablePullDownRefresh": false
+      }
+    },
+    {
       "path": "pages/setting/withdrawDetail",
       "style": {
         "navigationBarTitleText": "",

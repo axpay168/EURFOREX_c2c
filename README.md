@@ -148,8 +148,29 @@ node --check admin-web/shared/admin-modals.js
 
 每次 Agent 改完專案，都要在這裡新增一條，讓下一位 Agent 不用猜上下文。
 
+### 2026-09-10
+
+- 提領限制政策確認與修正：後端 `POST /api/user/withdrawal-requests` 原本就只在後台「限制提領」勾選時才會擋（原因為 `kyc_required` 且未完成 KYC 時回 AUTH_KYC_REQUIRED，其餘原因回 AUTH_WITHDRAWAL_RESTRICTED；未勾選時未做 KYC 也可提領），沒有任何信用分或等級門檻。使用者回報「信用分不足無法提領」的來源是錢包頁 `wallet.vue` 的「USDT 提領」快捷方塊寫死彈出「等級或信用分不足」對話框，任何人點都會看到；已改為直接連到 USDT 提領頁並移除該對話框。已重新打包 H5。
+- 銀行綁定「新增銀行」彈窗改版：新增「貨幣」選單（點開為法幣清單 EUR / CHF / USD / GBP，樣式比照加密資產選單）、銀行名稱、依貨幣變化的「歐元帳戶 / 美元帳戶…」帳號 / IBAN 欄位、BIC/SWIFT（選填）、開戶人姓名、開戶地址（選填）。法幣清單抽成 `frontend-uniapp/common/fiatCurrencies.js`。 iOS Safari 上彈窗原本用 `max-h-[90vh]`，工具列顯示時最底下的確認鈕會被蓋住且捲不到；改為由 overlay（fixed inset-0，跟著實際可視區）自行捲動、彈窗 `my-auto` 置中，並加上 safe-area 底部留白。已綁定卡片與法幣提現的選擇銀行彈窗顯示幣別、BIC/SWIFT 與開戶地址；法幣提現改為只列出與所選法幣相同幣別的銀行帳戶。
+- 後端 `user_payout_methods` 新增 `currency_code`、`bank_swift`、`holder_address` 三欄（`mysql_schema_missing_columns` 自動補欄位，舊的銀行資料回填為 EUR），`POST /api/user/payout-methods` 接受並驗證新欄位（幣別限 EUR/CHF/USD/GBP，BIC 為 8 或 11 碼），列表與提現查詢一併回傳；後台收款方式卡片、提現審核「提款信息」顯示並可編輯這三個欄位。新增 22 個多語 key（23 個語系檔現為 897 個 phrases）。用 headless 以假資料在 21 個非英文語系逐一檢查銀行綁定頁、新增彈窗、貨幣清單與提現選銀行彈窗，沒有英文殘留；順手修掉這頁幾個機翻錯譯（如 `銀行綁定` 在法／西／義文被譯成「裝訂」、`客服協助` 多語直譯成 Support Help、`取消` 德文 Stornieren 改 Abbrechen）。已重新打包 H5。
+
+### 2026-09-06
+
+- 修復前台多語切換後大部分文字仍是英文（德文等所有非中英語系）：`main.js` 的 `localizedText(zh, en)` 在非中文語系用英文文案查字典，但 `locales/*.json` 的 `phrases` 一律以繁體中文原文為 key，因此永遠查不到、只能回傳寫死的英文。已改為先用中文 key 查「目前語系自己」的譯文，找不到才退回英文；中文語系只查自己的字典、不再退回英文。`common/domTranslator.js` 同步加上中文語系不退回英文字典的保護。移除 `orderDetail / swap / mixrecharge / merchantAuth / withdrawDetail` 五頁自行覆寫、永遠回傳英文的 `localizedText`。
+- 補齊德文字典：`de.json` 新增 217 個模板有用到但所有語系檔都沒有的中文 key（含 `user.vue` 提現選單新包進 `localizedText` 的 `加密貨幣提現`），把 91 個原本直接複製英文的值改為德文，修正 14 個明顯誤譯（如 `持倉本金: Geschäftsführer`），補上 `AUTH_WITHDRAWAL_RESTRICTED / AUTH_TRADE_RESTRICTED / AUTH_LOGIN_RESTRICTED` 三個 apiErrors。同一批 key 同步加進 `eng.json`（英文基準）、`zh-Hant.json`（原文）與 `zh-Hans.json`（簡體），其餘 20 種語系尚未補這批 key，會退回英文。
+- 用 Playwright 對打包後的 dist 檢查德文個人中心、提現選單、閃兌、法幣提現、安全中心與英文→德文即時切換皆正確，簡中與英文顯示不變。已重新打包 H5；注意本機預設 `node` 是 v12，`npm run build:h5` 需用 `~/.local/opt/node-v20.19.4-linux-x64/bin` 的 Node 20。
+- 其餘 19 種語系（es/fr/it/pt/nl/da/sv/fi/pl/hu/el/jp/kr/vi/th/hi/ur/ne/fa）同步補齊：每個語系新增同一批 217 個中文 key 的譯文，並把原本直接複製英文的佔位值（各語系 9～115 個不等）改成該語言，補上 3 個 apiErrors；`zh-Hant.json` / `zh-Hans.json` 也補上原本缺的 7 個 key（`商戶`、`到期日`、`理財商品` 等）。所有 23 個語系檔現在都是 854 個 phrases。西班牙語本來就存在（`langs.js` 的 `es`），不需新增。剩下與英文相同的值（FX、Swap、Status、Email、Volume 等）是該語言本來就通用的字。各語系 `資金紀錄` 的譯名統一縮成單字（Historial / Historique / 履歴…），避免個人中心四欄快捷鍵截斷。已用 Playwright 逐一開啟 20 個非中文語系的個人中心、閃兌與法幣提現頁確認沒有英文殘留，並重新打包 H5。
+- 以西班牙文逐頁掃描全部 H5 頁面後，再修掉模板層的英文殘留（影響所有非中文語系）：`register.vue` 原本只有繁中／簡中／英文三套內建文案，其他語系一律顯示英文，改為以繁中文案為 key 查字典；`eurSwapWithdraw.vue` 整頁原本寫死英文，全部改用 `localizedText`；另修 `hall.vue` 的 title、`financial.vue` 的 ALL、`financialHoldings.vue` 的 No Active Position、`withdraw.vue` 的 Notice 初始值。`utils/api.js` 的 API 錯誤訊息原本只有中英兩套，非中英語系改讀 `locales/*.json` 的 `apiErrors`，斷網時瀏覽器的 `Failed to fetch` 改為各語系的「網路連線失敗」文案。為此新增 24 個 key（23 個語系檔現為 875 個 phrases），並修正 es.json 幾個舊值（fíat、ganar、madurado、Trading Hall 等）。
+
 ### 2026-05-08
 
+- 提領風控改為會員個別設定：移除「換匯提領配置」中的全站提領風控卡片，改在「等級與限額」單一用戶彈窗中分成「等級設定 / 商戶與認證 / 風控限制」。風控限制使用「限制提領 / 限制交易 / 限制登入」勾選，全部未勾選時不會觸發限制；限制原因只決定系統多語使用者提示，管理員備註與異動原因僅後台可見。KYC 提示改為「尚未完成實名認證 / 尚未完成实名认证 / Identity verification has not been completed」，並重新打包 H5。
+- 調整後台「等級模板」分組邏輯：新增 `tier_templates.admin_group_code`，模板列表增加管理分組篩選；新增/編輯模板時不再手填 `basic/vip/vip_plus`，系統依管理分組與等級自動生成 `{admin_group}_lv{level}`，列表與用戶等級欄位顯示實際管理分組名稱，避免「十二」與「馬飛」各自建立 LV1/LV2/LV3 時互相混淆或衝突。
+- KYC 實名認證頁移除證件正反面圖片 URL 手填欄位，改為和充值憑證一致的圖片上傳卡片；使用者選圖後可立即預覽，再次點擊可更換圖片，提交時先上傳圖片再送出 KYC 申請。已更新冒煙測試並重新打包 H5。
+- 調整 KYC 實名認證頁手機版排序：手機尺寸改為「狀態卡 → KYC 提交欄位 → 安全提醒」，桌面版仍維持狀態卡與安全提醒並排、提交欄位在下方。已重新打包 H5。
+- 調整後台提現審核列表：移除獨立資產欄，金額欄直接顯示去尾零後的數值與幣種，最多顯示小數點後 5 位；新增「提款信息」欄顯示當次提交的鏈上地址或銀行卡資料；縮窄訂單編號與備註欄；EUR 換 USDT 鏈上提領備註改為中文顯示，首行優先呈現換算後實收 USDT。
+- 修復後台「使用者詳情」顯示載入用戶資料失敗：原因是後端使用者詳情 API 會計算下線人數，原本使用 `WITH RECURSIVE`，但線上 MySQL/MariaDB 版本不支援該語法，導致 API 500。已改成 PHP 逐層查詢，並同步移除後台權限範圍內的遞迴 SQL，避免同類後台頁面在舊版資料庫上失敗。
+- 美化法幣提現錯誤提示：移除瀏覽器原生 `alert()`，改為站內置中彈窗；同時修正法幣提現未完成 KYC 時後端錯誤碼，由誤導性的 `AUTH_UNAUTHORIZED` 改為 `AUTH_KYC_REQUIRED`，前台提示「請先完成身份認證後再提交法幣提現」。已重新打包 H5。
 - 註冊成功倒數彈窗補上語言規則：繁中/簡中顯示中文，其餘所有語言統一顯示英文 `Registration successful / Logging in`。已重新打包 H5。
 - 調整註冊成功流程：移除註冊後的生物識別啟用詢問彈窗，改為畫面中央顯示「註冊成功 / 正在登入中」倒數 2、1 秒後自動進入前台。已重新打包 H5。
 - 修復後台對部分新用戶調帳出現 `Wallet not found`：原因是用戶預設初始化函式缺失，導致 `EN601269` 等新用戶沒有 `cash_usdt`、`eur`、`eur_reserved`、`cny` 錢包與等級資料。已補回 `initialize_user_defaults()`、啟動時補齊缺失資料，並將當前缺資料用戶全部補齊。

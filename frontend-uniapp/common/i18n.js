@@ -68,7 +68,21 @@ export function currentLocale() {
 export function phrase(key, fallback) {
   const messages = i18n.getLocaleMessage(i18n.locale) || {}
   const fallbackMessages = i18n.getLocaleMessage(FALLBACK_LANG) || {}
-  return (messages.phrases && messages.phrases[key]) || (fallbackMessages.phrases && fallbackMessages.phrases[key]) || fallback || key
+  const currentLocale = i18n.locale || FALLBACK_LANG
+  const translated =
+    (messages.phrases && messages.phrases[key]) ||
+    (fallbackMessages.phrases && fallbackMessages.phrases[key])
+
+  if (translated !== undefined && translated !== null && translated !== "") {
+    return translated
+  }
+
+  if (fallback !== undefined && fallback !== null && fallback !== "") {
+    return fallback
+  }
+
+  if (/^zh/i.test(currentLocale)) return key
+  return ""
 }
 
 installMessages(FALLBACK_LANG, engMessages)

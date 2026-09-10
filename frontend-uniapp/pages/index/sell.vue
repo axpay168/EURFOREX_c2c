@@ -8,7 +8,7 @@
     <!-- Top Navigation (Transactional intent -> no bottom nav, top nav adapted to back/close) -->
     <header class="fixed top-0 w-full border-b border-primary/10 bg-white/75 backdrop-blur-3xl shadow-[0_12px_32px_rgba(33,79,131,0.08)] flex justify-between items-center px-6 h-14 w-full z-50">
       <a class="sell-nav-icon-btn flex shrink-0 items-center justify-center rounded-full p-2 text-primary-dim transition-colors hover:bg-primary/10 scale-95 active:duration-150" href="#/pages/index/hall" @click="backGo($event, '#/pages/index/hall')"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">arrow_back</span></a>
-      <div class="font-headline text-lg font-bold text-on-surface">出售 USDT</div>
+      <div class="font-headline text-lg font-bold text-on-surface">{{ localizedText('出售 USDT', 'Sell USDT') }}</div>
       <a class="sell-nav-icon-btn flex shrink-0 items-center justify-center rounded-full p-2 text-primary-dim transition-colors hover:bg-primary/10 scale-95 active:duration-150" href="#/pages/index/serviceCenter">
         <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">help</span>
       </a>
@@ -24,26 +24,26 @@
               <span class="font-headline text-primary font-bold text-xl">{{ avatarLetter }}</span>
             </div>
             <div>
-              <h2 class="font-headline font-bold text-lg text-on-surface tracking-tight">{{ listing.nickname || '商家' }}</h2>
+            <h2 class="font-headline font-bold text-lg text-on-surface tracking-tight">{{ listing.nickname || localizedText('商家', 'Merchant') }}</h2>
               <div class="flex items-center gap-2 mt-0.5">
                 <span class="material-symbols-outlined text-primary text-[14px]" style="font-variation-settings: 'FILL' 1;">verified</span>
-                <span class="font-body text-xs text-on-surface-variant">商家 · 成交率 {{ listing.completion_rate || '—' }}</span>
+                <span class="font-body text-xs text-on-surface-variant">{{ localizedText('商家', 'Merchant') }} · {{ localizedText('成交率', 'Completion rate') }} {{ listing.completion_rate || '—' }}</span>
               </div>
             </div>
           </div>
           <div class="text-right">
-            <div class="font-body text-xs text-on-surface-variant mb-1 uppercase tracking-widest">單價</div>
+            <div class="font-body text-xs text-on-surface-variant mb-1 uppercase tracking-widest">{{ localizedText('單價', 'Unit price') }}</div>
             <div class="font-headline font-bold text-primary text-lg">{{ formatAmount(unitEurPerUsdt, 2) }} EUR</div>
           </div>
         </div>
         <div class="relative z-10 mt-5 pt-4 border-t border-outline-variant/15 flex justify-between">
           <div class="flex flex-col gap-1">
-            <span class="font-body text-[10px] text-on-surface-variant uppercase tracking-widest">可交易</span>
+            <span class="font-body text-[10px] text-on-surface-variant uppercase tracking-widest">{{ localizedText('可交易', 'Available') }}</span>
             <span class="font-headline text-sm font-semibold">{{ formatAmount(maxTradableUsdt, 2) }} USDT</span>
           </div>
           <div class="flex flex-col gap-1 text-right">
-            <span class="font-body text-[10px] text-on-surface-variant uppercase tracking-widest">限制</span>
-            <span class="font-headline text-sm font-semibold">{{ formatAmount(minAmount, 2) }} - {{ formatAmount(maxAmount, 2) }} USDT</span>
+            <span class="font-body text-[10px] text-on-surface-variant uppercase tracking-widest">{{ localizedText('限制', 'Limits') }}</span>
+            <span class="font-headline text-sm font-semibold">{{ formatAmount(effectiveMinAmount, 2) }} - {{ formatAmount(maxAmount, 2) }} USDT</span>
           </div>
         </div>
         <p v-if="loadErrorKey" class="relative z-10 mt-4 rounded-xl bg-error/5 px-3 py-2 text-xs text-error">{{ $t('phrases.' + loadErrorKey) }}</p>
@@ -51,15 +51,15 @@
       <!-- Trading Input + 估價 + 送出（緊湊排版，估價無外框） -->
       <section class="flex flex-col gap-3">
         <div class="flex justify-between items-center px-1">
-          <label class="font-body text-sm text-on-surface-variant">我要賣出</label>
-          <span class="font-body text-xs text-on-surface-variant">餘額： <span id="sell-usdt-balance" class="text-on-surface font-semibold">{{ formatAmount(maxUsdtBalance, 2) }} USDT</span></span>
+          <label class="font-body text-sm text-on-surface-variant">{{ localizedText('我要賣出', 'Sell amount') }}</label>
+          <span class="font-body text-xs text-on-surface-variant">{{ localizedText('餘額', 'Balance') }}： <span id="sell-usdt-balance" class="text-on-surface font-semibold">{{ formatAmount(maxUsdtBalance, 2) }} USDT</span></span>
         </div>
         <div class="bg-surface-container-highest/55 rounded-2xl border border-outline-variant/25 p-1 relative overflow-hidden group focus-within:border-primary/50 focus-within:shadow-[0_0_20px_rgba(86,175,232,0.12)] transition-all duration-300">
           <div class="absolute top-0 left-0 w-full h-[1px] bg-gradient-to-r from-transparent via-primary/30 to-transparent opacity-0 group-focus-within:opacity-100 transition-opacity"></div>
           <div class="flex items-center h-20 px-4">
-            <input id="sell-amount-input" class="bg-transparent border-none outline-none text-4xl font-headline font-bold text-on-surface w-full placeholder:text-on-surface-variant/30" placeholder="0.00" type="text" inputmode="decimal" autocomplete="off" v-model="amount" />
+            <input id="sell-amount-input" class="bg-transparent border-none outline-none text-4xl font-headline font-bold text-on-surface w-full placeholder:text-on-surface-variant/30" placeholder="0.00" type="text" inputmode="decimal" autocomplete="off" v-model="amount" @input="onAmountInput" />
             <div class="flex items-center gap-3 shrink-0 ml-4">
-              <button type="button" class="bg-primary/10 hover:bg-primary/20 text-primary font-label text-xs uppercase tracking-widest font-bold px-3 py-1.5 rounded-full transition-colors" @click="fillMaxSell">全部</button>
+              <button type="button" class="bg-primary/10 hover:bg-primary/20 text-primary font-label text-xs uppercase tracking-widest font-bold px-3 py-1.5 rounded-full transition-colors" @click="fillMaxSell">{{ localizedText('全部', 'All') }}</button>
               <div class="h-8 w-px bg-outline-variant/30"></div>
               <div class="flex items-center gap-2">
                 <div class="w-6 h-6 rounded-full bg-primary-container flex items-center justify-center">
@@ -71,7 +71,7 @@
           </div>
         </div>
         <div class="sell-estimate-inline w-full pt-0.5">
-          <span class="sell-estimate-inline__label">Estimate</span>
+          <span class="sell-estimate-inline__label">{{ localizedText('估算', 'Estimate') }}</span>
           <div class="sell-estimate-inline__value">
             <span>{{ estimatedEurDisplay }}</span>
             <small>EUR</small>
@@ -80,8 +80,8 @@
         <div class="sell-inline-cta">
           <button id="sell-submit-btn" type="button" class="sell-submit-btn w-full h-14 rounded-full font-headline font-bold text-base tracking-wide flex items-center justify-center transition-all duration-300 relative overflow-hidden group" :disabled="submitting || !listing.id" @click="submitSell">
             <div class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out"></div>
-            {{ submitting ? '提交中...' : '確認賣出' }}
-          </button>
+            {{ submitting ? localizedText('提交中...', 'Submitting...') : localizedText('確認賣出', 'Confirm Sell') }}
+        </button>
           <p v-if="submitFeedbackKey || submitFeedbackRaw" class="mt-3 text-center text-xs" :class="submitError ? 'text-error' : 'text-primary-dim'">
           <template v-if="submitFeedbackKey">{{ $t('phrases.' + submitFeedbackKey) }}</template>
           <template v-else>{{ submitFeedbackRaw }}</template>
@@ -97,9 +97,7 @@ import { userApi } from '@/utils/api'
 import { pickBestOneClickListing } from '@/utils/listingPick'
 
 /**
- * EURFOREX - 出售 USDT (純 H5 Vue2 Options API)
- * 以 docs/previews/nnn/sell.html 為唯一基準逐字遷移
- * 原稿無內聯 JS，僅外部 back-nav.js
+ * EURFOREX - 賣 USDT
  */
 var BODY_CLASSES = [
   "nc2c-page",
@@ -123,12 +121,11 @@ export default {
       submitFeedbackRaw: "",
       submitError: false,
       submitting: false,
-      /** 與商家卡片「單價」一致：每 1 USDT 可得 EUR（原型頁） */
       unitEurPerUsdt: 0.93,
-      /** 與「餘額」展示一致，供「全部」帶入 */
       maxUsdtBalance: 0,
       maxTradableUsdt: 0,
       minAmount: 0,
+      tierMinSellAmount: 0,
       maxAmount: 0
     };
   },
@@ -149,6 +146,9 @@ export default {
       var v = this.estimatedEur;
       if (!v || v <= 0) return "0.00";
       return v.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    },
+    effectiveMinAmount: function () {
+      return Math.max(Number(this.minAmount || 0), Number(this.tierMinSellAmount || 0));
     }
   },
   mounted: function () {
@@ -181,6 +181,25 @@ export default {
     fillMaxSell: function () {
       var cap = Math.min(this.maxUsdtBalance, this.maxTradableUsdt || this.maxUsdtBalance);
       this.amount = (Math.floor(cap * 100) / 100).toFixed(2);
+    },
+    normalizeDecimalInput: function (value) {
+      var raw = String(value == null ? "" : value)
+        .replace(/[。．，,]/g, ".")
+        .replace(/[^\d.]/g, "");
+      var dot = raw.indexOf(".");
+      if (dot >= 0) {
+        raw = raw.slice(0, dot + 1) + raw.slice(dot + 1).replace(/\./g, "");
+      }
+      var parts = raw.split(".");
+      if (parts.length > 1) {
+        raw = parts[0] + "." + parts[1].slice(0, 8);
+      }
+      return raw;
+    },
+    onAmountInput: function (event) {
+      var next = this.normalizeDecimalInput(event && event.target ? event.target.value : this.amount);
+      if (next !== this.amount) this.amount = next;
+      if (event && event.target && event.target.value !== next) event.target.value = next;
     },
     formatAmount: function (value, digits) {
       return Number(value || 0).toLocaleString("en-GB", {
@@ -218,6 +237,8 @@ export default {
         var map = (overview && overview.wallet_map) || {};
         var cashUsdt = map.cash_usdt || {};
         self.maxUsdtBalance = parseFloat(cashUsdt.available_balance || "0") || 0;
+        var tierProfile = (overview && overview.tier_profile) || {};
+        self.tierMinSellAmount = parseFloat(tierProfile.min_sell_amount || "0") || 0;
       }
 
       userApi
@@ -234,7 +255,9 @@ export default {
           }
           return userApi.listings("?side=sell").then(function (data) {
             var items = (data && data.items) || [];
-            var best = pickBestOneClickListing(items, "sell", uid);
+            var best = pickBestOneClickListing(items, "sell", uid, {
+              minAmount: self.tierMinSellAmount
+            });
             if (best && best.id) {
               return userApi.listingDetail(String(best.id)).then(function (d) {
                 applyListingFromDetail((d && d.listing) || {});
@@ -264,9 +287,9 @@ export default {
         this.submitFeedbackKey = "orderSellEnterAmount";
         return;
       }
-      if (this.minAmount && amount < this.minAmount) {
+      if (this.effectiveMinAmount && amount < this.effectiveMinAmount) {
         this.submitError = true;
-        this.submitFeedbackKey = "orderSellBelowMin";
+        this.submitFeedbackRaw = this.$t("phrases.orderSellBelowMin") + " " + this.formatAmount(this.effectiveMinAmount, 2) + " USDT";
         return;
       }
       if (this.maxAmount && amount > this.maxAmount) {

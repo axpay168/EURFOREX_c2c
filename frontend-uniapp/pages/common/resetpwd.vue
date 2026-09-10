@@ -3,18 +3,18 @@
     <main class="min-h-screen flex items-center justify-center px-4 py-10">
       <section class="glass-panel rounded-[28px] p-6 md:p-8 w-full max-w-md">
         <div class="text-center">
-          <div class="text-[11px] uppercase tracking-[0.18em] text-on-surface-variant">帳號救援</div>
-          <h1 class="font-headline text-3xl mt-2">重設密碼</h1>
-          <p class="text-sm text-on-surface-variant mt-2">透過驗證碼重設你的登入密碼。</p>
+          <div class="text-[11px] uppercase tracking-[0.18em] text-on-surface-variant">{{ localizedText('帳號救援', 'Account recovery') }}</div>
+          <h1 class="font-headline text-3xl mt-2">{{ localizedText('重設密碼', 'Reset Password') }}</h1>
+          <p class="text-sm text-on-surface-variant mt-2">{{ localizedText('透過驗證碼重設你的登入密碼。', 'Reset your login password with the verification code.') }}</p>
         </div>
         <div class="mt-6 space-y-4">
-          <div class="rounded-2xl bg-surface-bright px-4 py-4 border border-outline-variant/20"><label class="block text-xs uppercase tracking-[0.16em] text-on-surface-variant">手機號 / 信箱</label><div class="mt-2 text-on-surface">aaaa@gmail.com</div></div>
+          <div class="rounded-2xl bg-surface-bright px-4 py-4 border border-outline-variant/20"><label class="block text-xs uppercase tracking-[0.16em] text-on-surface-variant">{{ localizedText('手機號 / 信箱', 'Phone / Email') }}</label><div class="mt-2 text-on-surface">aaaa@gmail.com</div></div>
           <div class="grid grid-cols-[1fr_auto] gap-3">
-            <div class="rounded-2xl bg-surface-bright px-4 py-4 border border-outline-variant/20"><label class="block text-xs uppercase tracking-[0.16em] text-on-surface-variant">驗證碼</label><div class="mt-2 text-on-surface">328219</div></div>
-            <div class="rounded-2xl bg-primary-container text-primary-dim px-4 py-4 font-semibold flex items-center justify-center whitespace-nowrap">發送驗證碼</div>
+            <div class="rounded-2xl bg-surface-bright px-4 py-4 border border-outline-variant/20"><label class="block text-xs uppercase tracking-[0.16em] text-on-surface-variant">{{ localizedText('驗證碼', 'Verification code') }}</label><div class="mt-2 text-on-surface">328219</div></div>
+            <div class="rounded-2xl bg-primary-container text-primary-dim px-4 py-4 font-semibold flex items-center justify-center whitespace-nowrap">{{ localizedText('發送驗證碼', 'Send code') }}</div>
           </div>
-          <div class="rounded-2xl bg-surface-bright px-4 py-4 border border-outline-variant/20"><label class="block text-xs uppercase tracking-[0.16em] text-on-surface-variant">新密碼</label><div class="mt-2 text-on-surface">••••••••</div></div>
-          <a class="block w-full rounded-full bg-gradient-to-br from-primary to-primary-dim text-white text-center py-3 font-headline font-bold tracking-wide" href="#/pages/common/login">更新密碼</a>
+          <div class="rounded-2xl bg-surface-bright px-4 py-4 border border-outline-variant/20"><label class="block text-xs uppercase tracking-[0.16em] text-on-surface-variant">{{ localizedText('新密碼', 'New Password') }}</label><div class="mt-2 text-on-surface">••••••••</div></div>
+          <a class="block w-full rounded-full bg-gradient-to-br from-primary to-primary-dim text-white text-center py-3 font-headline font-bold tracking-wide" href="#/pages/common/login">{{ localizedText('更新密碼', 'Update Password') }}</a>
         </div>
       </section>
     </main>

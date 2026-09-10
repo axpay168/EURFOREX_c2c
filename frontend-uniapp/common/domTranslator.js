@@ -23,7 +23,8 @@ function translateExact(value) {
   const text = normalizeText(value)
   if (!text) return value
   const phrases = activeMessages.phrases || {}
-  const fallbackPhrases = activeLocale && activeLocale !== FALLBACK_LANG ? (fallbackMessages.phrases || {}) : {}
+  // 中文語系不可退回英文字典，否則中文原文會被換成英文
+  const fallbackPhrases = activeLocale && activeLocale !== FALLBACK_LANG && !/^zh/i.test(activeLocale) ? (fallbackMessages.phrases || {}) : {}
   const exact = phrases[text] || fallbackPhrases[text]
   if (exact) return exact
   const merged = { ...fallbackPhrases, ...phrases }

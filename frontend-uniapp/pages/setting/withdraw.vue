@@ -3,31 +3,44 @@
     <header class="fixed top-0 w-full border-b border-primary/10 bg-white/75 backdrop-blur-3xl shadow-[0_12px_32px_rgba(33,79,131,0.08)] flex justify-between items-center px-6 h-14 w-full z-50">
       <a class="flex shrink-0 items-center justify-center rounded-full p-2 text-primary-dim transition-colors hover:bg-primary/10" href="#/pages/setting/wallet" @click="backGo($event, '#/pages/setting/wallet')"><span class="material-symbols-outlined">arrow_back</span></a>
       <div class="min-w-0 flex-1 px-1 text-center">
-        <div class="font-headline text-lg font-bold leading-tight text-on-surface">法幣提現</div>
+        <div class="font-headline text-lg font-bold leading-tight text-on-surface">{{ localizedText('法幣提現', 'Fiat Withdrawal') }}</div>
       </div>
-      <a class="flex shrink-0 min-w-[2.5rem] items-center justify-center rounded-full p-2 text-sm font-bold text-primary-dim transition-colors hover:bg-primary/10" href="#/pages/setting/withdrawUsdt" title="改為 USDT 鏈上提現">USDT</a>
+      <a class="flex shrink-0 min-w-[2.5rem] items-center justify-center rounded-full p-2 text-sm font-bold text-primary-dim transition-colors hover:bg-primary/10" href="#/pages/setting/withdrawUsdt" :title="localizedText('改為 USDT 鏈上提現', 'Switch to USDT on-chain withdrawal')">USDT</a>
     </header>
 
-    <main class="mx-auto max-w-lg px-4 pb-10 pb-safe pt-20">
+      <main class="mx-auto max-w-lg px-4 pb-10 pb-safe pt-20">
 
       <p class="mb-3 flex items-start gap-2 rounded-2xl border border-primary/15 bg-primary-container/40 px-3.5 py-2.5 text-xs font-medium text-on-surface leading-relaxed">
         <span class="material-symbols-outlined mt-0.5 text-[18px] text-primary-dim shrink-0">account_balance</span>
-        <span><span class="font-bold text-primary-dim">EUR 銀行提領：</span>資金將匯入您已驗證的歐元帳戶，到帳時間受銀行與假日影響；提交後可在提領紀錄查看審核與放款狀態。</span>
+        <span><span class="font-bold text-primary-dim">{{ selectedFiat.code }} {{ localizedText('銀行提領：', 'bank withdrawal:') }}</span>{{ localizedText('資金將匯入您已驗證的銀行帳戶，到帳時間受銀行與假日影響；提交後可在提領紀錄查看審核與放款狀態。', 'Funds will be sent to your verified bank account. Settlement usually depends on bank timing and holidays. You can check review and release status in withdrawal history.') }}</span>
       </p>
 
       <section class="fiat-card p-[18px]">
+        <div class="mb-4">
+          <div class="mb-2 text-sm font-semibold text-on-surface">{{ localizedText('選擇法幣幣種', 'Select fiat currency') }}</div>
+          <div class="flex flex-wrap gap-2.5">
+            <button
+              v-for="fiat in fiatAssets"
+              :key="fiat.code"
+              type="button"
+              class="fiat-currency-pill"
+              :class="{ 'fiat-currency-pill--active': fiatCode === fiat.code }"
+              @click="selectFiat(fiat.code)"
+            >{{ fiat.code }}</button>
+          </div>
+        </div>
         <div class="flex items-start justify-between gap-3 border-b border-outline-variant/20 pb-4">
           <div>
-            <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-on-surface-variant">到帳方式</p>
-            <p class="mt-1 font-headline text-base font-bold text-on-surface">SEPA 本地轉帳</p>
-            <p class="mt-1 text-xs text-on-surface-variant">通常 1～3 個銀行工作日內到帳</p>
+            <p class="text-[11px] font-bold uppercase tracking-[0.14em] text-on-surface-variant">{{ localizedText('到帳方式', 'Arrival method') }}</p>
+            <p class="mt-1 font-headline text-base font-bold text-on-surface">{{ localizedText('SEPA 本地轉帳', 'SEPA local transfer') }}</p>
+            <p class="mt-1 text-xs text-on-surface-variant">{{ localizedText('通常 1～3 個銀行工作日內到帳', 'Usually 1 to 3 business days to settle') }}</p>
           </div>
-          <span class="shrink-0 rounded-full bg-surface-container-high px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">EUR</span>
+          <span class="shrink-0 rounded-full bg-surface-container-high px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">{{ selectedFiat.code }}</span>
         </div>
 
         <div class="mt-4">
           <div class="mb-2">
-            <span class="text-sm font-semibold text-on-surface">收款銀行</span>
+            <span class="text-sm font-semibold text-on-surface">{{ localizedText('收款銀行', 'Beneficiary bank') }}</span>
           </div>
 
           <div id="fiat-bank-empty" class="eurforex-empty-card eurforex-empty-card--compact" v-show="!selectedBank">
@@ -38,92 +51,93 @@
               <span class="eurforex-empty-illustration__box"></span>
             </div>
             <div class="eurforex-empty-actions">
-              <button type="button" id="open-bank-picker-empty" class="eurforex-empty-btn" @click="showModal">選擇收款銀行</button>
+            <button type="button" id="open-bank-picker-empty" class="eurforex-empty-btn" @click="showModal">{{ localizedText('選擇收款銀行', 'Select receiving bank') }}</button>
             </div>
           </div>
 
           <div id="fiat-bank-selected" :class="selectedBank ? '' : 'hidden'" v-show="selectedBank">
             <div class="selected-bank-card">
               <div class="flex flex-wrap items-center gap-2">
-                <span class="bank-card-title">已選擇收款銀行</span>
-                <span id="fiat-bank-default-badge" class="rounded-md bg-primary-container/80 px-2 py-0.5 text-[10px] font-bold text-primary-dim" :class="{ hidden: !selectedBank || !selectedBank.default }">預設</span>
+                <span class="bank-card-title">{{ localizedText('已選擇收款銀行', 'Selected receiving bank') }}</span>
+                <span id="fiat-bank-default-badge" class="rounded-md bg-primary-container/80 px-2 py-0.5 text-[10px] font-bold text-primary-dim" :class="{ hidden: !selectedBank || !selectedBank.default }">{{ localizedText('預設', 'Default') }}</span>
+                <span class="rounded-md bg-surface-container-high px-2 py-0.5 text-[10px] font-bold text-on-surface-variant">{{ selectedBank ? selectedBank.currency : "" }}</span>
               </div>
               <div class="mt-3 space-y-2">
                 <div class="bank-info-row">
-                  <span>戶名</span>
+                  <span>{{ localizedText('戶名', 'Account holder') }}</span>
                   <strong id="fiat-bank-holder">{{ selectedBank ? selectedBank.holder : '—' }}</strong>
                 </div>
                 <div class="bank-info-row">
-                  <span>銀行名</span>
+                <span>{{ localizedText('銀行名', 'Bank name') }}</span>
                   <strong id="fiat-bank-name">{{ selectedBank ? selectedBank.name : '—' }}</strong>
                 </div>
                 <div class="bank-info-row">
-                  <span>銀行帳號</span>
+                <span>{{ localizedText('銀行帳號', 'Bank account') }}</span>
                   <strong id="fiat-bank-iban" class="font-mono tracking-wide">{{ selectedBank ? selectedBank.iban : '—' }}</strong>
                 </div>
               </div>
             </div>
-            <button type="button" id="open-bank-picker-change" class="mt-3 w-full rounded-xl border border-outline-variant/30 bg-white py-2.5 text-sm font-bold text-primary-dim transition-colors hover:bg-surface-container-low" @click="showModal">選擇其他銀行</button>
+            <button type="button" id="open-bank-picker-change" class="mt-3 w-full rounded-xl border border-outline-variant/30 bg-white py-2.5 text-sm font-bold text-primary-dim transition-colors hover:bg-surface-container-low" @click="showModal">{{ localizedText('選擇其他銀行', 'Choose another bank') }}</button>
           </div>
         </div>
 
         <div class="mt-6">
-          <label class="mb-2 block text-sm font-semibold text-on-surface" for="fiat-amount">提現金額</label>
+          <label class="mb-2 block text-sm font-semibold text-on-surface" for="fiat-amount">{{ localizedText('提現金額', 'Withdrawal amount') }}</label>
           <div class="flex min-h-[56px] items-center gap-2 rounded-[18px] border border-outline-variant/35 bg-gradient-to-b from-white to-surface-container-low/90 px-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.85)] sm:px-4">
             <input class="min-w-0 flex-1 border-0 bg-transparent text-2xl font-headline font-bold tracking-tight text-on-surface placeholder:text-on-surface-variant/50 focus:outline-none focus:ring-0" id="fiat-amount" inputmode="decimal" autocomplete="off" placeholder="0.00" type="text" v-model="amount" />
-            <span class="shrink-0 border-l border-outline-variant/25 pl-3 text-sm font-extrabold text-on-surface">EUR</span>
-            <button class="shrink-0 rounded-xl bg-primary-container/70 px-3 py-1.5 text-xs font-bold text-primary-dim hover:bg-primary-container" id="fiat-max" type="button" @click="fillMax">全部</button>
+            <span class="shrink-0 border-l border-outline-variant/25 pl-3 text-sm font-extrabold text-on-surface">{{ selectedFiat.code }}</span>
+            <button class="shrink-0 rounded-xl bg-primary-container/70 px-3 py-1.5 text-xs font-bold text-primary-dim hover:bg-primary-container" id="fiat-max" type="button" @click="fillMax">{{ localizedText('全部', 'All') }}</button>
           </div>
-          <p class="fiat-soft-note mt-2 text-xs text-on-surface-variant">單筆最低 <span class="font-semibold text-on-surface">EUR 20.00</span> · 需預留手續費</p>
+          <p class="fiat-soft-note mt-2 text-xs text-on-surface-variant">{{ localizedText('單筆最低', 'Single minimum') }} <span class="font-semibold text-on-surface">{{ selectedFiat.code }} 20.00</span> · {{ localizedText('需預留手續費', 'Service fee applies') }}</p>
         </div>
       </section>
 
       <section class="fiat-card mt-4 p-[18px]">
-        <h2 class="font-headline text-sm font-bold text-on-surface">費用與預覽</h2>
+        <h2 class="font-headline text-sm font-bold text-on-surface">{{ localizedText("費用與預覽", "Fees and Preview") }}</h2>
         <dl class="mt-4 space-y-3 text-sm">
           <div class="flex items-center justify-between gap-4">
-            <dt class="text-on-surface-variant">可用餘額</dt>
-            <dd class="font-semibold tabular-nums">{{ formatEur(maxBal) }}</dd>
+            <dt class="text-on-surface-variant">{{ localizedText("可用餘額", "Available balance") }}</dt>
+            <dd class="font-semibold tabular-nums">{{ formatFiat(maxBal) }}</dd>
           </div>
           <div class="flex items-center justify-between gap-4">
-            <dt class="text-on-surface-variant">平台手續費</dt>
-            <dd class="font-semibold tabular-nums text-on-surface">EUR 5.00</dd>
+            <dt class="text-on-surface-variant">{{ localizedText("平台手續費", "Platform fee") }}</dt>
+            <dd class="font-semibold tabular-nums text-on-surface">{{ feeDisplay }}</dd>
           </div>
           <div class="h-px bg-outline-variant/25"></div>
           <div class="flex items-center justify-between gap-4">
-            <dt class="font-semibold text-on-surface">預計到帳（扣除費用後）</dt>
+            <dt class="font-semibold text-on-surface">{{ localizedText("預計到帳（扣除費用後）", "Estimated arrival after fee") }}</dt>
             <dd class="font-headline text-lg font-bold tabular-nums text-primary-dim" id="fiat-net">{{ netDisplay }}</dd>
           </div>
         </dl>
         <div class="mt-4 rounded-2xl bg-surface-container-low px-4 py-3 text-xs leading-relaxed text-on-surface-variant">
-          <span class="font-semibold text-on-surface">今日剩餘額度</span> EUR 1,520 / 2,000 · 完成
-          <a class="font-bold text-primary-dim" href="#/pages/setting/kycVerification">身份認證</a>
-          可申請提高。
+          <span class="font-semibold text-on-surface">{{ localizedText("今日剩餘額度", "Remaining quota today") }}</span> {{ selectedFiat.code }} 1,520 / 2,000 · {{ localizedText("完成", "Completed") }}
+          <a class="font-bold text-primary-dim" href="#/pages/setting/kycVerification">{{ localizedText("身份認證", "Identity verification") }}</a>
+          {{ localizedText("可申請提高。", "You may increase it after verification.") }}
         </div>
         <button
           type="button"
           class="usdt-confirm mt-5 flex h-[52px] w-full items-center justify-center rounded-full font-headline text-base font-bold tracking-wide"
           :disabled="submitting"
           @click="goWithdrawDetailFiat"
-        >{{ submitting ? '提交中...' : '確認提現' }}</button>
+        >{{ submitting ? localizedText("提交中...", "Submitting...") : localizedText("確認提現", "Confirm withdrawal") }}</button>
       </section>
     </main>
 
-    <Nc2cCenterSheet :visible.sync="modalOpen" title="選擇收款銀行" title-id="bank-picker-title">
+    <Nc2cCenterSheet :visible.sync="modalOpen" :title="localizedText('選擇收款銀行', 'Select bank account')" title-id="bank-picker-title">
       <div class="bank-picker-shell">
-        <p class="bank-picker-desc">請選擇本次提現要使用的銀行帳戶，確認後提現頁只會帶入該筆收款資料。</p>
+        <p class="bank-picker-desc">{{ localizedText("請選擇本次提現要使用的銀行帳戶，確認後提現頁只會帶入該筆收款資料。", "Select the bank account for this withdrawal; the selected account will be auto-filled on the withdrawal page.") }}</p>
       <a
         href="#/pages/setting/bindinfo"
         class="bank-picker-add-btn"
         @click="hideModal"
       >
         <span class="material-symbols-outlined text-[18px]">add_card</span>
-        <span>新增銀行</span>
+        <span>{{ localizedText("新增銀行", "Add bank") }}</span>
       </a>
       <div id="bank-picker-list" class="bank-picker-list">
-        <p v-if="!banks.length" class="rounded-2xl border border-dashed border-slate-300 bg-white/70 px-4 py-8 text-center text-sm text-on-surface-variant">尚未綁定銀行帳戶，請先新增銀行。</p>
+        <p v-if="!banksForFiat.length" class="rounded-2xl border border-dashed border-slate-300 bg-white/70 px-4 py-8 text-center text-sm text-on-surface-variant">{{ banks.length ? localizedText("此貨幣尚未綁定銀行帳戶，請先新增。", "No bank account is bound for this currency yet. Please add one first.") : localizedText("尚未綁定銀行帳戶，請先新增銀行。", "No bank account is bound yet, please add one first.") }}</p>
         <button
-          v-for="b in banks"
+          v-for="b in banksForFiat"
           :key="b.id"
           type="button"
           class="bank-pick"
@@ -133,39 +147,57 @@
         >
           <div class="bank-pick-head">
             <div>
-              <span class="bank-pick-title">銀行收款帳戶</span>
-              <span v-if="b.default" class="bank-pick-badge">預設</span>
+              <span class="bank-pick-title">{{ localizedText("銀行收款帳戶", "Bank account") }}</span>
+              <span v-if="b.default" class="bank-pick-badge">{{ localizedText("預設", "Default") }}</span>
+              <span class="bank-pick-badge">{{ b.currency }}</span>
             </div>
             <span class="bank-pick-radio" aria-hidden="true"></span>
           </div>
           <div class="bank-pick-fields">
             <div class="bank-pick-field">
-              <span>戶名</span>
+              <span>{{ localizedText("戶名", "Account holder") }}</span>
               <strong>{{ b.holder }}</strong>
             </div>
             <div class="bank-pick-field">
-              <span>銀行名</span>
+              <span>{{ localizedText("銀行名", "Bank name") }}</span>
               <strong>{{ b.name }}</strong>
             </div>
             <div class="bank-pick-field">
-              <span>銀行帳號</span>
+              <span>{{ localizedText("銀行帳號", "Bank account") }}</span>
               <strong class="font-mono tracking-wide">{{ b.iban }}</strong>
+            </div>
+            <div v-if="b.swift" class="bank-pick-field">
+              <span>BIC/SWIFT</span>
+              <strong class="font-mono tracking-wide">{{ b.swift }}</strong>
             </div>
           </div>
         </button>
       </div>
       <div class="mt-5 flex gap-3">
-        <button type="button" id="bank-picker-cancel" class="flex-1 rounded-full border-2 border-slate-300 bg-white py-3 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50" @click="hideModal">取消</button>
-        <button type="button" id="bank-picker-confirm" class="bank-picker-confirm-btn flex-1 rounded-full py-3 text-sm font-bold text-white shadow-[0_10px_22px_rgba(47,115,205,0.35)]" @click="confirmPicker">確定</button>
+        <button type="button" id="bank-picker-cancel" class="flex-1 rounded-full border-2 border-slate-300 bg-white py-3 text-sm font-bold text-slate-700 shadow-sm hover:bg-slate-50" @click="hideModal">{{ localizedText("取消", "Cancel") }}</button>
+        <button type="button" id="bank-picker-confirm" class="bank-picker-confirm-btn flex-1 rounded-full py-3 text-sm font-bold text-white shadow-[0_10px_22px_rgba(47,115,205,0.35)]" @click="confirmPicker">{{ localizedText("確定", "Confirm") }}</button>
       </div>
       </div>
     </Nc2cCenterSheet>
+
+    <div class="fiat-notice-overlay" :class="{ open: noticeOpen }" role="dialog" aria-modal="true" aria-labelledby="fiat-notice-title" @click.self="closeNotice">
+      <div class="fiat-notice-dialog">
+        <div class="fiat-notice-icon" aria-hidden="true">
+          <span class="material-symbols-outlined">info</span>
+        </div>
+        <h2 id="fiat-notice-title">{{ noticeTitle }}</h2>
+        <p>{{ noticeMessage }}</p>
+        <button type="button" class="fiat-notice-btn" @click="closeNotice">{{ localizedText("我知道了", "Got it") }}</button>
+      </div>
+    </div>
 
   </div>
 </template>
 
 <script>
 import { userApi } from '@/utils/api'
+import { getStoredLang } from '@/common/langStorage'
+import { normalizeFiatCode } from '@/common/fiatCurrencies'
 
 /**
  * EURFOREX - 法幣提現 (純 H5 Vue2 Options API)
@@ -187,6 +219,12 @@ var BODY_CLASSES = [
 ];
 
 var STORAGE_KEY = "eurforex-fiat-withdraw-bank-id";
+function kycRequiredMessage() {
+  var lang = getStoredLang();
+  if (lang === "zh-Hant") return "尚未完成實名認證。";
+  if (lang === "zh-Hans") return "尚未完成实名认证。";
+  return "Identity verification has not been completed.";
+}
 export default {
   name: "WithdrawH5",
   data: function () {
@@ -195,10 +233,21 @@ export default {
       selectedId: "",
       pendingId: null,
       modalOpen: false,
+      fiatCode: "EUR",
+      fiatAssets: [
+        { code: "EUR", wallet: "eur" },
+        { code: "CHF", wallet: "chf" },
+        { code: "USD", wallet: "usd" },
+        { code: "GBP", wallet: "gbp" }
+      ],
+      walletMap: {},
       amount: "",
       fee: 5,
       maxBal: 0,
-      submitting: false
+      submitting: false,
+      noticeOpen: false,
+      noticeTitle: "",
+      noticeMessage: ""
     };
   },
   computed: {
@@ -209,14 +258,27 @@ export default {
       }
       return null;
     },
+    banksForFiat: function () {
+      var code = this.selectedFiat.code;
+      return this.banks.filter(function (b) { return (b.currency || "EUR") === code; });
+    },
+    selectedFiat: function () {
+      for (var i = 0; i < this.fiatAssets.length; i++) {
+        if (this.fiatAssets[i].code === this.fiatCode) return this.fiatAssets[i];
+      }
+      return this.fiatAssets[0];
+    },
     netDisplay: function () {
       var raw = this.amount ? String(this.amount).replace(/,/g, "").trim() : "";
       if (!raw) return "—";
       var n = parseFloat(raw);
       if (isNaN(n)) n = 0;
       var net = n - this.fee;
-      if (net <= 0) return this.formatEur(0);
-      return this.formatEur(net);
+      if (net <= 0) return this.formatFiat(0);
+      return this.formatFiat(net);
+    },
+    feeDisplay: function () {
+      return this.formatFiat(this.fee);
     }
   },
   mounted: function () {
@@ -251,8 +313,26 @@ export default {
         window.EurforexBack.go(fallback);
       }
     },
-    formatEur: function (n) {
-      return "EUR " + n.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    formatFiat: function (n) {
+      return this.selectedFiat.code + " " + n.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    },
+    selectFiat: function (code) {
+      this.fiatCode = String(code || "EUR").toUpperCase();
+      this.amount = "";
+      this.applyFiatBalance();
+      this.syncSelectedBankWithFiat();
+    },
+    /** 只保留與所選法幣相同幣別的銀行帳戶；目前選擇不符合時改選該幣別的預設或第一筆 */
+    syncSelectedBankWithFiat: function () {
+      var list = this.banksForFiat;
+      var current = this.selectedBank;
+      if (current && list.some(function (b) { return b.id === current.id; })) return;
+      var picked = list.find(function (b) { return b.default; }) || list[0] || null;
+      this.selectedId = picked ? picked.id : "";
+    },
+    applyFiatBalance: function () {
+      var wallet = this.walletMap[this.selectedFiat.wallet] || {};
+      this.maxBal = parseFloat(wallet.available_balance || "0") || 0;
     },
     loadPageData: function () {
       var self = this;
@@ -260,8 +340,8 @@ export default {
         .overview()
         .then(function (data) {
           var map = (data && data.wallet_map) || {};
-          var eur = map.eur || {};
-          self.maxBal = parseFloat(eur.available_balance || "0") || 0;
+          self.walletMap = map;
+          self.applyFiatBalance();
         })
         .catch(function () {
           self.maxBal = 0;
@@ -280,13 +360,12 @@ export default {
                 name: it.bank_name || "銀行帳戶",
                 default: !!it.is_default,
                 holder: it.account_holder || "—",
-                iban: it.account_no_masked || "—"
+                iban: it.account_no_masked || "—",
+                currency: normalizeFiatCode(it.currency_code || "EUR"),
+                swift: String(it.bank_swift || "").trim()
               };
             });
-          if (!self.selectedId && self.banks.length) {
-            var picked = self.banks.find(function (b) { return b.default; }) || self.banks[0];
-            self.selectedId = picked.id;
-          }
+          self.syncSelectedBankWithFiat();
         })
         .catch(function () {
           self.banks = [];
@@ -295,11 +374,29 @@ export default {
     showModal: function () {
       var cur = "";
       try { cur = sessionStorage.getItem(STORAGE_KEY) || ""; } catch (e) {}
-      this.pendingId = cur || (this.banks[0] && this.banks[0].id) || null;
+      var list = this.banksForFiat;
+      var valid = list.some(function (b) { return b.id === cur; });
+      this.pendingId = (valid ? cur : "") || (list[0] && list[0].id) || null;
       this.modalOpen = true;
     },
     hideModal: function () {
       this.modalOpen = false;
+    },
+    showNotice: function (message, title) {
+      this.noticeTitle = title || this.localizedText("提示", "Notice");
+      this.noticeMessage = message || this.localizedText("操作失敗，請稍後再試。", "Failed, please try again later.");
+      this.noticeOpen = true;
+    },
+    closeNotice: function () {
+      this.noticeOpen = false;
+    },
+    withdrawalErrorMessage: function (error) {
+      var code = error && error.payload && error.payload.error_code;
+      var msg = error && error.payload && error.payload.msg ? String(error.payload.msg) : "";
+      if (code === "AUTH_KYC_REQUIRED" || /KYC/i.test(msg)) return kycRequiredMessage();
+      if (code === "AUTH_TOKEN_INVALID" || code === "AUTH_TOKEN_EXPIRED" || code === "AUTH_UNAUTHORIZED") return this.localizedText("登入狀態已失效，請重新登入後再提交。", "Your login has expired. Please sign in again before submit.");
+      if (code === "AUTH_INVALID_PARAMS" && /Insufficient balance/i.test(msg)) return this.localizedText("可用餘額不足，請確認提現金額與手續費。", "Insufficient balance. Please check the amount and withdrawal fee.");
+      return (error && error.message) || this.localizedText("提現申請提交失敗，請稍後再試。", "Withdrawal request submission failed. Please try again later.");
     },
     confirmPicker: function () {
       if (this.pendingId) {
@@ -314,15 +411,24 @@ export default {
     goWithdrawDetailFiat: function () {
       var n = parseFloat(String(this.amount || "").replace(/,/g, "").trim());
       if (!this.selectedBank) {
-        alert("請選擇已審核的收款銀行。");
+        this.showNotice(
+          this.localizedText("請先選擇本次提現要使用的收款銀行。", "Please select a beneficiary bank first."),
+          this.localizedText("尚未選擇銀行", "Bank not selected")
+        );
         return;
       }
       if (isNaN(n) || n < 20) {
-        alert("提現金額需至少 EUR 20.00。");
+        this.showNotice(
+          this.localizedText("單筆法幣提現金額需至少 ", "The minimum single fiat withdrawal amount is ") + this.selectedFiat.code + " 20.00。",
+          this.localizedText("金額未達最低限制", "Amount below minimum")
+        );
         return;
       }
       if (n > this.maxBal) {
-        alert("可用餘額不足。");
+        this.showNotice(
+          this.localizedText("可用餘額不足，請調整提現金額或先完成充值。", "Insufficient available balance. Please adjust the amount or top up first."),
+          this.localizedText("餘額不足", "Insufficient balance")
+        );
         return;
       }
       if (this.submitting) return;
@@ -332,15 +438,18 @@ export default {
         .createWithdrawalRequest({
           amount: n.toFixed(8),
           channel_type: "bank",
-          asset_code: "EUR",
-          source_wallet_code: "eur",
+          asset_code: this.selectedFiat.code,
+          source_wallet_code: this.selectedFiat.wallet,
           payout_method_id: this.selectedBank.id
         })
         .then(function (data) {
           window.location.href = "#/pages/setting/withdrawDetailFiat?id=" + (data.withdrawal_request_id || data.request_id || "");
         })
         .catch(function (error) {
-          alert((error && error.message) || "提現申請提交失敗");
+          self.showNotice(
+            self.withdrawalErrorMessage(error),
+            self.localizedText("提現申請未送出", "Request not submitted")
+          );
         })
         .finally(function () {
           self.submitting = false;
@@ -543,5 +652,105 @@ export default {
 }
 .bank-picker-confirm-btn:hover {
   filter: brightness(1.05);
+}
+.fiat-notice-overlay {
+  align-items: center;
+  background: rgba(10, 27, 47, 0.46);
+  backdrop-filter: blur(10px);
+  display: flex;
+  inset: 0;
+  justify-content: center;
+  opacity: 0;
+  padding: 22px;
+  pointer-events: none;
+  position: fixed;
+  transition: opacity 0.18s ease;
+  z-index: 80;
+}
+.fiat-notice-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+.fiat-notice-dialog {
+  align-items: center;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.99), rgba(239, 248, 255, 0.98)),
+    radial-gradient(circle at top right, rgba(59, 154, 232, 0.2), transparent 42%);
+  border: 1px solid rgba(255, 255, 255, 0.82);
+  border-radius: 28px;
+  box-shadow: 0 28px 72px rgba(9, 35, 68, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.96);
+  display: flex;
+  flex-direction: column;
+  max-width: 360px;
+  padding: 26px 22px 22px;
+  text-align: center;
+  transform: translateY(8px) scale(0.98);
+  transition: transform 0.18s ease;
+  width: min(88vw, 360px);
+}
+.fiat-notice-overlay.open .fiat-notice-dialog {
+  transform: translateY(0) scale(1);
+}
+.fiat-notice-icon {
+  align-items: center;
+  background: linear-gradient(135deg, #3b9ae8, #1e5cad);
+  border-radius: 999px;
+  box-shadow: 0 12px 24px rgba(47, 115, 205, 0.28);
+  color: #ffffff;
+  display: flex;
+  height: 52px;
+  justify-content: center;
+  margin-bottom: 14px;
+  width: 52px;
+}
+.fiat-notice-icon .material-symbols-outlined {
+  font-size: 30px;
+}
+.fiat-notice-dialog h2 {
+  color: #10243f;
+  font-size: 20px;
+  font-weight: 900;
+  margin: 0;
+}
+.fiat-notice-dialog p {
+  color: #5b7190;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1.65;
+  margin: 10px 0 0;
+}
+.fiat-notice-btn {
+  background: linear-gradient(135deg, #3b9ae8, #1e5cad);
+  border: 0;
+  border-radius: 999px;
+  box-shadow: 0 12px 24px rgba(47, 115, 205, 0.25);
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: 900;
+  margin-top: 18px;
+  min-height: 44px;
+  padding: 0 28px;
+  width: 100%;
+}
+</style>
+
+<style scoped>
+.fiat-currency-pill {
+  min-width: 70px;
+  height: 38px;
+  border: 1px solid rgba(146, 176, 214, 0.38);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.82);
+  color: #667891;
+  font-size: 14px;
+  font-weight: 850;
+  box-shadow: 0 8px 18px rgba(29, 80, 135, 0.06), inset 0 1px 0 rgba(255,255,255,0.9);
+}
+
+.fiat-currency-pill--active {
+  border-color: rgba(65, 107, 216, 0.55);
+  background: linear-gradient(180deg, #eef4ff, #f9fcff);
+  color: #416bd8;
+  box-shadow: 0 10px 20px rgba(65, 107, 216, 0.15), inset 0 1px 0 rgba(255,255,255,0.96);
 }
 </style>

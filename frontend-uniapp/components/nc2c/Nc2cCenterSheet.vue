@@ -16,7 +16,7 @@
         <button
           type="button"
           class="rounded-full p-1.5 text-on-surface-variant hover:bg-surface-container-low"
-          aria-label="關閉"
+          :aria-label="localizedText('關閉', 'Close')"
           @click="close"
         >
           <span class="material-symbols-outlined text-[22px] leading-none">close</span>
@@ -28,10 +28,6 @@
 </template>
 
 <script>
-/**
- * nc2c 遷移頁：居中／底部對齊的選擇彈窗外殼（法幣選銀行、USDT 地址簿等）
- * 與 withdraw / withdrawUsdt 原稿視覺一致；統一 body 捲動鎖定。
- */
 export default {
   name: "Nc2cCenterSheet",
   props: {

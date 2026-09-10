@@ -1,7 +1,3 @@
-/**
- * USDT 鏈上提領／綁定地址：後端 user_payout_methods 共用欄位整理
- */
-
 export function filterUsdtPayoutItems(items) {
   var list = items || [];
   return list.filter(function (it) {
@@ -11,7 +7,6 @@ export function filterUsdtPayoutItems(items) {
   });
 }
 
-/** 卡片標題：備註持有人 > bank_name > 預設 USDT · 網路 */
 export function usdtPayoutRowTitle(it) {
   var holder = it.account_holder && String(it.account_holder).trim();
   var bn = it.bank_name && String(it.bank_name).trim();
@@ -21,15 +16,11 @@ export function usdtPayoutRowTitle(it) {
   return "USDT · " + net;
 }
 
-/**
- * @param {string} [status]
- * @param {string} [emptyFallback] 非 pending/rejected 時的後備文案（例如「不可用」或「—」）
- */
 export function payoutMethodStatusLabel(status, emptyFallback) {
   var fb = emptyFallback != null ? emptyFallback : "—";
   var s = String(status || "").toLowerCase();
-  if (s === "pending") return "審核中";
-  if (s === "rejected") return "已駁回";
+  if (s === "pending") return "Pending review";
+  if (s === "rejected") return "Rejected";
   if (!s) return fb;
   return s;
 }

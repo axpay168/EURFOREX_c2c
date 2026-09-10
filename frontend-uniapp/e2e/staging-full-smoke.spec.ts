@@ -186,8 +186,16 @@ test.describe('staging 真實互動冒煙測試', () => {
 
       await page.locator('#kycLegalName').fill(`Smoke User ${TEST_RUN}`)
       await page.locator('#kycIdNumber').fill('AA123456789')
-      await page.locator('#kycFrontUrl').fill(PROOF_URL)
-      await page.locator('#kycBackUrl').fill(PROOF_URL)
+      await page.locator('#kycFrontUrl').setInputFiles({
+        name: 'kyc-front.png',
+        mimeType: 'image/png',
+        buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=', 'base64')
+      })
+      await page.locator('#kycBackUrl').setInputFiles({
+        name: 'kyc-back.png',
+        mimeType: 'image/png',
+        buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=', 'base64')
+      })
       await page.locator('#kycSubmitBtn').click()
       await expect(page.locator('body')).toContainText('資料已提交')
       let latest = await api<{ application?: { id?: number, status?: string, review_note?: string } }>(request, 'GET', '/api/user/kyc-applications/latest', { token: userToken })
@@ -206,8 +214,16 @@ test.describe('staging 真實互動冒煙測試', () => {
       await expect(page.locator('body')).toContainText(`${TEST_RUN} reject once`)
       await page.locator('#kycLegalName').fill(`Smoke User ${TEST_RUN} Resubmitted`)
       await page.locator('#kycIdNumber').fill('AA123456789')
-      await page.locator('#kycFrontUrl').fill(`${PROOF_URL}?front=resubmit`)
-      await page.locator('#kycBackUrl').fill(`${PROOF_URL}?back=resubmit`)
+      await page.locator('#kycFrontUrl').setInputFiles({
+        name: 'kyc-front-resubmit.png',
+        mimeType: 'image/png',
+        buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=', 'base64')
+      })
+      await page.locator('#kycBackUrl').setInputFiles({
+        name: 'kyc-back-resubmit.png',
+        mimeType: 'image/png',
+        buffer: Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/p9sAAAAASUVORK5CYII=', 'base64')
+      })
       await page.locator('#kycSubmitBtn').click()
       await expect(page.locator('body')).toContainText('資料已提交')
       latest = await api<{ application?: { id?: number, status?: string } }>(request, 'GET', '/api/user/kyc-applications/latest', { token: userToken })

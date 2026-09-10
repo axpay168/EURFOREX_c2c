@@ -98,7 +98,7 @@ try {
         'template_code' => $templateCode,
         'display_name' => 'Smoke Template',
         'level' => 2,
-        'group_code' => 'vip',
+        'admin_group_code' => 'boss',
         'merchant_enabled' => true,
         'is_verified' => true,
         'reason' => 'smoke test',

@@ -3,7 +3,7 @@
     <div class="fixed inset-0 pointer-events-none z-0 overflow-hidden"><div class="absolute top-[-20%] left-[-10%] w-[70vw] h-[70vw] rounded-full bg-[radial-gradient(circle,var(--tw-gradient-stops))] from-primary/10 to-transparent blur-3xl"></div><div class="absolute bottom-[-10%] right-[-10%] w-[60vw] h-[60vw] rounded-full bg-[radial-gradient(circle,var(--tw-gradient-stops))] from-secondary/5 to-transparent blur-3xl"></div></div>
     <header class="fixed top-0 w-full border-b border-primary/10 bg-white/75 backdrop-blur-3xl shadow-[0_12px_32px_rgba(33,79,131,0.08)] flex justify-between items-center px-6 h-14 w-full z-50">
       <a class="buy-nav-icon-btn flex shrink-0 items-center justify-center rounded-full p-2 text-primary-dim transition-colors hover:bg-primary/10 scale-95 active:duration-150" href="#/pages/index/hall" @click="backGo($event, '#/pages/index/hall')"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">arrow_back</span></a>
-      <div class="font-headline text-lg font-bold text-on-surface">購買 USDT</div>
+      <div class="font-headline text-lg font-bold text-on-surface">{{ localizedText('購買 USDT', 'Buy USDT') }}</div>
       <a class="buy-nav-icon-btn flex shrink-0 items-center justify-center rounded-full p-2 text-primary-dim transition-colors hover:bg-primary/10 scale-95 active:duration-150" href="#/pages/index/serviceCenter"><span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">help</span></a>
     </header>
     <main class="relative z-10 pt-20 pb-32 px-6 max-w-lg mx-auto flex flex-col gap-8 h-full">
@@ -15,25 +15,25 @@
               <span class="font-headline text-primary font-bold text-xl">{{ avatarLetter }}</span>
             </div>
             <div>
-              <h2 class="font-headline font-bold text-lg text-on-surface tracking-tight">{{ listing.nickname || '商家' }}</h2>
+            <h2 class="font-headline font-bold text-lg text-on-surface tracking-tight">{{ listing.nickname || localizedText('商家', 'Merchant') }}</h2>
               <div class="flex items-center gap-2 mt-0.5">
                 <span class="material-symbols-outlined text-primary text-[14px]" style="font-variation-settings: 'FILL' 1;">verified</span>
-                <span class="font-body text-xs text-on-surface-variant">商家 · 成交率 {{ listing.completion_rate || '—' }}</span>
+                <span class="font-body text-xs text-on-surface-variant">{{ localizedText('商家', 'Merchant') }} · {{ localizedText('成交率', 'Completion rate') }} {{ listing.completion_rate || '—' }}</span>
               </div>
             </div>
           </div>
           <div class="text-right">
-            <div class="font-body text-xs text-on-surface-variant mb-1 uppercase tracking-widest">單價</div>
+            <div class="font-body text-xs text-on-surface-variant mb-1 uppercase tracking-widest">{{ localizedText('單價', 'Unit price') }}</div>
             <div class="font-headline font-bold text-primary text-lg">{{ formatAmount(unitEurPerUsdt, 2) }} EUR</div>
           </div>
         </div>
         <div class="relative z-10 mt-5 pt-4 border-t border-outline-variant/15 flex justify-between">
           <div class="flex flex-col gap-1">
-            <span class="font-body text-[10px] text-on-surface-variant uppercase tracking-widest">可交易</span>
+            <span class="font-body text-[10px] text-on-surface-variant uppercase tracking-widest">{{ localizedText('可交易', 'Available') }}</span>
             <span class="font-headline text-sm font-semibold">{{ formatAmount(maxTradableUsdt, 2) }} USDT</span>
           </div>
           <div class="flex flex-col gap-1 text-right">
-            <span class="font-body text-[10px] text-on-surface-variant uppercase tracking-widest">限制</span>
+            <span class="font-body text-[10px] text-on-surface-variant uppercase tracking-widest">{{ localizedText('限制', 'Limits') }}</span>
             <span class="font-headline text-sm font-semibold">{{ formatAmount(minAmount, 2) }} - {{ formatAmount(maxAmount, 2) }} USDT</span>
           </div>
         </div>
@@ -42,9 +42,9 @@
       <!-- 與賣出頁一致：輸入 + 緊湊估價（置中）+ 主按鈕 -->
       <section class="flex flex-col gap-3">
         <div class="flex justify-between items-center px-1">
-          <label class="font-body text-sm text-on-surface-variant">我要買入</label>
+          <label class="font-body text-sm text-on-surface-variant">{{ localizedText('我要買入', 'Buy amount') }}</label>
           <span class="font-body text-xs text-on-surface-variant"
-            >餘額：<span id="buy-eur-balance" class="text-on-surface font-semibold">{{ formatAmount(maxEurBalance, 2) }} EUR</span></span
+            >{{ localizedText('餘額', 'Balance') }}：<span id="buy-eur-balance" class="text-on-surface font-semibold">{{ formatAmount(maxEurBalance, 2) }} EUR</span></span
           >
         </div>
         <div
@@ -60,6 +60,7 @@
               inputmode="decimal"
               autocomplete="off"
               v-model="amountInput"
+              @input="onAmountInput"
             />
             <div class="flex items-center gap-3 shrink-0 ml-4">
               <button
@@ -67,14 +68,14 @@
                 class="bg-primary/10 hover:bg-primary/20 text-primary font-label text-xs uppercase tracking-widest font-bold px-3 py-1.5 rounded-full transition-colors"
                 @click="fillBuyMax"
               >
-                全部
+                {{ localizedText('全部', 'All') }}
               </button>
               <div class="h-8 w-px bg-outline-variant/30"></div>
               <button
                 type="button"
                 id="buy-amount-currency"
                 class="font-headline min-w-[3.25rem] text-center text-lg font-bold tabular-nums text-on-surface transition-colors hover:text-primary-dim"
-                aria-label="切換輸入幣種 EUR 或 USDT"
+                :aria-label="localizedText('切換輸入幣種 EUR 或 USDT', 'Switch input currency: EUR or USDT')"
                 @click="toggleMode"
               >
                 {{ mode }}
@@ -100,7 +101,7 @@
             <div
               class="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000 ease-in-out"
             ></div>
-            {{ submitting ? '提交中...' : '確認買入' }}
+            {{ submitting ? localizedText('提交中...', 'Submitting...') : localizedText('確認買入', 'Confirm Buy') }}
           </button>
           <p v-if="submitFeedbackKey || submitFeedbackRaw" class="mt-3 text-center text-xs" :class="submitError ? 'text-error' : 'text-primary-dim'">
             <template v-if="submitFeedbackKey">{{ $t('phrases.' + submitFeedbackKey) }}</template>
@@ -117,8 +118,7 @@ import { userApi } from '@/utils/api'
 import { pickBestOneClickListing } from '@/utils/listingPick'
 
 /**
- * EURFOREX - 購買 USDT (純 H5 Vue2 Options API)
- * 以 docs/previews/nnn/buy.html 為唯一基準逐字遷移
+ * EURFOREX - 買 USDT
  */
 var BODY_CLASSES = [
   "nc2c-page",
@@ -143,7 +143,6 @@ export default {
       submitFeedbackRaw: "",
       submitError: false,
       submitting: false,
-      /** 與商家卡片「單價」一致：每 1 USDT 標價 EUR */
       unitEurPerUsdt: 0.95,
       maxEurBalance: 0,
       maxTradableUsdt: 0,
@@ -160,7 +159,6 @@ export default {
       var n = parseFloat(raw);
       return isNaN(n) || n < 0 ? 0 : n;
     },
-    /** EUR 輸入 → 可得 USDT；USDT 輸入 → 約需支付 EUR */
     estimatePrimaryDisplay: function () {
       var p = this.parsedBuyAmount;
       if (!p) return "0.00";
@@ -176,7 +174,7 @@ export default {
       return this.mode === "EUR" ? "USDT" : "EUR";
     },
     estimateSectionLabel: function () {
-      return this.mode === "EUR" ? "預估可得" : "約需支付";
+      return this.mode === "EUR" ? this.localizedText("預估可得", "Estimated receive") : this.localizedText("約需支付", "Amount needed");
     },
     orderUsdtAmount: function () {
       var p = this.parsedBuyAmount;
@@ -221,6 +219,25 @@ export default {
       }
       var cap = Math.min(this.maxTradableUsdt, this.maxEurBalance / this.unitEurPerUsdt);
       this.amountInput = (Math.floor(cap * 100) / 100).toFixed(2);
+    },
+    normalizeDecimalInput: function (value) {
+      var raw = String(value == null ? "" : value)
+        .replace(/[。．，,]/g, ".")
+        .replace(/[^\d.]/g, "");
+      var dot = raw.indexOf(".");
+      if (dot >= 0) {
+        raw = raw.slice(0, dot + 1) + raw.slice(dot + 1).replace(/\./g, "");
+      }
+      var parts = raw.split(".");
+      if (parts.length > 1) {
+        raw = parts[0] + "." + parts[1].slice(0, 8);
+      }
+      return raw;
+    },
+    onAmountInput: function (event) {
+      var next = this.normalizeDecimalInput(event && event.target ? event.target.value : this.amountInput);
+      if (next !== this.amountInput) this.amountInput = next;
+      if (event && event.target && event.target.value !== next) event.target.value = next;
     },
     formatAmount: function (value, digits) {
       return Number(value || 0).toLocaleString("en-GB", {

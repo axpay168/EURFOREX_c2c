@@ -6,6 +6,7 @@ import LoadingInlineSpinner from './components/loading/LoadingInlineSpinner.vue'
 import Nc2cCenterSheet from './components/nc2c/Nc2cCenterSheet.vue'
 import LanguageSelector from './components/LanguageSelector.vue'
 import i18n, { i18nReady, phrase } from './common/i18n'
+import { FALLBACK_LANG } from './common/langs'
 import { scheduleTranslate } from './common/domTranslator'
 import { loadSharedScript } from './utils/loadSharedScript'
 
@@ -31,6 +32,29 @@ Vue.mixin({
   },
   methods: {
     loadSharedScript,
+    isChineseLocale() {
+      var locale = this.$i18n && this.$i18n.locale ? String(this.$i18n.locale) : "";
+      return /^zh/i.test(locale);
+    },
+    localizedText(zhText, enText) {
+      // 字典（locales/*.json 的 phrases）一律以繁體中文原文為 key，所以查詢時必須用 zhText。
+      const locale = this.$i18n && this.$i18n.locale ? String(this.$i18n.locale) : ""
+      const ownMessages = locale && this.$i18n && typeof this.$i18n.getLocaleMessage === "function"
+        ? (this.$i18n.getLocaleMessage(locale) || {})
+        : {}
+      const ownPhrases = ownMessages.phrases || {}
+      if (/^zh/i.test(locale)) {
+        // 中文語系只查自己的字典，查不到就顯示中文原文，絕不退回英文
+        return (zhText && ownPhrases[zhText]) || zhText || enText || ""
+      }
+      if (locale && locale !== FALLBACK_LANG) {
+        // 其他語系：先用中文 key 找「目前語系自己」的譯文，找不到才退回英文
+        const ownPhrase = (zhText && ownPhrases[zhText]) || (enText && ownPhrases[enText])
+        if (ownPhrase) return ownPhrase
+      }
+      // 英文語系或沒有譯文：優先使用模板內的英文文案
+      return enText || (zhText ? phrase(zhText, null) : "") || zhText || ""
+    },
     $phrase(key, fallback) {
       return phrase(key, fallback)
     }

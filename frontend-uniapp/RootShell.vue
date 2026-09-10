@@ -4,7 +4,7 @@
     <nav
       v-if="showMainNav"
       class="eurforex-home-bottom-nav eurforex-shell-tabbar"
-      aria-label="主頁底部導航"
+      :aria-label="localizedText('主頁底部導航', 'Home bottom navigation')"
     >
       <a
         v-for="item in mainNavItems"
@@ -28,7 +28,7 @@
           :style="activeMainNavPath === item.path ? iconFillStyle : null"
           aria-hidden="true"
         >{{ item.icon }}</span>
-        <span class="eurforex-shell-tabbar__label">{{ $phrase(item.label, item.label) }}</span>
+          <span class="eurforex-shell-tabbar__label">{{ localizedText(item.label, item.labelEn) }}</span>
       </a>
     </nav>
   </div>
@@ -84,6 +84,7 @@ const ROUTE_COMPONENTS = {
   '#/pages/setting/withdraw': defineAsyncPage(() => import(/* webpackChunkName: "page-withdraw" */ './pages/setting/withdraw.vue')),
   '#/pages/setting/withdrawUsdt': defineAsyncPage(() => import(/* webpackChunkName: "page-withdrawUsdt" */ './pages/setting/withdrawUsdt.vue')),
   '#/pages/setting/eurSwapWithdraw': defineAsyncPage(() => import(/* webpackChunkName: "page-eurSwapWithdraw" */ './pages/setting/eurSwapWithdraw.vue')),
+  '#/pages/setting/swap': defineAsyncPage(() => import(/* webpackChunkName: "page-swap" */ './pages/setting/swap.vue')),
   '#/pages/setting/withdrawDetail': defineAsyncPage(() => import(/* webpackChunkName: "page-withdrawDetail" */ './pages/setting/withdrawDetail.vue')),
   '#/pages/setting/withdrawDetailFiat': defineAsyncPage(() => import(/* webpackChunkName: "page-withdrawDetailFiat" */ './pages/setting/withdrawDetailFiat.vue')),
   '#/pages/setting/fundRecord': defineAsyncPage(() => import(/* webpackChunkName: "page-fundRecord" */ './pages/setting/fundRecord.vue')),
@@ -111,10 +112,10 @@ const AUTH_ENTRY_ROUTES = {
 }
 
 const MAIN_NAV_ITEMS = [
-  { path: '#/pages/index/index', label: '主頁', brandIcon: brandMarkLogo },
-  { path: '#/pages/index/hall', label: '交易大廳', icon: 'swap_horizontal_circle' },
-  { path: '#/pages/setting/myTask', label: '訂單', icon: 'receipt_long' },
-  { path: '#/pages/setting/user', label: '個人中心', icon: 'person' }
+  { path: '#/pages/index/index', label: '主頁', labelEn: 'Home', brandIcon: brandMarkLogo },
+  { path: '#/pages/index/hall', label: '交易大廳', labelEn: 'Trading Hall', icon: 'swap_horizontal_circle' },
+  { path: '#/pages/setting/myTask', label: '訂單', labelEn: 'Orders', icon: 'receipt_long' },
+  { path: '#/pages/setting/user', label: '個人中心', labelEn: 'Profile', icon: 'person' }
 ]
 
 const MAIN_NAV_ROUTES = {

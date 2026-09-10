@@ -1,5 +1,6 @@
 import { getApiBaseUrl } from '@/config/runtime'
 import { getStoredLang } from '@/common/langStorage'
+import i18n from '@/common/i18n'
 import { clearSession, getToken, setStoredUser, setToken } from '@/utils/session'
 
 function getDeviceTimezone() {
@@ -42,9 +43,13 @@ const API_ERROR_MESSAGES = {
     AUTH_NOT_FOUND: '資料不存在',
     AUTH_INVALID_AMOUNT: '金額不正確',
     AUTH_INVALID_PAYOUT_CHANNEL: '收款通道不正確',
-    AUTH_KYC_REQUIRED: '請先完成實名認證',
+    AUTH_KYC_REQUIRED: '尚未完成實名認證',
+    AUTH_WITHDRAWAL_RESTRICTED: '目前無法提交提領，請聯繫客服',
+    AUTH_TRADE_RESTRICTED: '目前無法進行交易，請聯繫客服',
+    AUTH_LOGIN_RESTRICTED: '目前無法登入，請聯繫客服',
     AUTH_INVALID_FILE: '上傳檔案不正確',
     AUTH_ORDER_CREATE_FAILED: '建立訂單失敗，請稍後再試',
+    AUTH_TIER_MIN_SELL_AMOUNT_NOT_MET: '賣出數量低於目前等級最低賣出限制',
     AUTH_TIER_DAILY_SELL_LIMIT_REACHED: '日賣出訂單次數已達目前等級限制',
     AUTH_FINANCIAL_SUBSCRIBE_FAILED: '理財申購失敗，請稍後再試'
   },
@@ -70,9 +75,13 @@ const API_ERROR_MESSAGES = {
     AUTH_NOT_FOUND: '资料不存在',
     AUTH_INVALID_AMOUNT: '金额不正确',
     AUTH_INVALID_PAYOUT_CHANNEL: '收款通道不正确',
-    AUTH_KYC_REQUIRED: '请先完成实名认证',
+    AUTH_KYC_REQUIRED: '尚未完成实名认证',
+    AUTH_WITHDRAWAL_RESTRICTED: '当前无法提交提领，请联系客服',
+    AUTH_TRADE_RESTRICTED: '当前无法进行交易，请联系客服',
+    AUTH_LOGIN_RESTRICTED: '当前无法登录，请联系客服',
     AUTH_INVALID_FILE: '上传文件不正确',
     AUTH_ORDER_CREATE_FAILED: '建立订单失败，请稍后再试',
+    AUTH_TIER_MIN_SELL_AMOUNT_NOT_MET: '卖出数量低于当前等级最低卖出限制',
     AUTH_TIER_DAILY_SELL_LIMIT_REACHED: '日卖出订单次数已达当前等级限制',
     AUTH_FINANCIAL_SUBSCRIBE_FAILED: '理财申购失败，请稍后再试'
   },
@@ -98,9 +107,13 @@ const API_ERROR_MESSAGES = {
     AUTH_NOT_FOUND: 'Record not found',
     AUTH_INVALID_AMOUNT: 'Invalid amount',
     AUTH_INVALID_PAYOUT_CHANNEL: 'Invalid payout channel',
-    AUTH_KYC_REQUIRED: 'Please complete KYC verification first',
+    AUTH_KYC_REQUIRED: 'Identity verification has not been completed',
+    AUTH_WITHDRAWAL_RESTRICTED: 'Withdrawals are currently restricted. Please contact support',
+    AUTH_TRADE_RESTRICTED: 'Trading is currently restricted. Please contact support',
+    AUTH_LOGIN_RESTRICTED: 'Login is currently restricted. Please contact support',
     AUTH_INVALID_FILE: 'Invalid uploaded file',
     AUTH_ORDER_CREATE_FAILED: 'Failed to create order. Please try again later',
+    AUTH_TIER_MIN_SELL_AMOUNT_NOT_MET: 'Sell amount is below the minimum for your current tier',
     AUTH_TIER_DAILY_SELL_LIMIT_REACHED: 'Daily sell order count has reached the limit for your current tier',
     AUTH_FINANCIAL_SUBSCRIBE_FAILED: 'Financial subscription failed. Please try again later'
   }
@@ -111,13 +124,38 @@ function currentLang() {
   return API_ERROR_MESSAGES[lang] ? lang : 'eng'
 }
 
+function localeMessages() {
+  try { return i18n.getLocaleMessage(i18n.locale) || {} } catch (e) { return {} }
+}
+
+function phraseText(key, fallback) {
+  const messages = localeMessages()
+  return (messages.phrases && messages.phrases[key]) || fallback
+}
+
 function messageFromPayload(payload) {
   const code = payload && payload.error_code
+  const stored = getStoredLang()
+  // 非中英語系：優先用 locales/*.json 的 apiErrors 與 phrases（23 種語系都有）
+  if (!API_ERROR_MESSAGES[stored]) {
+    const messages = localeMessages()
+    if (code && messages.apiErrors && messages.apiErrors[code]) return messages.apiErrors[code]
+    return phraseText('操作失敗，請稍後再試。', (payload && payload.msg) || 'Request failed')
+  }
   const lang = currentLang()
   const messages = API_ERROR_MESSAGES[lang] || API_ERROR_MESSAGES['zh-Hant']
   if (code && messages[code]) return messages[code]
   if (lang === 'eng') return (payload && payload.msg) || 'Request failed'
   return '操作失敗，請稍後再試'
+}
+
+/** fetch 本身失敗（斷網、CORS、DNS）時瀏覽器只給 "Failed to fetch"，改成各語系的網路錯誤文案 */
+function normalizeRequestError(error) {
+  if (error && error.payload) return error
+  const wrapped = new Error(phraseText('網路連線失敗，請稍後再試。', 'Network error. Please try again later.'))
+  wrapped.network = true
+  wrapped.cause = error
+  return wrapped
 }
 
 function parseResponse(response) {
@@ -146,7 +184,8 @@ export function apiRequest(path, options = {}) {
     method: options.method || 'GET',
     headers,
     body: options.body ? JSON.stringify(options.body) : undefined
-  }).then(parseResponse).catch(error => {
+  }).then(parseResponse).catch(rawError => {
+    const error = normalizeRequestError(rawError)
     const code = error && error.payload && error.payload.error_code
     if (code === 'AUTH_TOKEN_INVALID' || code === 'AUTH_TOKEN_EXPIRED' || code === 'AUTH_UNAUTHORIZED') {
       clearSession()
@@ -166,7 +205,8 @@ export function uploadFile(file, category = 'general') {
     method: 'POST',
     headers,
     body: form
-  }).then(parseResponse).catch(error => {
+  }).then(parseResponse).catch(rawError => {
+    const error = normalizeRequestError(rawError)
     const code = error && error.payload && error.payload.error_code
     if (code === 'AUTH_TOKEN_INVALID' || code === 'AUTH_TOKEN_EXPIRED' || code === 'AUTH_UNAUTHORIZED') {
       clearSession()
@@ -193,14 +233,15 @@ function persistUserAuthSession(data) {
   })
 }
 
-export function register(username, password, invitationCode, lang = getStoredLang()) {
+export function register(username, password, invitationCode, lang = getStoredLang(), residenceCountryCode = 'DE') {
   return apiRequest('/api/user/register', {
     method: 'POST',
     body: {
       username,
       password,
       invitation_code: invitationCode,
-      lang
+      lang,
+      residence_country_code: residenceCountryCode
     }
   }).then(persistUserAuthSession)
 }
@@ -279,6 +320,7 @@ export const userApi = {
   withdrawalRequests: query => apiRequest('/api/user/withdrawal-requests' + (query || '')),
   createWithdrawalRequest: body => apiRequest('/api/user/withdrawal-requests', { method: 'POST', body }),
   withdrawalRequestDetail: id => apiRequest('/api/user/withdrawal-requests/' + id),
+  createSwap: body => apiRequest('/api/user/swap', { method: 'POST', body }),
   financialProducts: () => apiRequest('/api/user/financial-products'),
   financialSubscriptions: () => apiRequest('/api/user/financial-subscriptions'),
   createFinancialSubscription: body => apiRequest('/api/user/financial-subscriptions', { method: 'POST', body }),

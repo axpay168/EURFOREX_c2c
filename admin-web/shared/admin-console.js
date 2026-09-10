@@ -52,6 +52,7 @@
     "listings",
     "trade-feed",
     "home-content",
+    "customer-service-config",
     "kyc",
     "payout-methods",
     "auth-events",
@@ -74,6 +75,7 @@
     listings: "商戶掛單",
     "trade-feed": "成交播報",
     "home-content": "運營配置",
+    "customer-service-config": "客服配置",
     kyc: "實名 / KYC",
     "payout-methods": "收款方",
     "auth-events": "認證事件",
@@ -457,6 +459,7 @@
 
   function forceAdminReloginUi(message) {
     stopDepositAlertMonitor();
+    stopPendingNavBadgeMonitor();
     clearAdminSessionPayload();
     updateTopbarFromProfile(null);
     setAuthState(false);
@@ -498,6 +501,7 @@
 
   function performAdminLogout() {
     stopDepositAlertMonitor();
+    stopPendingNavBadgeMonitor();
     var token = adminStorageGet("eurforex_admin_token");
     if (!token) {
       forceAdminReloginUi("已登出後台。");
@@ -579,6 +583,53 @@
 
   var depositAlertTimer = null;
   var depositAlertBaselineId = null;
+  var pendingNavBadgeTimer = null;
+
+  function formatAdminNavBadgeCount(n) {
+    var v = Math.max(0, Math.floor(Number(n) || 0));
+    if (v <= 0) return "";
+    return v > 99 ? "99+" : String(v);
+  }
+
+  function applyAdminNavPendingBadge(key, count) {
+    var el = document.querySelector('[data-admin-nav-badge="' + key + '"]');
+    if (!el) return;
+    var text = formatAdminNavBadgeCount(count);
+    if (!text) {
+      el.textContent = "";
+      el.hidden = true;
+      return;
+    }
+    el.textContent = text;
+    el.hidden = false;
+    el.setAttribute("aria-label", "待審核 " + text + " 筆");
+  }
+
+  function refreshAdminNavPendingBadges() {
+    if (!adminStorageGet("eurforex_admin_token")) return Promise.resolve();
+    return adminApiFetchJson("/api/admin/pending-counts")
+      .then(function (data) {
+        if (data && data.deposits != null) applyAdminNavPendingBadge("deposits", data.deposits);
+        if (data && data.withdrawals != null) applyAdminNavPendingBadge("withdrawals", data.withdrawals);
+        if (data && data.kyc != null) applyAdminNavPendingBadge("kyc", data.kyc);
+      })
+      .catch(function () {});
+  }
+
+  function stopPendingNavBadgeMonitor() {
+    if (pendingNavBadgeTimer) window.clearInterval(pendingNavBadgeTimer);
+    pendingNavBadgeTimer = null;
+    ["deposits", "withdrawals", "kyc"].forEach(function (key) {
+      applyAdminNavPendingBadge(key, 0);
+    });
+  }
+
+  function startPendingNavBadgeMonitor() {
+    stopPendingNavBadgeMonitor();
+    if (!adminStorageGet("eurforex_admin_token")) return;
+    refreshAdminNavPendingBadges();
+    pendingNavBadgeTimer = window.setInterval(refreshAdminNavPendingBadges, 30000);
+  }
 
   function stopDepositAlertMonitor() {
     if (depositAlertTimer) window.clearInterval(depositAlertTimer);
@@ -714,6 +765,7 @@
     if (isAuthed) {
       updateTopbarFromProfile(readCachedAdminProfile());
       refreshAdminProfileFromServer();
+      startPendingNavBadgeMonitor();
     } else {
       updateTopbarFromProfile(null);
     }
@@ -756,6 +808,7 @@
           if (error) error.textContent = "";
           setAuthState(true);
           startDepositAlertMonitor();
+          startPendingNavBadgeMonitor();
           if (admin0 && admin0.password_must_change) openAdminPasswordModal(true);
           refreshAdminProfileFromServer();
         })
@@ -777,6 +830,8 @@
     initAdminSettingsForms();
     initAdminInviteChip();
     startDepositAlertMonitor();
+    if (adminStorageGet("eurforex_admin_token")) startPendingNavBadgeMonitor();
+    window.addEventListener("eurforex-admin-pending-counts-changed", refreshAdminNavPendingBadges);
 
     var logoutBtn = document.getElementById("admin-logout-btn");
     if (logoutBtn) {

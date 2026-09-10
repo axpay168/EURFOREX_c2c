@@ -717,6 +717,10 @@
   function setUserProfileEditable(form, editable) {
     form.querySelectorAll("input, select, textarea").forEach(function (field) {
       if (field.name === "id") return;
+      if (field.getAttribute("data-admin-readonly") === "true") {
+        field.disabled = true;
+        return;
+      }
       field.disabled = !editable;
     });
     var save = form.querySelector('button[type="submit"]');
@@ -754,6 +758,9 @@
     setFieldValue(form, "mobile", user.mobile || "");
     setFieldValue(form, "lang", user.lang || "hkg");
     setFieldValue(form, "invitation_code", user.invitation_code || "");
+    setFieldValue(form, "created_at", user.created_at || "");
+    setFieldValue(form, "registered_by", user.upline_label || "-");
+    setFieldValue(form, "registered_by_invitation_code", user.registered_by_invitation_code || "-");
     var cs =
       user.credit_score != null && user.credit_score !== ""
         ? user.credit_score
@@ -1163,6 +1170,7 @@
     document.documentElement._adminGenericDialogsInit = true;
 
     var pModal = document.getElementById("admin-modal-generic-prompt");
+    var pInput = document.getElementById("admin-generic-prompt-input");
     var ta = document.getElementById("admin-generic-prompt-textarea");
     var pErr = document.getElementById("admin-generic-prompt-error");
     var pOk = document.getElementById("admin-generic-prompt-ok");
@@ -1179,7 +1187,8 @@
       pOk.addEventListener("click", function (e) {
         e.preventDefault();
         var opts = pModal._adminGenericPromptOpts || {};
-        var t = ta ? String(ta.value || "").trim() : "";
+        var useInput = pInput && pInput.style.display !== "none";
+        var t = useInput ? String(pInput.value || "").trim() : ta ? String(ta.value || "").trim() : "";
         if (opts.required && !t) {
           if (pErr) {
             pErr.style.display = "";
@@ -1257,12 +1266,29 @@
       var titleEl = document.getElementById("admin-generic-prompt-title");
       var msgEl = document.getElementById("admin-generic-prompt-message");
       var labEl = document.getElementById("admin-generic-prompt-label");
+      var input = document.getElementById("admin-generic-prompt-input");
       var ta = document.getElementById("admin-generic-prompt-textarea");
       var errEl = document.getElementById("admin-generic-prompt-error");
+      var useInput = opts.inputType != null && String(opts.inputType || "").trim() !== "";
       if (titleEl) titleEl.textContent = opts.title || "請輸入";
       if (msgEl) msgEl.textContent = opts.message || "";
       if (labEl) labEl.textContent = opts.fieldLabel || "內容";
+      if (input) {
+        input.style.display = useInput ? "" : "none";
+        input.type = useInput ? String(opts.inputType || "text") : "text";
+        input.value = opts.defaultValue != null ? String(opts.defaultValue) : "";
+        input.placeholder = opts.placeholder || "";
+        if (opts.step != null) input.setAttribute("step", String(opts.step));
+        else input.removeAttribute("step");
+        if (opts.min != null) input.setAttribute("min", String(opts.min));
+        else input.removeAttribute("min");
+        if (opts.max != null) input.setAttribute("max", String(opts.max));
+        else input.removeAttribute("max");
+        if (opts.inputMode != null) input.setAttribute("inputmode", String(opts.inputMode));
+        else input.removeAttribute("inputmode");
+      }
       if (ta) {
+        ta.style.display = useInput ? "none" : "";
         ta.value = opts.defaultValue != null ? String(opts.defaultValue) : "";
         ta.placeholder = opts.placeholder || "";
       }
@@ -1272,7 +1298,14 @@
       }
       openModal("admin-modal-generic-prompt");
       window.setTimeout(function () {
-        if (ta) ta.focus();
+        if (useInput && input) {
+          input.focus();
+          try {
+            input.select();
+          } catch (e) {}
+        } else if (ta) {
+          ta.focus();
+        }
       }, 80);
     });
   }

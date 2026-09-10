@@ -1,11 +1,11 @@
 <template>
   <div>
     <header class="fixed top-0 w-full border-b border-primary/10 bg-white/75 backdrop-blur-3xl shadow-[0_12px_32px_rgba(33,79,131,0.08)] flex justify-between items-center px-6 h-14 w-full z-50">
-      <a class="flex shrink-0 items-center justify-center rounded-full p-2 text-primary-dim transition-colors hover:bg-primary/10 scale-95 active:duration-150" href="#/pages/setting/wallet" aria-label="我的資產">
+      <a class="flex shrink-0 items-center justify-center rounded-full p-2 text-primary-dim transition-colors hover:bg-primary/10 scale-95 active:duration-150" href="#/pages/setting/wallet" :aria-label="localizedText('我的資產', 'My assets')">
         <span class="material-symbols-outlined">account_balance_wallet</span>
       </a>
-      <div class="font-headline text-lg font-bold text-on-surface">交易大廳</div>
-      <a class="flex shrink-0 items-center justify-center rounded-full p-2 text-primary-dim transition-colors hover:bg-primary/10 scale-95 active:duration-150" aria-label="訂單通知" href="#/pages/setting/myTask">
+      <div class="font-headline text-lg font-bold text-on-surface">{{ $t('phrases.交易大廳') }}</div>
+      <a class="flex shrink-0 items-center justify-center rounded-full p-2 text-primary-dim transition-colors hover:bg-primary/10 scale-95 active:duration-150" :aria-label="localizedText('訂單通知', 'Order notifications')" href="#/pages/setting/myTask">
         <span class="material-symbols-outlined">notifications</span>
       </a>
     </header>
@@ -16,7 +16,7 @@
           <div class="relative col-span-3 col-start-1 row-start-1 flex flex-col overflow-hidden rounded-xl bg-gradient-to-br from-primary-fixed to-primary-fixed-dim pb-5 pl-2.5 pr-5 pt-2.5 shadow-[0px_12px_32px_rgba(44,52,55,0.04)] md:col-span-2 md:pb-5 md:pl-4 md:pr-8 md:pt-2.5">
             <div class="absolute -right-12 -top-12 h-48 w-48 rounded-full bg-white/10 blur-2xl"></div>
             <div class="leading-none">
-              <h2 class="font-label text-xs md:text-sm font-semibold leading-tight text-on-primary-fixed-variant/80 mb-0">可用餘額</h2>
+              <h2 class="font-label text-xs md:text-sm font-semibold leading-tight text-on-primary-fixed-variant/80 mb-0">{{ localizedText('可用餘額', 'Available balance') }}</h2>
               <div class="font-headline mt-0.5 flex w-full flex-wrap items-end justify-between gap-2 leading-none text-3xl font-bold tracking-tight text-on-primary-fixed md:text-5xl">
                 <span class="shrink-0 tabular-nums">{{ formatMoney(usdtAvailableBalance, 2) }}</span>
                 <span class="font-body text-lg font-normal leading-none opacity-80 md:text-xl">USDT</span>
@@ -24,44 +24,56 @@
             </div>
           </div>
           <div class="col-span-2 col-start-4 row-span-2 row-start-1 flex min-h-0 flex-col rounded-xl bg-surface-container-lowest p-5 shadow-[0px_12px_32px_rgba(44,52,55,0.04)] md:col-span-1 md:col-start-3 md:p-6">
-            <h2 class="font-label shrink-0 text-xs md:text-sm font-semibold text-on-surface-variant">進行中訂單</h2>
+            <h2 class="font-label shrink-0 text-xs md:text-sm font-semibold text-on-surface-variant">{{ localizedText('進行中訂單', 'Open orders') }}</h2>
             <div class="flex min-h-0 flex-1 flex-col items-start justify-center py-2">
               <div class="w-full text-left font-headline text-3xl font-bold leading-none text-on-surface">{{ activeOrderCount }}</div>
             </div>
             <a class="inline-flex shrink-0 items-center gap-1 self-start text-sm font-semibold text-primary transition-colors hover:text-primary-dim" href="#/pages/setting/myTask?filter=progress">
-              查看詳情 <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+              {{ localizedText('查看詳情', 'View details') }} <span class="material-symbols-outlined text-[16px]">arrow_forward</span>
             </a>
           </div>
           <div class="col-span-3 col-start-1 row-start-2 md:col-span-2">
-            <a class="flex w-full items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-dim py-2.5 text-sm font-bold text-on-primary shadow-[0px_6px_16px_rgba(46,100,134,0.22)] transition-[transform,box-shadow] hover:shadow-[0px_8px_20px_rgba(46,100,134,0.28)] active:scale-[0.99]" href="#/pages/index/buy">一鍵買入</a>
+            <a class="flex w-full items-center justify-center rounded-xl bg-gradient-to-br from-primary to-primary-dim py-2.5 text-sm font-bold text-on-primary shadow-[0px_6px_16px_rgba(46,100,134,0.22)] transition-[transform,box-shadow] hover:shadow-[0px_8px_20px_rgba(46,100,134,0.28)] active:scale-[0.99]" href="#/pages/index/buy">{{ localizedText('一鍵買入', 'One-click buy') }}</a>
           </div>
         </div>
       </section>
 
       <section class="flex flex-col md:flex-row justify-between items-center gap-4">
-        <div class="flex w-full rounded-full bg-surface-container-high p-1 shadow-sm md:w-auto" role="tablist" aria-label="篩選賣出或買入商家">
+        <div class="flex w-full rounded-full bg-surface-container-high p-1 shadow-sm md:w-auto" role="tablist" :aria-label="localizedText('篩選賣出或買入商家', 'Filter sell or buy merchants')">
           <button type="button" id="lobby-tab-sell" class="lobby-mode-tab flex-1 rounded-full px-8 py-2 text-center text-sm font-semibold transition-all duration-200 md:flex-none"
             :class="mode === 'sell' ? 'bg-surface-container-lowest text-primary shadow-[0px_4px_12px_rgba(44,52,55,0.08)]' : 'text-on-surface-variant hover:text-on-surface'"
             role="tab" :aria-selected="mode === 'sell' ? 'true' : 'false'"
-            @click="setMode('sell')">賣出</button>
+            @click="setMode('sell')">{{ localizedText('賣出', 'Sell') }}</button>
           <button type="button" id="lobby-tab-buy" class="lobby-mode-tab flex-1 rounded-full px-8 py-2 text-center text-sm font-semibold transition-all duration-200 md:flex-none"
             :class="mode === 'buy' ? 'bg-surface-container-lowest text-primary shadow-[0px_4px_12px_rgba(44,52,55,0.08)]' : 'text-on-surface-variant hover:text-on-surface'"
             role="tab" :aria-selected="mode === 'buy' ? 'true' : 'false'"
-            @click="setMode('buy')">買入</button>
+            @click="setMode('buy')">{{ localizedText('買入', 'Buy') }}</button>
+        </div>
+        <div class="flex w-full rounded-full bg-surface-container-high p-1 shadow-sm md:w-auto" role="tablist" :aria-label="localizedText('選擇法幣', 'Select fiat currency')">
+          <button
+            v-for="fiat in supportedFiats"
+            :key="fiat"
+            type="button"
+            class="lobby-fiat-tab flex-1 rounded-full px-3 py-2 text-center text-xs font-bold transition-all duration-200 md:flex-none"
+            :class="selectedFiat === fiat ? 'bg-surface-container-lowest text-primary shadow-[0px_4px_12px_rgba(44,52,55,0.08)]' : 'text-on-surface-variant hover:text-on-surface'"
+            role="tab"
+            :aria-selected="selectedFiat === fiat ? 'true' : 'false'"
+            @click="setFiat(fiat)"
+          >{{ fiat }}</button>
         </div>
         <div class="flex gap-2 w-full md:w-auto">
-          <div class="relative flex-1 md:w-64">
+          <div class="relative w-1/2 flex-none md:w-64">
             <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant/70 text-[20px]">search</span>
-            <input class="w-full bg-surface-container-low border border-transparent focus:bg-surface-container-lowest focus:border-outline-variant/30 rounded-lg py-2 pl-10 pr-4 text-sm text-on-surface placeholder:text-on-surface-variant/50 transition-all outline-none focus:ring-0" placeholder="金額（USDT）" type="text" inputmode="decimal" v-model="amountFilter" />
+            <input class="w-full bg-surface-container-low border border-transparent focus:bg-surface-container-lowest focus:border-outline-variant/30 rounded-lg py-2 pl-10 pr-4 text-sm text-on-surface placeholder:text-on-surface-variant/50 transition-all outline-none focus:ring-0" :placeholder="localizedText('金額（USDT）', 'Amount (USDT)')" type="text" inputmode="decimal" v-model="amountFilter" />
           </div>
-          <button type="button" class="bg-surface-container-low hover:bg-surface-container-highest text-on-surface p-2 rounded-lg transition-colors flex items-center justify-center border border-transparent hover:border-outline-variant/15" title="Refresh suppliers" aria-label="Refresh suppliers" @click="fetchListings">
+          <button type="button" class="bg-surface-container-low hover:bg-surface-container-highest text-on-surface p-2 rounded-lg transition-colors flex items-center justify-center border border-transparent hover:border-outline-variant/15" :title="localizedText('重新整理供應商', 'Refresh suppliers')" :aria-label="localizedText('重新整理供應商', 'Refresh suppliers')" @click="fetchListings">
             <span class="material-symbols-outlined text-[20px]">sync</span>
           </button>
         </div>
       </section>
 
-      <section class="flex flex-col gap-6" aria-label="商家列表">
-        <LoadingInlineSpinner v-if="listingsLoading && !listings.length" aria-label="掛單載入" />
+      <section class="flex flex-col gap-6" :aria-label="localizedText('商家列表', 'Merchant list')">
+        <LoadingInlineSpinner v-if="listingsLoading && !listings.length" :aria-label="localizedText('掛單載入', 'Loading offers')" />
         <p v-else-if="listingsError" class="text-sm text-red-600 px-1">{{ listingsError }}</p>
         <div id="lobby-offers-sell" class="flex flex-col gap-6" v-show="mode === 'sell' && !listingsError">
           <p v-if="!listingsLoading && !sellTabListings.length" class="text-sm text-on-surface-variant px-1 py-6 text-center rounded-xl bg-surface-container-lowest/80 border border-outline-variant/10">
@@ -76,8 +88,8 @@
               <div class="w-12 h-12 shrink-0 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center font-headline font-bold text-xl ring-2 ring-surface-container-high">{{ avatarLetter(listing.nickname) }}</div>
               <div class="min-w-0 flex-1">
                 <div class="flex items-center gap-2 mb-1 flex-wrap min-w-0">
-                  <h4 class="font-bold text-on-surface text-base truncate min-w-0">{{ listing.nickname || '商戶' }}</h4>
-                  <div class="flex items-center gap-1.5 shrink-0" aria-label="商戶認證標示">
+                  <h4 class="font-bold text-on-surface text-base truncate min-w-0">{{ listing.nickname || $t('phrases.商戶') }}</h4>
+                  <div class="flex items-center gap-1.5 shrink-0" :aria-label="localizedText('商戶認證標示', 'Merchant verification marker')">
                     <span v-if="listingShowVip(listing)" class="hall-tier hall-tier--vip">VIP</span>
                     <span v-if="listingShowPro(listing)" class="hall-tier hall-tier--pro">PRO</span>
                     <img
@@ -92,19 +104,19 @@
                 </div>
                 <div class="flex items-center gap-3 text-xs text-on-surface-variant flex-wrap">
                   <span v-if="listing.completion_rate" class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">thumb_up</span> {{ listing.completion_rate }}</span>
-                  <span class="text-on-surface-variant/80">庫存 {{ formatInventory(listing.available_amount) }} {{ listing.asset_code || 'USDT' }}</span>
+                  <span class="text-on-surface-variant/80">{{ $t('phrases.庫存') }} {{ formatInventory(listing.available_amount) }} {{ listing.asset_code || 'USDT' }}</span>
                 </div>
                 <div class="mt-3 text-sm text-on-surface">
-                  <span class="text-on-surface-variant mr-1">限制：</span> {{ formatListingAmount(listing.min_amount) }} - {{ formatListingAmount(listing.max_amount) }} {{ listing.asset_code || 'USDT' }}
+                  <span class="text-on-surface-variant mr-1">{{ $t('phrases.限制') }}：</span> {{ formatListingAmount(listing.min_amount) }} - {{ formatListingAmount(listing.max_amount) }} {{ listing.asset_code || 'USDT' }}
                 </div>
               </div>
             </div>
             <div class="hall-offer-actions flex w-full min-w-0 flex-row flex-nowrap items-center justify-between gap-3 rounded-lg bg-surface-container-low/50 p-4 md:w-auto md:min-w-[260px] md:shrink-0 md:bg-transparent md:p-0">
               <div class="min-w-0 flex-1 text-left">
-                <div class="text-xs text-on-surface-variant mb-0.5">單價</div>
+                <div class="text-xs text-on-surface-variant mb-0.5">{{ $t('phrases.單價') }}</div>
                 <div class="font-headline text-2xl md:text-3xl font-bold text-on-surface tracking-tight">{{ formatListingAmount(listing.price) }} <span class="text-sm font-body font-normal text-on-surface-variant">{{ listing.fiat_code || 'EUR' }}</span></div>
               </div>
-              <a class="lobby-trade-action inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-lg bg-gradient-to-br from-primary to-primary-dim px-5 py-2.5 text-center text-sm font-bold tracking-wide text-on-primary shadow-none transition-all hover:shadow-[0px_8px_16px_rgba(46,100,134,0.2)] sm:px-8" :href="'#/pages/index/sell?listing_id=' + listing.id">賣出</a>
+              <a class="lobby-trade-action inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-lg bg-gradient-to-br from-primary to-primary-dim px-5 py-2.5 text-center text-sm font-bold tracking-wide text-on-primary shadow-none transition-all hover:shadow-[0px_8px_16px_rgba(46,100,134,0.2)] sm:px-8" :href="'#/pages/index/sell?listing_id=' + listing.id">{{ $t('phrases.賣出') }}</a>
             </div>
           </article>
         </div>
@@ -122,8 +134,8 @@
               <div class="flex h-12 w-12 shrink-0 items-center justify-center rounded-full bg-tertiary-container font-headline text-xl font-bold text-on-tertiary-container ring-2 ring-surface-container-high">{{ avatarLetter(listing.nickname) }}</div>
               <div class="min-w-0 flex-1">
                 <div class="mb-1 flex items-center gap-2 flex-wrap min-w-0">
-                  <h4 class="text-base font-bold text-on-surface truncate min-w-0">{{ listing.nickname || '商戶' }}</h4>
-                  <div class="flex items-center gap-1.5 shrink-0" aria-label="商戶認證標示">
+                  <h4 class="text-base font-bold text-on-surface truncate min-w-0">{{ listing.nickname || $t('phrases.商戶') }}</h4>
+                  <div class="flex items-center gap-1.5 shrink-0" :aria-label="localizedText('商戶認證標示', 'Merchant verification marker')">
                     <span v-if="listingShowVip(listing)" class="hall-tier hall-tier--vip">VIP</span>
                     <span v-if="listingShowPro(listing)" class="hall-tier hall-tier--pro">PRO</span>
                     <img
@@ -138,46 +150,46 @@
                 </div>
                 <div class="flex items-center gap-3 text-xs text-on-surface-variant flex-wrap">
                   <span v-if="listing.completion_rate" class="flex items-center gap-1"><span class="material-symbols-outlined text-[14px]">thumb_up</span> {{ listing.completion_rate }}</span>
-                  <span class="text-on-surface-variant/80">庫存 {{ formatInventory(listing.available_amount) }} {{ listing.asset_code || 'USDT' }}</span>
+                  <span class="text-on-surface-variant/80">{{ $t('phrases.庫存') }} {{ formatInventory(listing.available_amount) }} {{ listing.asset_code || 'USDT' }}</span>
                 </div>
                 <div class="mt-3 text-sm text-on-surface">
-                  <span class="mr-1 text-on-surface-variant">限制：</span> {{ formatListingAmount(listing.min_amount) }} - {{ formatListingAmount(listing.max_amount) }} {{ listing.asset_code || 'USDT' }}
+                  <span class="mr-1 text-on-surface-variant">{{ $t('phrases.限制') }}：</span> {{ formatListingAmount(listing.min_amount) }} - {{ formatListingAmount(listing.max_amount) }} {{ listing.asset_code || 'USDT' }}
                 </div>
               </div>
             </div>
             <div class="hall-offer-actions flex w-full min-w-0 flex-row flex-nowrap items-center justify-between gap-3 rounded-lg bg-surface-container-low/50 p-4 md:w-auto md:min-w-[260px] md:shrink-0 md:bg-transparent md:p-0">
               <div class="min-w-0 flex-1 text-left">
-                <div class="mb-0.5 text-xs text-on-surface-variant">單價</div>
+                <div class="mb-0.5 text-xs text-on-surface-variant">{{ $t('phrases.單價') }}</div>
                 <div class="font-headline text-2xl font-bold tracking-tight text-on-surface md:text-3xl">{{ formatListingAmount(listing.price) }} <span class="font-body text-sm font-normal text-on-surface-variant">{{ listing.fiat_code || 'EUR' }}</span></div>
               </div>
-              <a class="lobby-trade-action inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-lg bg-gradient-to-br from-primary to-primary-dim px-5 py-2.5 text-center text-sm font-bold tracking-wide text-on-primary transition-all hover:shadow-[0px_8px_16px_rgba(46,100,134,0.2)] sm:px-8" :href="'#/pages/index/buy?listing_id=' + listing.id">買入</a>
+              <a class="lobby-trade-action inline-flex shrink-0 items-center justify-center whitespace-nowrap rounded-lg bg-gradient-to-br from-primary to-primary-dim px-5 py-2.5 text-center text-sm font-bold tracking-wide text-on-primary transition-all hover:shadow-[0px_8px_16px_rgba(46,100,134,0.2)] sm:px-8" :href="'#/pages/index/buy?listing_id=' + listing.id">{{ $t('phrases.買入') }}</a>
             </div>
           </article>
         </div>
-        <LoadingInlineSpinner v-if="listingsLoading && listings.length" aria-label="載入更多掛單" />
+        <LoadingInlineSpinner v-if="listingsLoading && listings.length" :aria-label="localizedText('載入更多掛單', 'Loading more offers')" />
       </section>
     </main>
 
     <nav
       class="eurforex-home-bottom-nav fixed bottom-0 left-0 w-full z-50 rounded-t-2xl bg-white/78 backdrop-blur-lg shadow-[0px_-8px_24px_rgba(33,79,131,0.08)] font-['Manrope']"
-      aria-label="主頁底部導航"
+      :aria-label="localizedText('主頁底部導航', 'Home bottom navigation')"
     >
       <div class="flex justify-around items-center h-20 px-4 pb-safe">
         <a class="flex flex-col items-center justify-center text-on-surface-variant px-3 py-1 hover:text-primary-dim transition-all" href="#/pages/index/index">
-          <img class="eurforex-nav-brand-icon" :src="homeNavLogoSrc" alt="EURFOREX 主頁" />
-          <span class="text-[11px] font-semibold tracking-wide mt-0.5">主頁</span>
+          <img class="eurforex-nav-brand-icon" :src="homeNavLogoSrc" :alt="localizedText('EURFOREX 主頁', 'EURFOREX Home')" />
+          <span class="text-[11px] font-semibold tracking-wide mt-0.5">{{ localizedText('主頁', 'Home') }}</span>
         </a>
         <a class="flex flex-col items-center justify-center text-primary-dim bg-primary-container/60 rounded-xl px-3 py-1 transition-all active:scale-90" href="#/pages/index/hall">
           <span class="material-symbols-outlined">swap_horizontal_circle</span>
-          <span class="text-[11px] font-semibold tracking-wide mt-0.5">交易大廳</span>
+          <span class="text-[11px] font-semibold tracking-wide mt-0.5">{{ $t('phrases.交易大廳') }}</span>
         </a>
         <a class="flex flex-col items-center justify-center text-on-surface-variant px-3 py-1 hover:text-primary-dim transition-all" href="#/pages/setting/myTask">
           <span class="material-symbols-outlined">receipt_long</span>
-          <span class="text-[11px] font-semibold tracking-wide mt-0.5">訂單</span>
+          <span class="text-[11px] font-semibold tracking-wide mt-0.5">{{ localizedText('訂單', 'Orders') }}</span>
         </a>
         <a class="flex flex-col items-center justify-center text-on-surface-variant px-3 py-1 hover:text-primary-dim transition-all" href="#/pages/setting/user">
           <span class="material-symbols-outlined">person</span>
-          <span class="text-[11px] font-semibold tracking-wide mt-0.5">個人中心</span>
+          <span class="text-[11px] font-semibold tracking-wide mt-0.5">{{ localizedText('個人中心', 'Profile') }}</span>
         </a>
       </div>
     </nav>
@@ -218,6 +230,8 @@ export default {
       listingsPageSize: 7,
       listingsHasMore: true,
       amountFilter: "",
+      selectedFiat: "EUR",
+      supportedFiats: ["EUR", "CHF", "USD", "GBP"],
       usdtAvailableBalance: 0,
       activeOrderCount: 0,
       certifiedBadgeSrc: hallCertifiedBadge
@@ -281,20 +295,24 @@ export default {
   },
   methods: {
     fetchHallData: function () {
-      this.fetchAccountSnapshot();
-      this.fetchListings();
+      this.fetchAccountSnapshot(true);
     },
-    fetchAccountSnapshot: function () {
+    fetchAccountSnapshot: function (loadListingsAfter) {
       var self = this;
       userApi
         .overview()
         .then(function (data) {
+          var preferredFiat = String((data && data.user && data.user.preferred_fiat) || "EUR").toUpperCase();
+          if (self.supportedFiats.indexOf(preferredFiat) !== -1) self.selectedFiat = preferredFiat;
           var map = (data && data.wallet_map) || {};
           var usdt = map.cash_usdt || {};
           self.usdtAvailableBalance = parseFloat(usdt.available_balance || "0") || 0;
         })
         .catch(function () {
           self.usdtAvailableBalance = 0;
+        })
+        .finally(function () {
+          if (loadListingsAfter) self.fetchListings();
         });
       userApi
         .ordersSummary()
@@ -318,7 +336,7 @@ export default {
       this.listingsLoading = true;
       this.listingsError = "";
       userApi
-        .listings("?page=" + encodeURIComponent(page) + "&page_size=" + encodeURIComponent(this.listingsPageSize))
+        .listings("?page=" + encodeURIComponent(page) + "&page_size=" + encodeURIComponent(this.listingsPageSize) + "&fiat_code=" + encodeURIComponent(this.selectedFiat))
         .then(function (data) {
           var rows = data && data.items ? data.items : [];
           self.listings = reset ? rows : self.listings.concat(rows);
@@ -327,7 +345,7 @@ export default {
         })
         .catch(function (err) {
           if (reset) self.listings = [];
-          self.listingsError = (err && err.message) || "載入掛單失敗";
+          self.listingsError = (err && err.message) || self.localizedText("載入掛單失敗", "Failed to load offers");
         })
         .finally(function () {
           self.listingsLoading = false;
@@ -421,6 +439,12 @@ export default {
     },
     setMode: function (mode) {
       this.mode = mode;
+    },
+    setFiat: function (fiat) {
+      fiat = String(fiat || "").toUpperCase();
+      if (this.supportedFiats.indexOf(fiat) === -1 || this.selectedFiat === fiat) return;
+      this.selectedFiat = fiat;
+      this.fetchListings();
     }
   }
 };

@@ -536,6 +536,42 @@ body::after {
   opacity: 1;
 }
 
+.admin-input[readonly],
+.admin-textarea[readonly],
+.admin-form-input[readonly] {
+  background: rgba(48, 70, 82, 0.72) !important;
+  border-color: rgba(199, 235, 248, 0.2) !important;
+  color: #b8c8d2 !important;
+  cursor: not-allowed;
+}
+
+.admin-input:disabled,
+.admin-select:disabled,
+.admin-textarea:disabled,
+.admin-form-input:disabled,
+.admin-textarea--display-only {
+  background: rgba(48, 57, 64, 0.82) !important;
+  border-color: rgba(199, 235, 248, 0.16) !important;
+  color: #aab8c2 !important;
+  cursor: not-allowed;
+  opacity: 1 !important;
+  resize: none;
+  user-select: none;
+}
+
+.admin-textarea--display-only {
+  pointer-events: none;
+}
+
+.admin-modal__hint {
+  display: block;
+  margin-top: 8px;
+  color: #a9c9d7;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.45;
+}
+
 .admin-input:focus,
 .admin-select:focus,
 .admin-textarea:focus,

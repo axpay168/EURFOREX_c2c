@@ -58,8 +58,24 @@
     }
   };
 
+  function normalizeLang(value) {
+    const raw = String(value || "").trim();
+    if (raw === "eng" || /^en(?:-|$)/i.test(raw)) return "eng";
+    if (raw === "zh-Hans" || /^zh-(?:CN|SG)$/i.test(raw)) return "zh-Hans";
+    if (raw === "zh-Hant" || /^zh(?:-|$)/i.test(raw)) return "zh-Hant";
+    return raw || "eng";
+  }
+
   function getLang() {
-    return localStorage.getItem("lang") || "zh-Hant";
+    try {
+      const pageLang = normalizeLang(window.__EURFOREX_CURRENT_LANG || document.documentElement.getAttribute("lang"));
+      if (PAGE_TEXTS[pageLang]) return pageLang;
+    } catch (e) {}
+    try {
+      const storedLang = normalizeLang(localStorage.getItem("lang"));
+      if (PAGE_TEXTS[storedLang]) return storedLang;
+    } catch (e) {}
+    return "eng";
   }
 
   function getTexts() {
@@ -68,8 +84,7 @@
   }
 
   function itemName(item) {
-    const lang = getLang();
-    return lang === "zh-Hant" || lang === "zh-Hans" ? item.nameZh : item.nameEn;
+    return item.nameEn;
   }
 
   let rootEl = null;

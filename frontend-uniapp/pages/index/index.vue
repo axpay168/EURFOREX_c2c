@@ -1,34 +1,32 @@
 <template>
   <div>
-    <!-- TopAppBar (from JSON) -->
     <header class="eurforex-top-bar eurforex-top-bar--home">
       <div class="eurforex-top-bar__title-wrap eurforex-top-bar__title-wrap--home">
         <div class="flex items-center gap-3">
-          <img alt="EURFOREX 商標" class="h-10 w-auto max-w-[76px] shrink-0 object-contain" :src="logoSrc" />
+          <img :alt="localizedText('EURFOREX 商標', 'EURFOREX logo')" class="h-10 w-auto max-w-[76px] shrink-0 object-contain" :src="logoSrc" />
           <span class="eurforex-top-bar__title eurforex-top-bar__title--home">EURFOREX</span>
         </div>
       </div>
     </header>
     <main class="eurforex-page-home__main eurforex-page-home__main--with-tab">
       <!-- Asset Card -->
-      <!-- Service Grid：左側理財中心占 2×2；右側 2×2 為邀請／客服／綁定／更多 -->
-      <section class="eurforex-page-home__shortcut-grid" aria-label="首頁快捷功能">
-        <a class="home-fin-card eurforex-page-home__fin-card" href="#/pages/index/financial" :aria-label="'理財中心，參考年化 ' + homeFinancialApr">
+      <section class="eurforex-page-home__shortcut-grid" :aria-label="localizedText('首頁快捷功能', 'Home quick shortcuts')">
+        <a class="home-fin-card eurforex-page-home__fin-card" href="#/pages/index/financial" :aria-label="localizedText('理財中心，參考年化', 'Financial Center, APR reference') + ' ' + homeFinancialApr">
           <div class="eurforex-page-home__fin-inner">
             <div class="eurforex-page-home__fin-head">
               <span class="eurforex-page-home__fin-symbol" style="color:#26a17e">₮</span>
               <div class="eurforex-page-home__fin-head-text">
-                <p class="home-fin-title">EARN · 定期</p>
-                <p class="home-fin-subtitle">理財中心精選</p>
+                <p class="home-fin-title">{{ localizedText('EARN · 定期', 'EARN · Fixed') }}</p>
+                <p class="home-fin-subtitle">{{ localizedText('理財中心精選', 'Top picks in Finance Center') }}</p>
               </div>
             </div>
             <div class="eurforex-page-home__fin-rate-block">
               <p class="home-fin-rate font-headline font-bold leading-none tracking-tight">{{ homeFinancialApr }}</p>
-              <p class="home-fin-rate-note eurforex-page-home__fin-rate-note-line">參考年化 APR</p>
+              <p class="home-fin-rate-note eurforex-page-home__fin-rate-note-line">{{ localizedText('參考年化 APR', 'APR Reference') }}</p>
             </div>
             <div class="eurforex-page-home__fin-foot-row">
-              <span class="home-fin-footnote eurforex-page-home__fin-footnote">USDT · 約定期限 · 到期贖回</span>
-              <span class="home-fin-cta eurforex-page-home__fin-cta">前往<span class="material-symbols-outlined text-[15px] leading-none">arrow_forward</span></span>
+              <span class="home-fin-footnote eurforex-page-home__fin-footnote">{{ localizedText('USDT · 約定期限 · 到期贖回', 'USDT · Fixed term · Redemption at maturity') }}</span>
+              <span class="home-fin-cta eurforex-page-home__fin-cta">{{ localizedText('前往', 'Go') }}<span class="material-symbols-outlined text-[15px] leading-none">arrow_forward</span></span>
             </div>
           </div>
           <svg class="eurforex-page-home__fin-deco" viewBox="0 0 130 110" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -43,43 +41,42 @@
           <div class="home-shortcut-icon eurforex-page-home__shortcut-icon-wrap">
             <span class="material-symbols-outlined eurforex-page-home__shortcut-icon--primary">group_add</span>
           </div>
-          <span class="eurforex-page-home__shortcut-label">邀請團隊</span>
+          <span class="eurforex-page-home__shortcut-label">{{ localizedText('邀請團隊', 'Invite team') }}</span>
         </a>
         <a class="group eurforex-page-home__shortcut eurforex-page-home__shortcut--p41" href="#/pages/index/serviceCenter">
           <div class="home-shortcut-icon eurforex-page-home__shortcut-icon-wrap">
             <span class="material-symbols-outlined eurforex-page-home__shortcut-icon--primary">support_agent</span>
           </div>
-          <span class="eurforex-page-home__shortcut-label">線上客服</span>
+          <span class="eurforex-page-home__shortcut-label">{{ localizedText('線上客服', 'Online support') }}</span>
         </a>
         <a class="group eurforex-page-home__shortcut eurforex-page-home__shortcut--p32" href="#/pages/setting/bindinfo">
           <div class="home-shortcut-icon eurforex-page-home__shortcut-icon-wrap">
             <span class="material-symbols-outlined eurforex-page-home__shortcut-icon--primary">link</span>
           </div>
-          <span class="eurforex-page-home__shortcut-label">帳號綁定</span>
+          <span class="eurforex-page-home__shortcut-label">{{ localizedText('帳號綁定', 'Account binding') }}</span>
         </a>
         <a class="group eurforex-page-home__shortcut eurforex-page-home__shortcut--p42" href="#/pages/index/more">
           <div class="home-shortcut-icon eurforex-page-home__shortcut-icon-wrap">
             <span class="material-symbols-outlined eurforex-page-home__shortcut-icon--dim">apps</span>
           </div>
-          <span class="eurforex-page-home__shortcut-label">更多</span>
+          <span class="eurforex-page-home__shortcut-label">{{ localizedText('更多', 'More') }}</span>
         </a>
       </section>
-      <!-- 行情：快捷入口下方先「交易動態」（與交易大廳同源），再「幣價」 -->
-      <section class="eurforex-page-home__section-feed" aria-label="行情與動態">
+      <section class="eurforex-page-home__section-feed" :aria-label="localizedText('行情與動態', 'Market and updates')">
         <div class="eurforex-page-home__feed-card">
           <div class="eurforex-page-home__feed-head">
             <div class="eurforex-page-home__feed-title-row">
               <span class="eurforex-page-home__feed-dot" aria-hidden="true"></span>
-              <h2 class="eurforex-page-home__feed-h2">交易動態</h2>
+              <h2 class="eurforex-page-home__feed-h2">{{ localizedText('交易動態', 'Trading updates') }}</h2>
             </div>
-            <a class="eurforex-page-home__feed-hall" href="#/pages/index/hall">前往大廳</a>
+            <a class="eurforex-page-home__feed-hall" href="#/pages/index/hall">{{ localizedText('前往大廳', 'Go to hall') }}</a>
           </div>
-          <LoadingInlineSpinner v-if="feedLoading" aria-label="交易動態載入" />
+          <LoadingInlineSpinner v-if="feedLoading" :aria-label="localizedText('交易動態載入', 'Loading trading updates')" />
           <div
             v-else
             class="eurforex-page-home__feed-marquee"
             role="region"
-            aria-label="交易動態"
+            :aria-label="localizedText('交易動態', 'Trading updates')"
           >
             <div class="eurforex-page-home__feed-marquee-track" aria-hidden="true">
               <div
@@ -104,8 +101,8 @@
           </div>
         </div>
         <div>
-          <h2 class="eurforex-page-home__market-heading">即時行情</h2>
-          <LoadingInlineSpinner v-if="marketLoading" aria-label="行情載入" />
+          <h2 class="eurforex-page-home__market-heading">{{ localizedText('即時行情', 'Live market') }}</h2>
+          <LoadingInlineSpinner v-if="marketLoading" :aria-label="localizedText('行情載入', 'Loading market data')" />
           <div v-else class="eurforex-page-home__market-list">
             <div
               v-for="row in marketRows"
@@ -131,7 +128,7 @@
                   <div class="eurforex-page-home__market-pair">
                     {{ row.base }} <span class="eurforex-page-home__market-pair-suffix">/ USDT</span>
                   </div>
-                  <div class="eurforex-page-home__market-vol">成交量 {{ row.volLabel }}</div>
+                  <div class="eurforex-page-home__market-vol">{{ localizedText('成交量', 'Volume') }} {{ row.volLabel }}</div>
                 </div>
               </div>
               <div class="eurforex-page-home__market-spark-wrap">
@@ -179,15 +176,14 @@
         </div>
         <div class="eurforex-page-home__promo-art" data-alt="abstract glowing blue and purple digital geometric shapes representing cryptocurrency"></div>
       </a>
-      <!-- 最新消息（CoinDesk 中文站，後端快取約 6 小時） -->
       <section class="eurforex-page-home__news-section">
         <div class="eurforex-page-home__news-head">
-          <h2 class="eurforex-page-home__news-h2">最新消息</h2>
+          <h2 class="eurforex-page-home__news-h2">{{ localizedText('最新消息', 'Latest news') }}</h2>
         </div>
         <div class="eurforex-page-home__news-card">
-          <LoadingInlineSpinner v-if="coindeskNewsLoading" aria-label="新聞載入" />
+          <LoadingInlineSpinner v-if="coindeskNewsLoading" :aria-label="localizedText('新聞載入', 'Loading news')" />
           <p v-else-if="coindeskNewsError" class="eurforex-page-home__news-empty">{{ coindeskNewsError }}</p>
-          <p v-else-if="!coindeskNews.length" class="eurforex-page-home__news-empty">暫無新聞（請稍後再試或確認後端可連線 CoinDesk）</p>
+          <p v-else-if="!coindeskNews.length" class="eurforex-page-home__news-empty">{{ localizedText('暫無新聞（請稍後再試或確認後端可連線 CoinDesk）', 'No news yet, please try later or check CoinDesk connection.') }}</p>
           <div v-else class="eurforex-page-home__news-stack">
             <div
               v-for="(article, idx) in coindeskNews"
@@ -223,28 +219,27 @@
         </div>
       </section>
     </main>
-    <!-- BottomNavBar（與交易大廳、訂單等頁一致：選中項 bg-primary-container/60，由 eurforex-style-refresh 轉為反白漸層） -->
     <nav
       class="eurforex-home-bottom-nav fixed bottom-0 left-0 w-full z-50 rounded-t-2xl bg-white/78 backdrop-blur-lg shadow-[0px_-8px_24px_rgba(33,79,131,0.08)] font-['Manrope']"
       role="navigation"
-      aria-label="主頁底部導航"
+      :aria-label="localizedText('主頁底部導航', 'Home bottom navigation')"
     >
       <div class="flex justify-around items-center h-20 px-4 pb-safe">
         <a class="flex flex-col items-center justify-center text-primary-dim bg-primary-container/60 rounded-xl px-3 py-1 transition-all active:scale-90" href="#/pages/index/index">
-          <img class="eurforex-nav-brand-icon" :src="homeNavLogoSrc" alt="EURFOREX 主頁" />
-          <span class="text-[11px] font-semibold tracking-wide mt-0.5">主頁</span>
+          <img class="eurforex-nav-brand-icon" :src="homeNavLogoSrc" :alt="localizedText('EURFOREX 主頁', 'EURFOREX Home')" />
+          <span class="text-[11px] font-semibold tracking-wide mt-0.5">{{ localizedText('主頁', 'Home') }}</span>
         </a>
         <a class="flex flex-col items-center justify-center text-on-surface-variant px-3 py-1 hover:text-primary-dim transition-all" href="#/pages/index/hall">
           <span class="material-symbols-outlined">swap_horizontal_circle</span>
-          <span class="text-[11px] font-semibold tracking-wide mt-0.5">交易大廳</span>
+          <span class="text-[11px] font-semibold tracking-wide mt-0.5">{{ localizedText('交易大廳', 'Trading Hall') }}</span>
         </a>
         <a class="flex flex-col items-center justify-center text-on-surface-variant px-3 py-1 hover:text-primary-dim transition-all" href="#/pages/setting/myTask">
           <span class="material-symbols-outlined">receipt_long</span>
-          <span class="text-[11px] font-semibold tracking-wide mt-0.5">訂單</span>
+          <span class="text-[11px] font-semibold tracking-wide mt-0.5">{{ localizedText('訂單', 'Orders') }}</span>
         </a>
         <a class="flex flex-col items-center justify-center text-on-surface-variant px-3 py-1 hover:text-primary-dim transition-all" href="#/pages/setting/user">
           <span class="material-symbols-outlined">person</span>
-          <span class="text-[11px] font-semibold tracking-wide mt-0.5">個人中心</span>
+          <span class="text-[11px] font-semibold tracking-wide mt-0.5">{{ localizedText('個人中心', 'Profile') }}</span>
         </a>
       </div>
     </nav>
@@ -258,12 +253,7 @@ import { userApi } from '@/utils/api'
 import { pricesToSparkPathD } from '../../utils/coingeckoMarkets'
 
 /**
- * EURFOREX - 首頁 (純 H5 Vue2 Options API)
- * 以 docs/previews/nnn/home.html 為唯一基準逐字遷移
- * 原稿無內聯 JS，僅外部 back-nav.js
- * 商標 LOGO 使用 :src 綁定避開建置期資產 URL 轉換問題（比照 login-h5.vue 策略）
- *
- * 即時行情：走後端 market-snapshot 代理/快取，避免瀏覽器直接打第三方 API 造成 CORS。
+ * Home
  */
 var BODY_CLASSES = [
   "nc2c-page",
@@ -292,7 +282,7 @@ function formatFeedAmountDisplay(raw) {
   return n.toLocaleString('zh-Hant', { minimumFractionDigits: 0, maximumFractionDigits: 2 })
 }
 
-/** 郵箱：axpay168@gmail.com → axp****68@gmail.com；非郵箱字串做簡短遮罩 */
+/** Email masking helper keeps sensitive address parts hidden */
 function maskTradeFeedActor(raw) {
   var s = String(raw || '').trim()
   if (!s) return '——'
@@ -340,10 +330,10 @@ function mapTradeFeedApiItems(items) {
         muted: muted
       })
     } else {
-      var quoteLabel = String(it.actor_name || it.display_title || '商戶').trim() || '商戶'
+      var quoteLabel = String(it.actor_name || it.display_title || this.localizedText('商戶', 'Counterparty')).trim() || this.localizedText('商戶', 'Counterparty')
       var quoteDisplay = quoteLabel.indexOf('@') >= 0 ? maskTradeFeedActor(quoteLabel) : quoteLabel
       var dt = String(it.display_title || '').trim()
-      var quoteHint = dt ? (dt.length > 28 ? dt.slice(0, 28) + '…' : dt) : '新報價'
+      var quoteHint = dt ? (dt.length > 28 ? dt.slice(0, 28) + '…' : dt) : this.localizedText('新報價', 'New quote')
       rows.push({
         rowKey: rowKey,
         kind: 'quote',
@@ -500,7 +490,7 @@ export default {
         })
         .catch(function () {
           self.coindeskNews = [];
-          self.coindeskNewsError = "無法載入新聞，請稍後再試";
+          self.coindeskNewsError = self.localizedText("無法載入新聞，請稍後再試", "Unable to load news, please try again later.");
         })
         .then(function () {
           self.coindeskNewsLoading = false;

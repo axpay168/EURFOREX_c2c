@@ -18,8 +18,11 @@
         if (window.__eurforexChatwootBootstrapped) return;
         window.__eurforexChatwootBootstrapped = true;
 
-        var BASE_URL = "https://chat.mxscr.vip";
-        var CHATWOOT_TOKEN = "nUi2ucprkAwp2g5nKEzUv7TW";
+        var DEFAULT_CHATWOOT_BASE_URL = "https://chat.mxscr.vip";
+        var DEFAULT_CHATWOOT_TOKEN = "nUi2ucprkAwp2g5nKEzUv7TW";
+        var currentChatwootConfig = null;
+        var chatwootConfigPromise = null;
+        var chatwootSdkPromise = null;
 
         var customBubble = null;
         var closeButton = null;
@@ -120,6 +123,103 @@
         function applyChatwootLocale() {
           window.chatwootSettings = window.chatwootSettings || {};
           window.chatwootSettings.locale = resolveChatwootLocale();
+        }
+
+        function resolveApiBaseUrl() {
+          try {
+            var config = window.__EURFOREX_RUNTIME_CONFIG__ || {};
+            if (config.apiBaseUrl != null && String(config.apiBaseUrl).trim() !== "") {
+              return String(config.apiBaseUrl).trim().replace(/\/$/, "");
+            }
+          } catch (e) {}
+          try {
+            if (window.location && window.location.origin) return window.location.origin.replace(/\/$/, "");
+          } catch (e) {}
+          return "";
+        }
+
+        function getUserToken() {
+          var value = "";
+          try {
+            value = window.localStorage ? String(window.localStorage.getItem("eurforex_user_token") || "") : "";
+          } catch (e) {}
+          if (value) return value;
+          try {
+            if (window.uni && typeof window.uni.getStorageSync === "function") {
+              return String(window.uni.getStorageSync("eurforex_user_token") || "");
+            }
+          } catch (e) {}
+          return "";
+        }
+
+        function normalizeCustomerServiceConfig(config) {
+          config = config || {};
+          var baseUrl = String(config.base_url || DEFAULT_CHATWOOT_BASE_URL).trim().replace(/\/$/, "");
+          var token = String(config.website_token || DEFAULT_CHATWOOT_TOKEN).trim();
+          if (!baseUrl || !token || config.enabled === false) {
+            baseUrl = DEFAULT_CHATWOOT_BASE_URL;
+            token = DEFAULT_CHATWOOT_TOKEN;
+          }
+          return {
+            baseUrl: baseUrl,
+            websiteToken: token,
+            source: String(config.source || "default")
+          };
+        }
+
+        function fetchCustomerServiceConfig(path, token) {
+          var apiBase = resolveApiBaseUrl();
+          if (!apiBase || !window.fetch) return Promise.reject(new Error("fetch unavailable"));
+          var headers = { "Content-Type": "application/json" };
+          if (token) headers.Authorization = "Bearer " + token;
+          return window.fetch(apiBase + path, {
+            method: "GET",
+            headers: headers,
+            credentials: "omit"
+          }).then(function (response) {
+            return response.json().catch(function () {
+              return {};
+            }).then(function (payload) {
+              if (!response.ok || Number(payload.code) !== 1) {
+                throw new Error(payload && payload.msg ? payload.msg : "config request failed");
+              }
+              return normalizeCustomerServiceConfig((payload.data && payload.data.config) || payload.config || {});
+            });
+          });
+        }
+
+        function loadCustomerServiceConfig() {
+          if (chatwootConfigPromise) return chatwootConfigPromise;
+          var token = getUserToken();
+          chatwootConfigPromise = (token
+            ? fetchCustomerServiceConfig("/api/user/customer-service-config", token).catch(function () {
+                return fetchCustomerServiceConfig("/api/public/customer-service-config", "");
+              })
+            : fetchCustomerServiceConfig("/api/public/customer-service-config", "")
+          ).catch(function () {
+            return normalizeCustomerServiceConfig({});
+          }).then(function (config) {
+            chatwootConfigPromise = null;
+            return config;
+          });
+          return chatwootConfigPromise;
+        }
+
+        function clearChatwootInstance() {
+          var sdk = d.querySelector('script[data-eurforex-chatwoot-sdk="1"]');
+          if (sdk && sdk.parentNode) sdk.parentNode.removeChild(sdk);
+          var holders = d.querySelectorAll("#cw-bubble-holder,.woot--bubble-holder,.woot-widget-holder,.woot-widget-bubble,.woot-widget-holder iframe");
+          for (var i = 0; i < holders.length; i++) {
+            if (holders[i] && holders[i].parentNode) holders[i].parentNode.removeChild(holders[i]);
+          }
+          try {
+            delete window.$chatwoot;
+            delete window.chatwootSDK;
+          } catch (e) {
+            window.$chatwoot = undefined;
+            window.chatwootSDK = undefined;
+          }
+          chatwootSdkPromise = null;
         }
 
         function ensureCustomBubble() {
@@ -379,36 +479,72 @@
 
         window.EurforexOpenChatwoot = function () {
           showCustomBubble();
-          openChatwootWindow();
+          startChatwoot().then(function () {
+            openChatwootWindow();
+          });
         };
 
         function startChatwoot() {
+          return loadCustomerServiceConfig().then(function (config) {
+            ensureCustomBubble();
+            startChatWindowCloseSync();
+            applyChatwootLocale();
+
+            var sameConfig =
+              currentChatwootConfig &&
+              currentChatwootConfig.baseUrl === config.baseUrl &&
+              currentChatwootConfig.websiteToken === config.websiteToken;
+            if (!sameConfig && currentChatwootConfig) {
+              clearChatwootInstance();
+            }
+            currentChatwootConfig = config;
+
+            if (window.$chatwoot && typeof window.$chatwoot.toggle === "function") {
+              return Promise.resolve();
+            }
+            if (chatwootSdkPromise) return chatwootSdkPromise;
+
+            chatwootSdkPromise = new Promise(function (resolve) {
+              var existing = d.querySelector('script[data-eurforex-chatwoot-sdk="1"]');
+              if (existing) {
+                resolve();
+                return;
+              }
+              var g = d.createElement(t);
+              var s = d.getElementsByTagName(t)[0];
+              g.src = config.baseUrl + "/packs/js/sdk.js";
+              g.defer = true;
+              g.async = true;
+              g.setAttribute("data-eurforex-chatwoot-sdk", "1");
+              s.parentNode.insertBefore(g, s);
+              g.onload = function () {
+                if (window.chatwootSDK && typeof window.chatwootSDK.run === "function") {
+                  applyChatwootLocale();
+                  window.chatwootSDK.run({
+                    websiteToken: config.websiteToken,
+                    baseUrl: config.baseUrl
+                  });
+                  resolve();
+                } else {
+                  resolve();
+                }
+              };
+              g.onerror = function () {
+                chatwootSdkPromise = null;
+                resolve();
+              };
+            });
+            return chatwootSdkPromise;
+          });
+        }
+
+        function bootChatwootControls() {
           ensureCustomBubble();
           startChatWindowCloseSync();
           applyChatwootLocale();
-          if (d.querySelector('script[data-eurforex-chatwoot-sdk="1"]')) {
-            runWhenChatwootReady(function () {});
-            return;
-          }
-          var g = d.createElement(t);
-          var s = d.getElementsByTagName(t)[0];
-          g.src = BASE_URL + "/packs/js/sdk.js";
-          g.defer = true;
-          g.async = true;
-          g.setAttribute("data-eurforex-chatwoot-sdk", "1");
-          s.parentNode.insertBefore(g, s);
-          g.onload = function () {
-            if (window.chatwootSDK && typeof window.chatwootSDK.run === "function") {
-              applyChatwootLocale();
-              window.chatwootSDK.run({
-                websiteToken: CHATWOOT_TOKEN,
-                baseUrl: BASE_URL
-              });
-            }
-          };
         }
 
-        startChatwoot();
+        bootChatwootControls();
       })(document, "script");
     </script>
   </body>

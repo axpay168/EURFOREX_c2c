@@ -28,8 +28,6 @@
                 <span class="eurforex-empty-illustration__cube eurforex-empty-illustration__cube--three"></span>
                 <span class="eurforex-empty-illustration__box"></span>
               </div>
-              <h2 class="eurforex-empty-title">暫未設置入金資訊</h2>
-              <p class="eurforex-empty-sub">SEPA 入金資訊需由客服確認後提供。</p>
               <div class="eurforex-empty-actions">
                 <a class="eurforex-empty-btn" href="#/pages/index/serviceCenter">聯繫客服</a>
                 <a class="eurforex-empty-btn-soft" href="#/pages/setting/wallet">返回資產</a>
@@ -119,7 +117,7 @@ export default {
     return {
       network: "SEPA",
       amount: "",
-      proofHint: "上傳憑證",
+      proofHint: this.$t("phrases.上傳憑證"),
       proofFile: null,
       submitting: false,
       submitStage: ""
@@ -164,16 +162,16 @@ export default {
       var input = e && e.target;
       var f = input && input.files && input.files[0];
       this.proofFile = f || null;
-      this.proofHint = f ? f.name : "上傳憑證";
+      this.proofHint = f ? f.name : this.$t("phrases.上傳憑證");
     },
     handleConfirm: function () {
       var n = parseFloat(String(this.amount || "").replace(/,/g, "").trim());
       if (isNaN(n) || n <= 0) {
-        alert("請輸入有效的充值金額。");
+        alert(this.$t("phrases.請輸入有效的充值金額。"));
         return;
       }
       if (!this.proofFile) {
-        alert("請先上傳轉賬憑證。");
+        alert(this.$t("phrases.請先上傳轉賬憑證。"));
         return;
       }
       if (this.submitting) return;

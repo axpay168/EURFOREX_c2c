@@ -38,6 +38,7 @@
     listings: "/api/admin/listings?page=1&page_size=10",
     "trade-feed": "/api/admin/trade-feed-events?page=1&page_size=10",
     "home-content": "/api/admin/home-content",
+    "customer-service-config": "/api/admin/customer-service-configs",
     kyc: "/api/admin/kyc-applications?page=1&page_size=10",
     "payout-methods": "/api/admin/payout-methods?page=1&page_size=10",
     "auth-events": "/api/admin/auth/events?page=1&page_size=10",

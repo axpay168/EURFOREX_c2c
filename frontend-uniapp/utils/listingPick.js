@@ -5,12 +5,16 @@
  * @param {Array<Record<string, unknown>>} items
  * @param {'buy'|'sell'} side
  * @param {number} userId 排除自己的掛單
+ * @param {{minAmount?: number, maxAmount?: number}=} options 額外限制，例：等級最低賣出額
  * @returns {Record<string, unknown>|null}
  */
-export function pickBestOneClickListing(items, side, userId) {
+export function pickBestOneClickListing(items, side, userId, options) {
   var want = String(side || '').toLowerCase()
   if (want !== 'buy' && want !== 'sell') return null
   var uid = parseInt(String(userId || '0'), 10) || 0
+  var opts = options || {}
+  var requiredMin = parseFloat(String(opts.minAmount != null ? opts.minAmount : '0')) || 0
+  var requiredMax = parseFloat(String(opts.maxAmount != null ? opts.maxAmount : '0')) || 0
   var candidates = []
   for (var i = 0; i < (items || []).length; i++) {
     var L = items[i] || {}
@@ -20,6 +24,10 @@ export function pickBestOneClickListing(items, side, userId) {
     if (!isFinite(avail) || avail <= 0) continue
     var price = parseFloat(String(L.price != null ? L.price : ''))
     if (!isFinite(price) || price <= 0) continue
+    var min = parseFloat(String(L.min_amount != null ? L.min_amount : '0')) || 0
+    var max = parseFloat(String(L.max_amount != null ? L.max_amount : '0')) || 0
+    if (requiredMin > 0 && max > 0 && max < requiredMin) continue
+    if (requiredMax > 0 && min > requiredMax) continue
     candidates.push(L)
   }
   if (!candidates.length) return null

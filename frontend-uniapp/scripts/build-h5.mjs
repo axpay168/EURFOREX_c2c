@@ -94,6 +94,19 @@ function mergeH5IndexFromTemplate() {
   console.log('[build:h5] merged template.h5.html + webpack bundles → dist/build/h5/index.html')
 }
 
+function makeWebReadable(targetPath) {
+  if (!fs.existsSync(targetPath)) return
+  const stat = fs.statSync(targetPath)
+  if (stat.isDirectory()) {
+    fs.chmodSync(targetPath, 0o755)
+    for (const entry of fs.readdirSync(targetPath)) {
+      makeWebReadable(path.join(targetPath, entry))
+    }
+    return
+  }
+  fs.chmodSync(targetPath, 0o644)
+}
+
 mergeH5IndexFromTemplate()
 
 fs.mkdirSync(distBuildDir, { recursive: true })
@@ -103,3 +116,4 @@ fs.writeFileSync(
   '<!DOCTYPE html><html lang="zh-Hant"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=h5/"><title>Redirect</title><style>html,body{margin:0;background:#eefaff}</style></head><body></body></html>\n',
   'utf8'
 )
+makeWebReadable(distBuildDir)

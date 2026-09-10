@@ -24,16 +24,16 @@
     >
       <div class="flex items-center gap-4 min-w-0 text-left">
         <div class="w-11 h-11 rounded-2xl bg-primary/8 flex items-center justify-center text-primary border border-primary/10 shrink-0">
-          <span class="material-symbols-outlined">language</span>
+          <img class="language-icon-img language-icon-img--menu" :src="icons.globe" alt="" aria-hidden="true" />
         </div>
         <div class="min-w-0">
-          <div class="font-body text-base font-semibold text-on-surface">語言</div>
-          <div class="text-sm text-on-surface-variant">切換目前前台顯示語言。</div>
+          <div class="font-body text-base font-semibold text-on-surface">{{ localizedText('語言', 'Language') }}</div>
+          <div class="text-sm text-on-surface-variant">{{ localizedText('切換目前前台顯示語言。', 'Switch current frontend display language.') }}</div>
         </div>
       </div>
       <div class="language-menu-row__value">
         <span>{{ currentMeta.name }}</span>
-        <span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors shrink-0">chevron_right</span>
+        <img class="language-icon-img language-icon-img--chevron" :src="icons.chevron" alt="" aria-hidden="true" />
       </div>
     </button>
     <div
@@ -57,7 +57,7 @@
           <button type="button" :aria-label="$t('ui.close')" @click="open = false">×</button>
         </div>
         <div class="language-current-card" v-if="variant === 'menu-row'">
-          <span class="material-symbols-outlined">translate</span>
+          <img class="language-icon-img language-icon-img--current" :src="icons.translate" alt="" aria-hidden="true" />
           <div>
             <small>{{ $t('ui.currentLanguage') }}</small>
             <strong>{{ currentMeta.name }}</strong>
@@ -76,7 +76,7 @@
               @click="select(item.value)"
             >
               <span>{{ item.name }}</span>
-              <span v-if="variant === 'menu-row' && item.value === currentLang" class="material-symbols-outlined language-sheet__check">check_circle</span>
+              <img v-if="variant === 'menu-row' && item.value === currentLang" class="language-sheet__check-img" :src="icons.check" alt="" aria-hidden="true" />
             </button>
           </div>
         </div>
@@ -88,6 +88,10 @@
 <script>
 import { LANGS, langMeta } from '@/common/langs'
 import { currentLocale, setLocale } from '@/common/i18n'
+import globeIcon from '@/static/icons/profile/globe-white.svg'
+import chevronIcon from '@/static/icons/profile/chevron.svg'
+import translateIcon from '@/static/icons/profile/translate-blue.svg'
+import checkIcon from '@/static/icons/profile/check-blue.svg'
 
 export default {
   name: 'LanguageSelector',
@@ -104,6 +108,7 @@ export default {
   data() {
     return {
       open: false,
+      icons: { globe: globeIcon, chevron: chevronIcon, translate: translateIcon, check: checkIcon },
       langs: LANGS,
       currentLang: currentLocale()
     }
@@ -206,6 +211,29 @@ export default {
   font-weight: 700;
 }
 
+.language-icon-img {
+  display: block;
+  flex: 0 0 auto;
+  object-fit: contain;
+}
+
+.language-icon-img--menu {
+  height: 22px;
+  width: 22px;
+}
+
+.language-icon-img--chevron {
+  height: 18px;
+  opacity: 0.82;
+  width: 18px;
+}
+
+.language-menu-row .w-11.h-11 {
+  background: linear-gradient(180deg, #66d1bd 0%, #2f8786 100%) !important;
+  border-color: rgba(255, 255, 255, 0.45) !important;
+  box-shadow: 0 10px 22px rgba(31, 126, 128, 0.22), inset 0 1px 0 rgba(255, 255, 255, 0.52);
+}
+
 .eurforex-language-overlay {
   position: fixed;
   inset: 0;
@@ -292,16 +320,12 @@ export default {
   box-shadow: 0 10px 28px rgba(33, 79, 131, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
-.language-current-card .material-symbols-outlined {
+.language-current-card .language-icon-img--current {
   width: 2.35rem;
   height: 2.35rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
   border-radius: 15px;
   background: linear-gradient(135deg, #34d7c2, #078f96);
-  color: #fff;
-  font-size: 1.25rem;
+  padding: 0.55rem;
   box-shadow: 0 12px 24px rgba(0, 150, 155, 0.18);
 }
 
@@ -381,9 +405,11 @@ export default {
   box-shadow: 0 12px 28px rgba(255, 159, 67, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.8);
 }
 
-.language-sheet__check {
-  font-size: 1.1rem;
-  color: #f59a2a;
+.language-sheet__check-img {
+  display: block;
+  height: 18px;
+  object-fit: contain;
+  width: 18px;
 }
 
 .language-wheel__focus {

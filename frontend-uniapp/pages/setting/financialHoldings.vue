@@ -1,8 +1,8 @@
 <template>
   <div>
     <header class="fixed top-0 w-full border-b border-primary/10 bg-white/75 backdrop-blur-3xl shadow-[0_12px_32px_rgba(33,79,131,0.08)] flex justify-between items-center px-6 h-14 w-full z-50">
-      <a class="flex shrink-0 items-center justify-center rounded-full p-2 text-primary-dim transition-colors hover:bg-primary/10" href="#/pages/index/financial" @click="backGo($event, '#/pages/index/financial')" aria-label="返回"><span class="material-symbols-outlined">arrow_back</span></a>
-      <div class="font-headline text-lg font-bold text-on-surface">我的持倉</div>
+      <a class="flex shrink-0 items-center justify-center rounded-full p-2 text-primary-dim transition-colors hover:bg-primary/10" href="#/pages/index/financial" @click="backGo($event, '#/pages/index/financial')" :aria-label="localizedText('返回', 'Back')"><span class="material-symbols-outlined">arrow_back</span></a>
+      <div class="font-headline text-lg font-bold text-on-surface">{{ localizedText("我的持倉", "My holdings") }}</div>
       <div class="w-10 shrink-0" aria-hidden="true"></div>
     </header>
 
@@ -10,27 +10,27 @@
       <section class="holdings-hero">
         <div class="holdings-hero__copy">
           <p class="holdings-eyebrow">Earn Portfolio</p>
-          <h1>我的持倉</h1>
-          <p>追蹤申購、計息、到期與贖回狀態。成功申購後，產品會依結算節點自動出現在此頁。</p>
+          <h1>{{ localizedText("我的持倉", "My holdings") }}</h1>
+          <p>{{ localizedText("追蹤申購、計息、到期與贖回狀態。成功申購後，產品會依結算節點自動出現在此頁。", "Track subscription, accrual, maturity, and redemption statuses. After subscription is submitted, products appear automatically based on settlement schedule.") }}</p>
         </div>
-        <a class="holdings-hero__action" href="#/pages/index/financial">查看理財產品</a>
+        <a class="holdings-hero__action" href="#/pages/index/financial">{{ localizedText("查看理財產品", "View investment products") }}</a>
       </section>
 
-      <section class="holdings-summary" aria-label="持倉總覽">
+      <section class="holdings-summary" :aria-label="localizedText('持倉總覽', 'Holdings overview')">
         <article class="holdings-summary__card">
-          <span>持倉本金</span>
+          <span>{{ localizedText("持倉本金", "Holding principal") }}</span>
           <strong>{{ principalDisplay }}</strong>
-          <em>{{ activeCount ? '進行中持倉本金' : '目前沒有進行中的產品' }}</em>
+          <em>{{ activeCount ? localizedText("進行中持倉本金", "Active principal") : localizedText("目前沒有進行中的產品", "No ongoing products") }}</em>
         </article>
         <article class="holdings-summary__card">
-          <span>累計參考收益</span>
+          <span>{{ localizedText("累計參考收益", "Accumulated reference yield") }}</span>
           <strong>{{ interestDisplay }}</strong>
-          <em>收益將於到期或結算後更新</em>
+          <em>{{ localizedText("收益將於到期或結算後更新", "Yield updates after maturity or settlement") }}</em>
         </article>
         <article class="holdings-summary__card">
-          <span>下一結算日</span>
+          <span>{{ localizedText("下一結算日", "Next settlement date") }}</span>
           <strong>{{ nextSettlementDisplay }}</strong>
-          <em>申購後顯示預計時間</em>
+          <em>{{ localizedText("申購後顯示預計時間", "Expected time will appear after subscription") }}</em>
         </article>
       </section>
 
@@ -38,16 +38,16 @@
         <div class="holdings-panel__head">
           <div>
             <p class="holdings-eyebrow">Positions</p>
-            <h2>持倉列表</h2>
+            <h2>{{ localizedText("持倉列表", "Holdings list") }}</h2>
           </div>
-          <div class="holdings-tabs" aria-label="持倉狀態">
-            <button type="button" :class="{ 'is-active': filter === 'all' }" @click="filter = 'all'">全部</button>
-            <button type="button" :class="{ 'is-active': filter === 'active' }" @click="filter = 'active'">計息中</button>
-            <button type="button" :class="{ 'is-active': filter === 'settled' }" @click="filter = 'settled'">已到期</button>
+          <div class="holdings-tabs" :aria-label="localizedText('持倉狀態', 'Holding status')">
+            <button type="button" :class="{ 'is-active': filter === 'all' }" @click="filter = 'all'">{{ localizedText("全部", "All") }}</button>
+            <button type="button" :class="{ 'is-active': filter === 'active' }" @click="filter = 'active'">{{ localizedText("計息中", "Accruing") }}</button>
+            <button type="button" :class="{ 'is-active': filter === 'settled' }" @click="filter = 'settled'">{{ localizedText("已到期", "Matured") }}</button>
           </div>
         </div>
 
-        <LoadingInlineSpinner v-if="loading" aria-label="持倉載入" />
+        <LoadingInlineSpinner v-if="loading" :aria-label="localizedText('持倉載入', 'Loading holdings')" />
         <p v-else-if="errorMessage" class="holdings-loading holdings-loading--error">{{ errorMessage }}</p>
         <div v-else-if="!visibleItems.length" class="holdings-empty-card">
           <div class="holdings-empty-card__glow" aria-hidden="true"></div>
@@ -58,12 +58,12 @@
             <span class="holdings-empty-visual__box"></span>
           </div>
           <div class="holdings-empty-card__content">
-            <span class="holdings-empty-card__badge">No Active Position</span>
-            <h3>目前尚無持倉</h3>
-            <p>完成申購後，這裡會顯示產品名稱、申購本金、參考 APR、起息日、到期日與預估收益。</p>
+            <span class="holdings-empty-card__badge">{{ localizedText("目前沒有進行中的產品", "No Active Position") }}</span>
+            <h3>{{ localizedText("目前尚無持倉", "No holdings yet") }}</h3>
+            <p>{{ localizedText("完成申購後，這裡會顯示產品名稱、申購本金、參考 APR、起息日、到期日與預估收益。", "After subscription, this area shows product name, principal, reference APR, start date, maturity date and estimated yield.") }}</p>
             <div class="holdings-empty-actions">
-              <a class="holdings-btn-primary" href="#/pages/index/financial">前往理財中心</a>
-              <a class="holdings-btn-soft" href="#/pages/index/index">返回首頁</a>
+              <a class="holdings-btn-primary" href="#/pages/index/financial">{{ localizedText("前往理財中心", "Go to investment center") }}</a>
+              <a class="holdings-btn-soft" href="#/pages/index/index">{{ localizedText("返回首頁", "Back to home") }}</a>
             </div>
           </div>
         </div>
@@ -77,10 +77,10 @@
               <span>{{ statusLabel(item.status) }}</span>
             </div>
             <div class="holdings-position-card__grid">
-              <div><small>本金</small><strong>{{ formatAmount(item.amount, 2) }} {{ item.asset_code }}</strong></div>
-              <div><small>參考 APR</small><strong>{{ formatPercent(item.apr_rate) }}</strong></div>
-              <div><small>預估收益</small><strong>{{ formatAmount(item.estimated_interest, 2) }} {{ item.asset_code }}</strong></div>
-              <div><small>到期時間</small><strong>{{ item.maturity_at || '—' }}</strong></div>
+              <div><small>{{ localizedText("本金", "Principal") }}</small><strong>{{ formatAmount(item.amount, 2) }} {{ item.asset_code }}</strong></div>
+              <div><small>{{ localizedText("參考 APR", "Reference APR") }}</small><strong>{{ formatPercent(item.apr_rate) }}</strong></div>
+              <div><small>{{ localizedText("預估收益", "Estimated yield") }}</small><strong>{{ formatAmount(item.estimated_interest, 2) }} {{ item.asset_code }}</strong></div>
+              <div><small>{{ localizedText("到期時間", "Maturity date") }}</small><strong>{{ item.maturity_at || '—' }}</strong></div>
             </div>
           </article>
         </div>
@@ -89,15 +89,15 @@
           <article>
             <span class="material-symbols-outlined" aria-hidden="true">schedule</span>
             <div>
-              <strong>申購後 T+1 起息</strong>
-              <p>產品確認後會顯示起息時間，收益以產品條款與實際結算為準。</p>
+              <strong>{{ localizedText("申購後 T+1 起息", "Accrual starts the next day after subscription") }}</strong>
+              <p>{{ localizedText("產品確認後會顯示起息時間，收益以產品條款與實際結算為準。", "Accrual timing appears after confirmation. Yield follows product terms and actual settlement.") }}</p>
             </div>
           </article>
           <article>
             <span class="material-symbols-outlined" aria-hidden="true">verified_user</span>
             <div>
-              <strong>留意到期與贖回</strong>
-              <p>到期前可在持倉詳情查看結算窗口、贖回規則與風險揭露。</p>
+              <strong>{{ localizedText("留意到期與贖回", "Watch maturity and redemption") }}</strong>
+              <p>{{ localizedText("到期前可在持倉詳情查看結算窗口、贖回規則與風險揭露。", "Before maturity, view settlement window, redemption rules and risk disclosures in holding details.") }}</p>
             </div>
           </article>
         </div>
@@ -213,7 +213,7 @@ export default {
         })
         .catch(function (error) {
           self.items = [];
-          self.errorMessage = (error && error.message) || "載入持倉失敗";
+          self.errorMessage = (error && error.message) || self.localizedText("載入持倉失敗", "Failed to load holdings");
         })
         .finally(function () {
           self.loading = false;
@@ -230,13 +230,13 @@ export default {
     },
     statusLabel: function (status) {
       var map = {
-        active: "計息中",
-        pending_settlement: "待結算",
-        settled: "已結算",
-        returned: "已返還",
-        completed: "已完成"
+        active: this.localizedText("計息中", "Accruing"),
+        pending_settlement: this.localizedText("待結算", "Pending settlement"),
+        settled: this.localizedText("已結算", "Settled"),
+        returned: this.localizedText("已返還", "Returned"),
+        completed: this.localizedText("已完成", "Completed")
       };
-      return map[status] || status || "—";
+      return map[status] || status || this.localizedText("未知", "Unknown");
     }
   }
 };

@@ -9,6 +9,12 @@
     return window.__ADMIN_API_FETCH__;
   }
 
+  function notifyPendingNavBadgesRefresh() {
+    try {
+      window.dispatchEvent(new CustomEvent("eurforex-admin-pending-counts-changed"));
+    } catch (e) {}
+  }
+
   function esc(s) {
     return String(s == null ? "" : s)
       .replace(/&/g, "&amp;")
@@ -65,6 +71,11 @@
 
   function renderAdminGroupCell(item) {
     return "<td>" + esc(adminGroupLabelZh(item && item.admin_group ? item.admin_group : item)) + "</td>";
+  }
+
+  function adminListDateCell(raw) {
+    var s = raw != null && String(raw).trim() !== "" ? String(raw).trim() : "—";
+    return '<td class="mono admin-table-date" title="' + esc(s) + '">' + esc(s) + "</td>";
   }
 
   function adminUserFromPrefixedFields(row, prefix) {
@@ -478,7 +489,7 @@
   function assetLabelZh(code) {
     if (code == null || code === "") return "—";
     var k = String(code).toUpperCase();
-    var map = { USDT: "USDT", USD: "美元", EUR: "歐元", BTC: "比特幣", ETH: "以太幣" };
+    var map = { USDT: "USDT", USDC: "USDC", USD: "美元", EUR: "歐元", BTC: "比特幣", ETH: "以太幣", TRX: "TRX" };
     return map[k] || "其他資產";
   }
 
@@ -499,6 +510,13 @@
       trx: "波場",
       eth: "以太坊",
       bsc: "幣安智能鏈"
+      ,
+      polygon: "Polygon",
+      solana: "Solana",
+      base: "Base",
+      arbitrum: "Arbitrum",
+      optimism: "Optimism",
+      btc: "Bitcoin"
     };
     return map[k] || "其他網路";
   }
@@ -1301,16 +1319,15 @@
 
   function resetFinancialProductCreateForm() {
     var fields = {
-      "view-fp-create-code": "",
-      "view-fp-create-display": "",
+      "view-fp-create-display": "USDT 定期 30天",
       "view-fp-create-asset": "USDT",
-      "view-fp-create-subtitle": "",
-      "view-fp-create-detail": "",
+      "view-fp-create-subtitle": "中短周期增益产品",
+      "view-fp-create-detail": "收益與結算規則以平台配置為準。",
       "view-fp-create-apr": "5",
       "view-fp-create-term": "30",
-      "view-fp-create-min": "100",
-      "view-fp-create-personal": "50000",
-      "view-fp-create-total": "1000000",
+      "view-fp-create-min": "100.000",
+      "view-fp-create-personal": "50000.000",
+      "view-fp-create-total": "1000000.000",
       "view-fp-create-sort": "0",
       "view-fp-create-return-delay": "0"
     };
@@ -1324,6 +1341,7 @@
     if (st) st.value = "active";
     var msg = document.getElementById("view-fp-create-msg");
     if (msg) msg.textContent = "";
+    syncFinancialProductPreset("create");
   }
 
   function readFpField(pfx, suffix) {
@@ -1331,19 +1349,125 @@
     return el ? el.value : "";
   }
 
+  var FINANCIAL_PRODUCT_ASSETS = ["USDT", "BTC", "ETH", "BNB"];
+  var FINANCIAL_PRODUCT_WALLETS = {
+    USDT: "cash_usdt",
+    BTC: "spot_btc",
+    ETH: "spot_eth",
+    BNB: "spot_bnb"
+  };
+  var FINANCIAL_PRODUCT_SUBTITLES = ["短短周期增益产品", "中短周期增益产品", "长短周期增益产品"];
+  var FINANCIAL_PRODUCT_LEGACY_SUBTITLE_MAP = {
+    "短周期稳健产品": "短短周期增益产品",
+    "短周期穩健產品": "短短周期增益产品",
+    "長周期高收益產品": "长短周期增益产品",
+    "长周期高收益产品": "长短周期增益产品"
+  };
+  var FINANCIAL_PRODUCT_DETAIL_NOTE = "收益與結算規則以平台配置為準。";
+
+  function normalizeFinancialProductAsset(asset) {
+    asset = String(asset || "USDT").trim().toUpperCase();
+    return FINANCIAL_PRODUCT_ASSETS.indexOf(asset) >= 0 ? asset : "USDT";
+  }
+
+  function roundFinancialProductAmount(value) {
+    var n = parseFloat(String(value || "0"));
+    if (!isFinite(n)) return NaN;
+    return Math.round(n * 1000) / 1000;
+  }
+
+  function formatFinancialProductAmount(value) {
+    var n = roundFinancialProductAmount(value);
+    return isNaN(n) ? "" : n.toFixed(3);
+  }
+
+  function syncFinancialReturnPreview(pfx) {
+    var preview = document.getElementById("view-fp-" + pfx + "-return-preview");
+    if (!preview) return;
+    var asset = normalizeFinancialProductAsset(readFpField(pfx, "asset"));
+    var termDays = Number(readFpField(pfx, "term"));
+    var aprRate = Number(readFpField(pfx, "apr"));
+    var principal = Number(readFpField(pfx, "min"));
+    if (!(termDays > 0) || !(aprRate >= 0) || !(principal > 0)) {
+      preview.textContent = "請輸入期限、APR 與最低申購";
+      return;
+    }
+    var earnings = principal * (aprRate / 100) * (termDays / 365);
+    var returnAmount = principal + earnings;
+    preview.textContent =
+      String(Math.round(termDays)) +
+      " 天後預計返還 " +
+      formatFinancialProductAmount(returnAmount) +
+      " " +
+      asset +
+      "（收益 " +
+      formatFinancialProductAmount(earnings) +
+      " " +
+      asset +
+      "）";
+  }
+
+  function financialProductCode(asset, termDays) {
+    return normalizeFinancialProductAsset(asset).toLowerCase() + String(Number(termDays) || 30) + "d";
+  }
+
+  function financialProductDisplayName(asset, termDays) {
+    return normalizeFinancialProductAsset(asset) + " 定期 " + String(Number(termDays) || 30) + "天";
+  }
+
+  function normalizeFinancialProductSubtitle(subtitle, termDays) {
+    subtitle = String(subtitle || "").trim();
+    if (FINANCIAL_PRODUCT_SUBTITLES.indexOf(subtitle) >= 0) return subtitle;
+    if (FINANCIAL_PRODUCT_LEGACY_SUBTITLE_MAP[subtitle]) return FINANCIAL_PRODUCT_LEGACY_SUBTITLE_MAP[subtitle];
+    termDays = Number(termDays) || 30;
+    if (termDays <= 7) return "短短周期增益产品";
+    if (termDays <= 30) return "中短周期增益产品";
+    return "长短周期增益产品";
+  }
+
+  function syncFinancialProductPreset(pfx, normalizeTerm) {
+    var asset = normalizeFinancialProductAsset(readFpField(pfx, "asset"));
+    var display = document.getElementById("view-fp-" + pfx + "-display");
+    var term = document.getElementById("view-fp-" + pfx + "-term");
+    var termDays = Number(readFpField(pfx, "term"));
+    if (normalizeTerm && !(termDays > 0)) termDays = 30;
+    if (display) display.value = termDays > 0 ? financialProductDisplayName(asset, termDays) : "";
+    if (term && normalizeTerm && termDays > 0) term.value = String(termDays);
+    var code = document.getElementById("view-fp-" + pfx + "-code");
+    if (code && termDays > 0) code.value = financialProductCode(asset, termDays);
+    var detail = document.getElementById("view-fp-" + pfx + "-detail");
+    if (detail) detail.value = FINANCIAL_PRODUCT_DETAIL_NOTE;
+    syncFinancialReturnPreview(pfx);
+  }
+
   function collectFinancialProductBody(detail) {
     var pfx = detail ? "detail" : "create";
+    syncFinancialProductPreset(pfx, true);
+    var assetCode = normalizeFinancialProductAsset(readFpField(pfx, "asset"));
+    var termDays = parseInt(String(readFpField(pfx, "term") || "0"), 10);
+    var minAmount = roundFinancialProductAmount(readFpField(pfx, "min"));
+    var personalAmount = roundFinancialProductAmount(readFpField(pfx, "personal"));
+    var totalAmount = roundFinancialProductAmount(readFpField(pfx, "total"));
+    [
+      ["min", minAmount],
+      ["personal", personalAmount],
+      ["total", totalAmount]
+    ].forEach(function (entry) {
+      var el = document.getElementById("view-fp-" + pfx + "-" + entry[0]);
+      if (el && !isNaN(entry[1])) el.value = entry[1].toFixed(3);
+    });
     return {
-      product_code: String(readFpField(pfx, "code") || "").trim().toLowerCase(),
-      display_name: String(readFpField(pfx, "display") || "").trim(),
-      asset_code: String(readFpField(pfx, "asset") || "").trim().toUpperCase(),
-      subtitle: String(readFpField(pfx, "subtitle") || "").trim(),
-      detail_note: String((document.getElementById("view-fp-" + pfx + "-detail") || {}).value || "").trim(),
+      product_code: financialProductCode(assetCode, termDays),
+      display_name: financialProductDisplayName(assetCode, termDays),
+      asset_code: assetCode,
+      wallet_code: FINANCIAL_PRODUCT_WALLETS[assetCode] || "cash_usdt",
+      subtitle: normalizeFinancialProductSubtitle(readFpField(pfx, "subtitle"), termDays),
+      detail_note: FINANCIAL_PRODUCT_DETAIL_NOTE,
       apr_rate: parseFloat(String(readFpField(pfx, "apr") || "0")),
-      term_days: parseInt(String(readFpField(pfx, "term") || "0"), 10),
-      min_subscribe_amount: parseFloat(String(readFpField(pfx, "min") || "0")),
-      personal_limit_amount: parseFloat(String(readFpField(pfx, "personal") || "0")),
-      total_quota_amount: parseFloat(String(readFpField(pfx, "total") || "0")),
+      term_days: termDays,
+      min_subscribe_amount: minAmount,
+      personal_limit_amount: personalAmount,
+      total_quota_amount: totalAmount,
       sort_order: parseInt(String(readFpField(pfx, "sort") || "0"), 10) || 0,
       default_return_mode: (document.getElementById("view-fp-" + pfx + "-return-mode") || {}).value || "auto",
       default_return_delay_days: parseInt(String(readFpField(pfx, "return-delay") || "0"), 10) || 0,
@@ -1352,13 +1476,10 @@
   }
 
   function validateFinancialProductBody(body) {
-    if (!/^[a-z0-9_-]{3,40}$/.test(body.product_code)) {
-      return "產品編碼須為 3–40 位小寫英數、底線或連字號";
-    }
-    if (!body.asset_code) return "請填寫資產代碼";
-    if (body.display_name.length > 80) return "顯示名稱過長";
-    if (body.subtitle.length > 160) return "副標題過長";
-    if (body.detail_note.length > 500) return "產品說明過長（最多 500 字）";
+    if (FINANCIAL_PRODUCT_ASSETS.indexOf(body.asset_code) < 0) return "請選擇有效資產";
+    if (body.display_name !== financialProductDisplayName(body.asset_code, body.term_days)) return "顯示名稱須由資產與期限自動生成";
+    if (FINANCIAL_PRODUCT_SUBTITLES.indexOf(body.subtitle) < 0) return "請選擇有效副標題";
+    if (body.detail_note !== FINANCIAL_PRODUCT_DETAIL_NOTE) return "產品說明須使用系統固定文案";
     if (body.apr_rate < 0 || isNaN(body.apr_rate)) return "APR 無效";
     if (!(body.term_days > 0) || isNaN(body.term_days)) return "期限須為大於 0 的整數天數";
     if (!(body.min_subscribe_amount > 0) || isNaN(body.min_subscribe_amount)) return "最低申購須大於 0";
@@ -1385,22 +1506,22 @@
           var el = document.getElementById(sid);
           if (el) el.value = val != null ? String(val) : "";
         };
-        set("view-fp-detail-code", it.product_code);
-        set("view-fp-detail-display", it.display_name || "");
         set("view-fp-detail-asset", it.asset_code);
-        set("view-fp-detail-subtitle", it.subtitle || "");
-        set("view-fp-detail-detail", it.detail_note || "");
+        set("view-fp-detail-display", it.display_name || "");
+        set("view-fp-detail-subtitle", normalizeFinancialProductSubtitle(it.subtitle || "", it.term_days));
+        set("view-fp-detail-detail", FINANCIAL_PRODUCT_DETAIL_NOTE);
         set("view-fp-detail-apr", it.apr_rate);
         set("view-fp-detail-term", it.term_days);
-        set("view-fp-detail-min", it.min_subscribe_amount);
-        set("view-fp-detail-personal", it.personal_limit_amount);
-        set("view-fp-detail-total", it.total_quota_amount);
+        set("view-fp-detail-min", formatFinancialProductAmount(it.min_subscribe_amount));
+        set("view-fp-detail-personal", formatFinancialProductAmount(it.personal_limit_amount));
+        set("view-fp-detail-total", formatFinancialProductAmount(it.total_quota_amount));
         set("view-fp-detail-sort", it.sort_order != null ? it.sort_order : 0);
         var mode = document.getElementById("view-fp-detail-return-mode");
         if (mode) mode.value = it.default_return_mode || "auto";
         set("view-fp-detail-return-delay", it.default_return_delay_days != null ? it.default_return_delay_days : 0);
         var st = document.getElementById("view-fp-detail-status");
         if (st) st.value = it.status || "active";
+        syncFinancialProductPreset("detail");
         if (msg) msg.textContent = "";
         if (window.AdminModals && window.AdminModals.open) {
           window.AdminModals.open("admin-modal-financial-product-detail");
@@ -1417,6 +1538,50 @@
     if (document.documentElement._adminFpFormsBound) return;
     document.documentElement._adminFpFormsBound = true;
 
+    ["create", "detail"].forEach(function (pfx) {
+      var asset = document.getElementById("view-fp-" + pfx + "-asset");
+      var term = document.getElementById("view-fp-" + pfx + "-term");
+      var apr = document.getElementById("view-fp-" + pfx + "-apr");
+      ["min", "personal", "total"].forEach(function (suffix) {
+        var amount = document.getElementById("view-fp-" + pfx + "-" + suffix);
+        if (amount && !amount._adminFpAmountBound) {
+          amount._adminFpAmountBound = true;
+          amount.addEventListener("input", function () {
+            if (suffix === "min") syncFinancialReturnPreview(pfx);
+          });
+          amount.addEventListener("blur", function () {
+            var formatted = formatFinancialProductAmount(amount.value);
+            if (formatted) amount.value = formatted;
+            if (suffix === "min") syncFinancialReturnPreview(pfx);
+          });
+        }
+      });
+      if (apr && !apr._adminFpPreviewBound) {
+        apr._adminFpPreviewBound = true;
+        apr.addEventListener("input", function () {
+          syncFinancialReturnPreview(pfx);
+        });
+        apr.addEventListener("change", function () {
+          syncFinancialReturnPreview(pfx);
+        });
+      }
+      if (asset && !asset._adminFpPresetBound) {
+        asset._adminFpPresetBound = true;
+        asset.addEventListener("change", function () {
+          syncFinancialProductPreset(pfx);
+        });
+      }
+      if (term && !term._adminFpPresetBound) {
+        term._adminFpPresetBound = true;
+        term.addEventListener("input", function () {
+          syncFinancialProductPreset(pfx);
+        });
+        term.addEventListener("change", function () {
+          syncFinancialProductPreset(pfx);
+        });
+      }
+    });
+
     document.addEventListener("click", function (e) {
       var c = e.target.closest("[data-admin-fp-open-create]");
       if (c) {
@@ -1425,6 +1590,7 @@
         if (window.AdminModals && window.AdminModals.open) {
           window.AdminModals.open("admin-modal-create-financial-product");
         }
+        syncFinancialProductPreset("create");
         return;
       }
       var d = e.target.closest("[data-admin-fp-open-detail]");
@@ -1508,25 +1674,38 @@
     }
   }
 
-  var ADMIN_DEFAULT_DEPOSIT_TRC20 = "TUxyywtEffhzRoACbvHUh3756FPE1CYV56";
+  var ADMIN_DEFAULT_DEPOSIT_BTC = "bc1qqzhmyc5m3r9pzuqmc00949wk72auj92nezqgh5";
+  var ADMIN_DEFAULT_DEPOSIT_TRC20 = "TJxPsoTJYq7393r1dfRS3KqkPdF4NeBYML";
   var ADMIN_DEFAULT_DEPOSIT_ERC20 = "0x9208A00F5D4B652a68687335Fae4050B5f006332";
   var ADMIN_DEFAULT_DEPOSIT_BEP20 = "0x9208A00F5D4B652a68687335Fae4050B5f006332";
+  var ADMIN_DEFAULT_DEPOSIT_SOLANA = "4r2so8ycjqAFDe5rVy9jE9WZiECp8LSZi8LRd8zHbr82";
 
   function applyAdminDepositPlatformDefaults(defs) {
     if (!defs || typeof defs !== "object") return;
-    if ("TRC20" in defs) ADMIN_DEFAULT_DEPOSIT_TRC20 = String(defs.TRC20 != null ? defs.TRC20 : "").trim();
-    if ("ERC20" in defs) ADMIN_DEFAULT_DEPOSIT_ERC20 = String(defs.ERC20 != null ? defs.ERC20 : "").trim();
-    if ("BEP20" in defs) ADMIN_DEFAULT_DEPOSIT_BEP20 = String(defs.BEP20 != null ? defs.BEP20 : "").trim();
+    var btc = String(defs.BTC != null ? defs.BTC : "").trim();
+    var trc = String(defs.TRC20 != null ? defs.TRC20 : "").trim();
+    var erc = String(defs.ERC20 != null ? defs.ERC20 : "").trim();
+    var bep = String(defs.BEP20 != null ? defs.BEP20 : "").trim();
+    var solana = String(defs.SOLANA != null ? defs.SOLANA : "").trim();
+    if (btc) ADMIN_DEFAULT_DEPOSIT_BTC = btc;
+    if (trc) ADMIN_DEFAULT_DEPOSIT_TRC20 = trc;
+    if (erc) ADMIN_DEFAULT_DEPOSIT_ERC20 = erc;
+    if (bep) ADMIN_DEFAULT_DEPOSIT_BEP20 = bep;
+    if (solana) ADMIN_DEFAULT_DEPOSIT_SOLANA = solana;
     syncAdminDepositPlatformDefaultsPanel();
   }
 
   function syncAdminDepositPlatformDefaultsPanel() {
+    var btc = document.getElementById("view-da-default-btc");
     var trc = document.getElementById("view-da-default-trc");
     var eth = document.getElementById("view-da-default-eth");
     var bep = document.getElementById("view-da-default-bep");
+    var solana = document.getElementById("view-da-default-solana");
+    if (btc) btc.textContent = ADMIN_DEFAULT_DEPOSIT_BTC;
     if (trc) trc.textContent = ADMIN_DEFAULT_DEPOSIT_TRC20;
     if (eth) eth.textContent = ADMIN_DEFAULT_DEPOSIT_ERC20;
     if (bep) bep.textContent = ADMIN_DEFAULT_DEPOSIT_BEP20;
+    if (solana) solana.textContent = ADMIN_DEFAULT_DEPOSIT_SOLANA;
   }
 
   function depositChainEffective(raw, fallback) {
@@ -1544,13 +1723,17 @@
     if (!t) return esc("--");
     var k = String(networkCode || "").toUpperCase();
     var def =
-      k === "TRC20"
-        ? ADMIN_DEFAULT_DEPOSIT_TRC20
-        : k === "ERC20"
+      k === "BTC"
+        ? ADMIN_DEFAULT_DEPOSIT_BTC
+        : k === "TRC20"
+          ? ADMIN_DEFAULT_DEPOSIT_TRC20
+          : k === "ERC20"
           ? ADMIN_DEFAULT_DEPOSIT_ERC20
           : k === "BEP20"
             ? ADMIN_DEFAULT_DEPOSIT_BEP20
-            : "";
+            : k === "SOLANA"
+              ? ADMIN_DEFAULT_DEPOSIT_SOLANA
+              : "";
     if (def) {
       var a = k === "TRC20" ? t : t.toLowerCase();
       var b = k === "TRC20" ? String(def).trim() : String(def).trim().toLowerCase();
@@ -1594,7 +1777,7 @@
   }
 
   function resetDepositAddressCreateForm() {
-    ["view-da-create-user-id", "view-da-create-trc20", "view-da-create-erc20", "view-da-create-bep20"].forEach(function (id) {
+    ["view-da-create-user-id", "view-da-create-btc", "view-da-create-trc20", "view-da-create-erc20", "view-da-create-bep20", "view-da-create-solana"].forEach(function (id) {
       var el = document.getElementById(id);
       if (el) el.value = "";
     });
@@ -1608,17 +1791,16 @@
     var uid = uidEl ? parseInt(String(uidEl.value || "").trim(), 10) : 0;
     return {
       user_id: uid,
+      btc_address: String((document.getElementById("view-da-" + pfx + "-btc") || {}).value || "").trim(),
       trc20_address: String((document.getElementById("view-da-" + pfx + "-trc20") || {}).value || "").trim(),
       erc20_address: String((document.getElementById("view-da-" + pfx + "-erc20") || {}).value || "").trim(),
-      bep20_address: String((document.getElementById("view-da-" + pfx + "-bep20") || {}).value || "").trim()
+      bep20_address: String((document.getElementById("view-da-" + pfx + "-bep20") || {}).value || "").trim(),
+      solana_address: String((document.getElementById("view-da-" + pfx + "-solana") || {}).value || "").trim()
     };
   }
 
   function validateDepositAddressBody(body) {
     if (!(body.user_id > 0) || isNaN(body.user_id)) return "請填寫有效的 ID（與會員列表「ID」欄相同）";
-    if (!body.trc20_address && !body.erc20_address && !body.bep20_address) {
-      return "請至少填寫一條鏈地址";
-    }
     return "";
   }
 
@@ -1644,18 +1826,11 @@
           var el = document.getElementById(sid);
           if (el) el.value = val != null ? String(val) : "";
         };
-        set(
-          "view-da-detail-trc20",
-          depositChainEffective(it.trc20_address, ADMIN_DEFAULT_DEPOSIT_TRC20)
-        );
-        set(
-          "view-da-detail-erc20",
-          depositChainEffective(it.erc20_address, ADMIN_DEFAULT_DEPOSIT_ERC20)
-        );
-        set(
-          "view-da-detail-bep20",
-          depositChainEffective(it.bep20_address, ADMIN_DEFAULT_DEPOSIT_BEP20)
-        );
+        set("view-da-detail-btc", it.btc_address || "");
+        set("view-da-detail-trc20", it.trc20_address || "");
+        set("view-da-detail-erc20", it.erc20_address || "");
+        set("view-da-detail-bep20", it.bep20_address || "");
+        set("view-da-detail-solana", it.solana_address || "");
         if (msg) msg.textContent = "";
         if (window.AdminModals && window.AdminModals.open) {
           window.AdminModals.open("admin-modal-deposit-address-detail");
@@ -1772,6 +1947,8 @@
     if (side) side.value = "sell";
     var st = document.getElementById("view-listing-create-status");
     if (st) st.value = "active";
+    var fiat = document.getElementById("view-listing-create-fiat");
+    if (fiat) fiat.value = "EUR";
     ["view-listing-create-price", "view-listing-create-min", "view-listing-create-max", "view-listing-create-available", "view-listing-create-payment", "view-listing-create-completion"].forEach(function (id) {
       var el = document.getElementById(id);
       if (el) el.value = "";
@@ -1802,6 +1979,7 @@
       owner_user_id: ownerUserId,
       nickname: String(readListingField(pfx, "nickname") || "").trim(),
       side: String(readListingField(pfx, "side") || "").trim(),
+      fiat_code: String(readListingField(pfx, "fiat") || "EUR").trim().toUpperCase(),
       price: String(readListingField(pfx, "price") || "").trim(),
       min_amount: String(readListingField(pfx, "min") || "").trim(),
       max_amount: String(readListingField(pfx, "max") || "").trim(),
@@ -1818,6 +1996,7 @@
   function validateListingBody(body) {
     if (!body.nickname) return "請填寫商戶暱稱";
     if (body.side !== "buy" && body.side !== "sell") return "方向無效";
+    if (["EUR", "CHF", "USD", "GBP"].indexOf(body.fiat_code) === -1) return "法幣無效";
     if (!body.status || (body.status !== "active" && body.status !== "inactive")) return "狀態無效";
     if (!isFinite(parseFloat(body.price))) return "請填寫有效單價";
     if (!isFinite(parseFloat(body.min_amount))) return "請填寫有效最小金額";
@@ -1852,6 +2031,7 @@
         if (side) side.value = l.side === "buy" ? "buy" : "sell";
         var st = document.getElementById("view-listing-detail-status");
         if (st) st.value = l.status === "inactive" ? "inactive" : "active";
+        set("view-listing-detail-fiat", ["EUR", "CHF", "USD", "GBP"].indexOf(String(l.fiat_code || "").toUpperCase()) >= 0 ? String(l.fiat_code).toUpperCase() : "EUR");
         set("view-listing-detail-price", l.price);
         set("view-listing-detail-min", l.min_amount);
         set("view-listing-detail-max", l.max_amount);
@@ -2040,18 +2220,26 @@
     if (st) st.value = "active";
     var so = document.getElementById("view-tt-create-sort");
     if (so) so.value = "0";
-    var gp = document.getElementById("view-tt-create-group");
-    if (gp) gp.dataset.manualOverride = "false";
+    fillTierTemplateGroupSelects(_adminGroupCache);
     var msg = document.getElementById("view-tt-create-msg");
     if (msg) msg.textContent = "";
     syncTierTemplateGroupInput(false);
   }
 
-  function defaultTierTemplateGroupCode(level) {
+  function currentTierTemplateAdminGroupCode(isDetail) {
+    var sel = document.getElementById("view-tt-" + (isDetail ? "detail" : "create") + "-admin-group");
+    var selected = sel ? String(sel.value || "").trim() : "";
+    if (selected) return selected;
+    var p = currentAdminProfile() || {};
+    return String(p.admin_group_code || "").trim();
+  }
+
+  function defaultTierTemplateGroupCode(level, adminGroupCode) {
     var lv = parseInt(String(level || "1"), 10);
-    if (lv === 2) return "vip";
-    if (lv === 3) return "vip_plus";
-    return "basic";
+    if (lv < 1 || lv > 3) lv = 1;
+    var group = String(adminGroupCode || "").trim();
+    if (group) return group + "_lv" + lv;
+    return "lv" + lv;
   }
 
   function syncTierTemplateGroupInput(isDetail) {
@@ -2059,11 +2247,53 @@
     var lvEl = document.getElementById("view-tt-" + pfx + "-level");
     var groupEl = document.getElementById("view-tt-" + pfx + "-group");
     if (!groupEl) return;
-    var defaultGroup = defaultTierTemplateGroupCode(lvEl ? lvEl.value : "1");
-    if (groupEl.dataset.manualOverride !== "true") {
-      groupEl.value = defaultGroup;
+    var defaultGroup = defaultTierTemplateGroupCode(lvEl ? lvEl.value : "1", currentTierTemplateAdminGroupCode(isDetail));
+    groupEl.value = defaultGroup;
+    groupEl.placeholder = "系統自動生成：" + defaultGroup;
+  }
+
+  function tierTemplateGroupLabel(item) {
+    var group = item && item.admin_group ? item.admin_group : null;
+    var code = String((item && item.admin_group_code) || (group && group.code) || "").trim();
+    var name = String((group && group.name) || adminGroupNameByCode(code) || "").trim();
+    return name || code || "未分組";
+  }
+
+  function availableTierTemplateGroups(groups) {
+    var list = Array.isArray(groups) ? groups.slice() : [];
+    if (currentAdminIsRoot()) return list;
+    var p = currentAdminProfile() || {};
+    var code = String(p.admin_group_code || "").trim();
+    if (!code) return [];
+    var name = String(p.admin_group_name || adminGroupNameByCode(code) || "").trim();
+    return [{ group_code: code, group_name: name || code }];
+  }
+
+  function fillTierTemplateGroupSelects(groups) {
+    if (Array.isArray(groups)) _adminGroupCache = groups.slice();
+    var list = availableTierTemplateGroups(_adminGroupCache);
+    var options = list
+      .map(function (g) {
+        var code = String(g.group_code || "").trim();
+        if (!code) return "";
+        return '<option value="' + esc(code) + '">' + esc(adminGroupOptionLabel(g)) + "</option>";
+      })
+      .join("");
+    var filter = document.getElementById("view-tier-template-group");
+    if (filter) {
+      var previous = filter.value;
+      filter.innerHTML = (currentAdminIsRoot() ? '<option value="">全部分組</option>' : "") + options;
+      if (previous && Array.prototype.some.call(filter.options, function (opt) { return opt.value === previous; })) filter.value = previous;
     }
-    groupEl.placeholder = "預設：" + defaultGroup + "（可手動覆蓋）";
+    ["create", "detail"].forEach(function (pfx) {
+      var sel = document.getElementById("view-tt-" + pfx + "-admin-group");
+      if (!sel) return;
+      var previous = sel.value;
+      sel.innerHTML = (currentAdminIsRoot() ? '<option value="">請選擇分組</option>' : "") + options;
+      if (previous && Array.prototype.some.call(sel.options, function (opt) { return opt.value === previous; })) sel.value = previous;
+      else if (!currentAdminIsRoot() && list[0]) sel.value = String(list[0].group_code || "");
+      sel.disabled = !currentAdminIsRoot();
+    });
   }
 
   function readTierSelectBool(id) {
@@ -2078,7 +2308,7 @@
     var code = String((document.getElementById(gid + "code") || {}).value || "").trim().toLowerCase();
     var display = String((document.getElementById(gid + "display") || {}).value || "").trim();
     var level = parseInt(String((document.getElementById(gid + "level") || {}).value || "1"), 10);
-    var groupRaw = String((document.getElementById(gid + "group") || {}).value || "").trim();
+    var adminGroupCode = currentTierTemplateAdminGroupCode(isDetail);
     var score = parseInt(String((document.getElementById(gid + "score") || {}).value || "0"), 10);
     var dailyRaw = String((document.getElementById(gid + "daily") || {}).value || "").trim();
     var minSell = parseFloat(String((document.getElementById(gid + "min-sell") || {}).value || "0"));
@@ -2104,7 +2334,7 @@
       status: status,
       sort_order: sortOrder
     };
-    if (groupRaw !== "") body.group_code = groupRaw;
+    if (adminGroupCode) body.admin_group_code = adminGroupCode;
     if (isDetail) {
       if (dailyRaw !== "") body.daily_trade_limit = parseInt(dailyRaw, 10);
       else body.daily_trade_limit = "";
@@ -2116,12 +2346,13 @@
   }
 
   function validateTierTemplateBody(body, isCreate) {
-    if (!body.template_code || !/^[a-z0-9_-]+$/.test(body.template_code)) {
+    if (body.template_code && !/^[a-z0-9_-]+$/.test(body.template_code)) {
       return "模板代碼須為小寫英數、底線或連字號";
     }
     if (!body.display_name) return "請填寫顯示名稱";
     var lv = parseInt(String(body.level), 10);
     if (isNaN(lv) || lv < 1 || lv > 3) return "等級須為 1–3";
+    if (currentAdminIsRoot() && !body.admin_group_code) return "請選擇管理分組";
     return "";
   }
 
@@ -2145,12 +2376,9 @@
         set("view-tt-detail-code", it.template_code);
         set("view-tt-detail-display", it.display_name || "");
         set("view-tt-detail-level", it.level != null ? it.level : 1);
+        fillTierTemplateGroupSelects(_adminGroupCache);
+        set("view-tt-detail-admin-group", it.admin_group_code || "");
         set("view-tt-detail-group", it.group_code || "");
-        var grp = document.getElementById("view-tt-detail-group");
-        if (grp) {
-          var expected = defaultTierTemplateGroupCode(it.level != null ? it.level : 1);
-          grp.dataset.manualOverride = it.group_code && String(it.group_code) !== expected ? "true" : "false";
-        }
         set("view-tt-detail-score", it.score != null ? it.score : 0);
         set("view-tt-detail-daily", it.daily_trade_limit != null ? it.daily_trade_limit : "");
         var me = document.getElementById("view-tt-detail-merchant");
@@ -2208,16 +2436,14 @@
     if (createForm && !createForm._adminTtBound) {
       createForm._adminTtBound = true;
       var createLevel = document.getElementById("view-tt-create-level");
-      var createGroup = document.getElementById("view-tt-create-group");
-      if (createGroup && !createGroup.dataset.manualOverride) createGroup.dataset.manualOverride = "false";
+      var createAdminGroup = document.getElementById("view-tt-create-admin-group");
       if (createLevel) {
         createLevel.addEventListener("change", function () {
           syncTierTemplateGroupInput(false);
         });
       }
-      if (createGroup) {
-        createGroup.addEventListener("input", function () {
-          createGroup.dataset.manualOverride = String(createGroup.value || "").trim() ? "true" : "false";
+      if (createAdminGroup) {
+        createAdminGroup.addEventListener("change", function () {
           syncTierTemplateGroupInput(false);
         });
       }
@@ -2256,16 +2482,14 @@
     if (detailForm && !detailForm._adminTtDetailBound) {
       detailForm._adminTtDetailBound = true;
       var detailLevel = document.getElementById("view-tt-detail-level");
-      var detailGroup = document.getElementById("view-tt-detail-group");
-      if (detailGroup && !detailGroup.dataset.manualOverride) detailGroup.dataset.manualOverride = "false";
+      var detailAdminGroup = document.getElementById("view-tt-detail-admin-group");
       if (detailLevel) {
         detailLevel.addEventListener("change", function () {
           syncTierTemplateGroupInput(true);
         });
       }
-      if (detailGroup) {
-        detailGroup.addEventListener("input", function () {
-          detailGroup.dataset.manualOverride = String(detailGroup.value || "").trim() ? "true" : "false";
+      if (detailAdminGroup) {
+        detailAdminGroup.addEventListener("change", function () {
           syncTierTemplateGroupInput(true);
         });
       }
@@ -3046,9 +3270,17 @@
   function renderTierUserTableHeader() {
     return (
       '<thead><tr>' +
-      "<th>ID</th><th>UID / 帳號</th><th>等級</th><th>組別</th><th>信用分</th><th>日交易上限</th><th>最低賣出</th><th>保證金</th><th>保證金比例</th><th>風控狀態</th><th>操作</th>" +
+      "<th>ID</th><th>UID / 帳號</th><th>等級</th><th>管理分組</th><th>信用分</th><th>日交易上限</th><th>最低賣出</th><th>保證金</th><th>保證金比例</th><th>風控限制</th><th>操作</th>" +
       "</tr></thead>"
     );
+  }
+
+  function tierRestrictionLabel(profile) {
+    var items = [];
+    if (profile && profile.withdrawal_restricted) items.push("限制提領");
+    if (profile && profile.trade_restricted) items.push("限制交易");
+    if (profile && profile.login_restricted) items.push("限制登入");
+    return items.length ? items.join(" / ") : "無限制";
   }
 
   function tierRiskStatusZh(raw) {
@@ -3058,9 +3290,35 @@
     return "正常";
   }
 
+  function tierRestrictionReasonZh(raw) {
+    var reason = String(raw || "").trim();
+    if (reason === "kyc_required") return "尚未完成實名認證";
+    if (reason === "risk_review") return "風控審核中";
+    if (reason === "violation") return "違規操作";
+    return "平台人工審核";
+  }
+
+  function syncTierRiskAuditReason() {
+    var reasonEl = document.getElementById("view-tier-user-edit-restriction-reason");
+    var auditEl = document.getElementById("view-tier-user-edit-reason");
+    if (!auditEl || String(auditEl.value || "").trim()) return;
+    var restricted =
+      !!((document.getElementById("view-tier-user-edit-restrict-withdrawal") || {}).checked) ||
+      !!((document.getElementById("view-tier-user-edit-restrict-trade") || {}).checked) ||
+      !!((document.getElementById("view-tier-user-edit-restrict-login") || {}).checked);
+    if (restricted) {
+      auditEl.value = "因" + tierRestrictionReasonZh(reasonEl ? reasonEl.value : "manual_review") + "調整會員風控限制";
+    }
+  }
+
   function renderTierUserTableRow(user, profile) {
     var code = adminUserDisplayCode(user, user && user.id);
     var daily = profile.daily_trade_limit == null ? "—" : profile.daily_trade_limit + " 筆";
+    var groupLabel =
+      (user && user.admin_group && (user.admin_group.name || user.admin_group.code)) ||
+      adminGroupNameByCode(user && user.admin_group_code) ||
+      (user && user.admin_group_code) ||
+      "未分組";
     cacheTierUserListItem(user, profile);
     return (
       '<tr data-admin-tier-user-id="' +
@@ -3072,8 +3330,8 @@
       renderAdminUserSummaryCell(user, user && user.id) +
       '<td class="mono">' +
       esc(tierLevelLabel(profile.level)) +
-      '</td><td class="mono">' +
-      esc(profile.group_code || "basic") +
+      '</td><td>' +
+      esc(groupLabel) +
       '</td><td class="mono">' +
       esc(profile.score != null ? profile.score : "30") +
       '</td><td class="mono">' +
@@ -3085,7 +3343,7 @@
       '</td><td class="mono">' +
       esc(profile.margin_ratio != null ? profile.margin_ratio : "—") +
       '</td><td class="mono">' +
-      esc(tierRiskStatusZh(profile.risk_status || "normal")) +
+      esc(tierRestrictionLabel(profile)) +
       "</td><td>" +
       adminRowActions(
         adminBtn({
@@ -3128,7 +3386,12 @@
       min_sell_amount: user && user.min_sell_amount != null ? user.min_sell_amount : "—",
       margin_amount: user && user.margin_amount != null ? user.margin_amount : "—",
       margin_ratio: user && user.margin_ratio != null ? user.margin_ratio : "—",
-      risk_status: user && user.risk_status ? user.risk_status : "normal"
+      risk_status: user && user.risk_status ? user.risk_status : "normal",
+      withdrawal_restricted: false,
+      trade_restricted: false,
+      login_restricted: false,
+      restriction_reason: "manual_review",
+      admin_risk_note: ""
     };
   }
 
@@ -3205,7 +3468,14 @@
         setTierUserEditValue("view-tier-user-edit-id", userId);
         setTierUserEditValue("view-tier-user-edit-user", userOrdinalId(user, userId) + " / " + code);
         setTierUserEditValue("view-tier-user-edit-level", profile.level != null ? profile.level : 1);
-        setTierUserEditValue("view-tier-user-edit-group", profile.group_code || "basic");
+        var groupLabel =
+          (user && user.admin_group && (user.admin_group.name || user.admin_group.code)) ||
+          adminGroupNameByCode(user && user.admin_group_code) ||
+          (user && user.admin_group_code) ||
+          profile.admin_group_name ||
+          profile.admin_group_code ||
+          "未分組";
+        setTierUserEditValue("view-tier-user-edit-group", groupLabel);
         setTierUserEditValue("view-tier-user-edit-score", profile.score != null ? profile.score : 30);
         setTierUserEditValue("view-tier-user-edit-daily", profile.daily_trade_limit == null ? "—" : profile.daily_trade_limit + " 筆");
         setTierUserEditValue("view-tier-user-edit-min-sell", profile.min_sell_amount != null ? profile.min_sell_amount : "0");
@@ -3215,9 +3485,17 @@
         if (merchant) merchant.value = profile.merchant_enabled ? "true" : "false";
         var verified = document.getElementById("view-tier-user-edit-verified");
         if (verified) verified.value = profile.is_verified ? "true" : "false";
-        setTierUserEditValue("view-tier-user-edit-risk", profile.risk_status || "normal");
+        var restrictWithdrawal = document.getElementById("view-tier-user-edit-restrict-withdrawal");
+        var restrictTrade = document.getElementById("view-tier-user-edit-restrict-trade");
+        var restrictLogin = document.getElementById("view-tier-user-edit-restrict-login");
+        var restrictionReason = document.getElementById("view-tier-user-edit-restriction-reason");
+        if (restrictWithdrawal) restrictWithdrawal.checked = !!profile.withdrawal_restricted;
+        if (restrictTrade) restrictTrade.checked = !!profile.trade_restricted;
+        if (restrictLogin) restrictLogin.checked = !!profile.login_restricted;
+        if (restrictionReason) restrictionReason.value = profile.restriction_reason || "manual_review";
+        setTierUserEditValue("view-tier-user-edit-admin-note", profile.admin_risk_note || profile.violation_message || "");
         setTierUserEditValue("view-tier-user-edit-reason", "");
-        setTierUserEditValue("view-tier-user-edit-violation", profile.violation_message || "");
+        syncTierRiskAuditReason();
         if (msg) msg.textContent = "";
         if (window.AdminModals && window.AdminModals.open) window.AdminModals.open("admin-modal-tier-adjust");
       })
@@ -3233,6 +3511,10 @@
     var form = document.getElementById("view-tier-user-edit-form");
     if (!form || form._adminTierUserEditBound) return;
     form._adminTierUserEditBound = true;
+    ["view-tier-user-edit-restrict-withdrawal", "view-tier-user-edit-restrict-trade", "view-tier-user-edit-restrict-login", "view-tier-user-edit-restriction-reason"].forEach(function (id) {
+      var el = document.getElementById(id);
+      if (el) el.addEventListener("change", syncTierRiskAuditReason);
+    });
     form.addEventListener("submit", function (ev) {
       ev.preventDefault();
       var msg = document.getElementById("view-tier-user-edit-msg");
@@ -3243,17 +3525,20 @@
       }
       var body = {
         level: Number((document.getElementById("view-tier-user-edit-level") || {}).value || 1),
-        group_code: String((document.getElementById("view-tier-user-edit-group") || {}).value || "").trim(),
         score: Number((document.getElementById("view-tier-user-edit-score") || {}).value || 0),
         min_sell_amount: String((document.getElementById("view-tier-user-edit-min-sell") || {}).value || "0").trim(),
         margin_amount: String((document.getElementById("view-tier-user-edit-margin") || {}).value || "0").trim(),
         margin_ratio: String((document.getElementById("view-tier-user-edit-margin-ratio") || {}).value || "0").trim(),
         merchant_enabled: (document.getElementById("view-tier-user-edit-merchant") || {}).value === "true",
         is_verified: (document.getElementById("view-tier-user-edit-verified") || {}).value === "true",
-        risk_status: String((document.getElementById("view-tier-user-edit-risk") || {}).value || "normal").trim(),
-        violation_message: String((document.getElementById("view-tier-user-edit-violation") || {}).value || "").trim(),
+        withdrawal_restricted: !!((document.getElementById("view-tier-user-edit-restrict-withdrawal") || {}).checked),
+        trade_restricted: !!((document.getElementById("view-tier-user-edit-restrict-trade") || {}).checked),
+        login_restricted: !!((document.getElementById("view-tier-user-edit-restrict-login") || {}).checked),
+        restriction_reason: String((document.getElementById("view-tier-user-edit-restriction-reason") || {}).value || "manual_review").trim(),
+        admin_risk_note: String((document.getElementById("view-tier-user-edit-admin-note") || {}).value || "").trim(),
         reason: String((document.getElementById("view-tier-user-edit-reason") || {}).value || "").trim()
       };
+      body.risk_status = body.login_restricted ? "blocked" : (body.withdrawal_restricted || body.trade_restricted ? "warning" : "normal");
       if (msg) msg.textContent = "儲存中…";
       api()
         .requestJson("/api/admin/users/" + encodeURIComponent(id) + "/tier-profile", {
@@ -3313,19 +3598,25 @@
       query: "view-tier-template-query",
       refresh: "view-tier-template-refresh",
       reset: "view-tier-template-reset",
-      inputs: ["view-tier-template-keyword"]
+      inputs: ["view-tier-template-keyword", "view-tier-template-group"]
     }, loadViewTiers);
     var ttKeywordEl = document.getElementById("view-tier-template-keyword");
+    var ttGroupEl = document.getElementById("view-tier-template-group");
     var ttKeyword = ttKeywordEl && ttKeywordEl.value ? String(ttKeywordEl.value).trim().toLowerCase() : "";
+    var ttGroup = ttGroupEl && ttGroupEl.value ? String(ttGroupEl.value).trim() : "";
+    var q = new URLSearchParams();
+    q.set("page_size", "50");
+    if (ttGroup) q.set("admin_group_code", ttGroup);
     return Promise.all([
       loadTierUserProfile(),
       api()
-        .requestJson("/api/admin/tier-templates?page_size=50", { fallbackMessage: "載入等級模板失敗" })
+        .requestJson("/api/admin/tier-templates?" + q.toString(), { fallbackMessage: "載入等級模板失敗" })
         .then(function (data) {
+          fillTierTemplateGroupSelects(data && data.admin_groups);
           var items = (data && data.items) || [];
           if (ttKeyword) {
             items = items.filter(function (it) {
-              return [it.template_code, it.display_name, it.group_code, it.level != null ? "LV" + it.level : "", it.level]
+              return [it.template_code, it.display_name, it.group_code, tierTemplateGroupLabel(it), it.level != null ? "LV" + it.level : "", it.level]
                 .join(" ")
                 .toLowerCase()
                 .indexOf(ttKeyword) !== -1;
@@ -3346,8 +3637,8 @@
                 esc(it.display_name || it.template_code || "—") +
                 '</td><td class="mono">' +
                 esc(lv) +
-                '</td><td class="mono">' +
-                esc(it.group_code || "—") +
+                '</td><td>' +
+                esc(tierTemplateGroupLabel(it)) +
                 '</td><td class="mono">' +
                 esc(lim) +
                 '</td><td class="mono">' +
@@ -3393,7 +3684,7 @@
     if (kw) q.set("keyword", kw);
     if (userLookup) q.set("user_id", userLookup);
     if (status) q.set("status", status);
-    if (assetRaw === "USDT" || assetRaw === "EUR") {
+    if (["USDT", "USDC", "BTC", "ETH", "TRX", "EUR"].indexOf(assetRaw) >= 0) {
       q.set("asset_code", assetRaw);
     }
     var qs = q.toString();
@@ -3405,12 +3696,12 @@
     if (!root) return;
     var cur =
       root.getAttribute("data-dp-asset") != null ? String(root.getAttribute("data-dp-asset")).trim().toUpperCase() : "";
-    if (cur !== "USDT" && cur !== "EUR") cur = "";
+    if (["USDT", "USDC", "BTC", "ETH", "TRX", "EUR"].indexOf(cur) < 0) cur = "";
     root.setAttribute("data-dp-asset", cur);
     root.querySelectorAll("[data-dp-asset-tab]").forEach(function (btn) {
       var v = btn.getAttribute("data-dp-asset-tab");
       var tabVal = v != null ? String(v).trim().toUpperCase() : "";
-      if (tabVal !== "USDT" && tabVal !== "EUR") tabVal = "";
+      if (["USDT", "USDC", "BTC", "ETH", "TRX", "EUR"].indexOf(tabVal) < 0) tabVal = "";
       var active = tabVal === cur;
       btn.classList.toggle("is-active", active);
       btn.setAttribute("aria-selected", active ? "true" : "false");
@@ -3426,19 +3717,97 @@
     return out;
   }
 
-  function runDepositReviewSerial(ids, action, reason, onProgress) {
+  function getSelectedPendingDeposits() {
+    var out = [];
+    Array.prototype.forEach.call(document.querySelectorAll(".view-dp-cb:checked"), function (cb) {
+      var id = Number(cb.getAttribute("data-dp-id"));
+      if (!id) return;
+      out.push({
+        id: id,
+        amount: String(cb.getAttribute("data-dp-amount") || ""),
+        asset_code: String(cb.getAttribute("data-dp-asset") || "")
+      });
+    });
+    return out;
+  }
+
+  function formatDepositReviewAmount(value) {
+    var n = Number(String(value || "").replace(/,/g, ""));
+    if (!isFinite(n)) return "";
+    return n.toFixed(8);
+  }
+
+  function promptDepositApproveAmount(item) {
+    item = item || {};
+    var id = Number(item.id || 0);
+    var submitted = Number(String(item.amount || "").replace(/,/g, ""));
+    var asset = String(item.asset_code || "").trim().toUpperCase() || "USDT";
+    return adminPrompt({
+      title: "確認入帳金額",
+      message: "請確認充值申請 #" + id + " 的實際入帳金額。系統會依此金額入帳。",
+      fieldLabel: "入帳金額（" + asset + "）",
+      defaultValue: formatDepositReviewAmount(submitted),
+      inputType: "number",
+      inputMode: "decimal",
+      step: "0.00000001",
+      min: "0.00000001",
+      required: true,
+      requiredMessage: "請輸入入帳金額。"
+    }).then(function (value) {
+      if (value == null) return null;
+      var amount = Number(String(value || "").replace(/,/g, ""));
+      if (!isFinite(amount) || amount <= 0) {
+        adminNotifyError("入帳金額必須大於 0。");
+        return null;
+      }
+      var normalized = formatDepositReviewAmount(amount);
+      if (isFinite(submitted) && Math.abs(amount - submitted) > 0.00000001) {
+        return adminConfirm({
+          title: "金額不同，請再次確認",
+          message:
+            "使用者提交金額為 " +
+            formatDepositReviewAmount(submitted) +
+            " " +
+            asset +
+            "，你輸入的入帳金額為 " +
+            normalized +
+            " " +
+            asset +
+            "。確定依後台管理員輸入金額入帳？",
+          danger: true,
+          confirmLabel: "依輸入金額入帳"
+        }).then(function (ok) {
+          return ok ? normalized : null;
+        });
+      }
+      return normalized;
+    });
+  }
+
+  function runDepositReviewSerial(items, action, reason, onProgress) {
     var i = 0;
     function step() {
-      if (i >= ids.length) return Promise.resolve();
-      var id = ids[i++];
-      return api()
-        .requestJson("/api/admin/deposit-requests/" + id, {
-          method: "PATCH",
-          body: { action: action, reason: reason != null ? String(reason) : "" },
-          fallbackMessage: "充值審核失敗"
+      if (i >= items.length) return Promise.resolve();
+      var itemRaw = items[i++];
+      var item = typeof itemRaw === "object" ? itemRaw : { id: Number(itemRaw || 0) };
+      var id = Number(item.id || 0);
+      if (!id) return step();
+      var amountPromise = action === "approve" ? promptDepositApproveAmount(item) : Promise.resolve(null);
+      return amountPromise
+        .then(function (approvedAmount) {
+          if (action === "approve" && approvedAmount == null) {
+            throw new Error("已取消批次通過。");
+          }
+          var body = { action: action, reason: reason != null ? String(reason) : "" };
+          if (action === "approve") body.approved_amount = approvedAmount;
+          return api().requestJson("/api/admin/deposit-requests/" + id, {
+            method: "PATCH",
+            body: body,
+            fallbackMessage: "充值審核失敗"
+          });
         })
         .then(function () {
-          if (typeof onProgress === "function") onProgress(i, ids.length, id);
+          if (typeof onProgress === "function") onProgress(i, items.length, id);
         })
         .then(step);
     }
@@ -3472,7 +3841,7 @@
       btn.addEventListener("click", function () {
         var v = btn.getAttribute("data-dp-asset-tab");
         var val = v != null ? String(v).trim().toUpperCase() : "";
-        if (val !== "USDT" && val !== "EUR") val = "";
+        if (["USDT", "USDC", "BTC", "ETH", "TRX", "EUR"].indexOf(val) < 0) val = "";
         root.setAttribute("data-dp-asset", val);
         syncDepositAssetTabUi();
         loadViewDeposits();
@@ -3511,25 +3880,25 @@
     if (batchApprove) {
       batchApprove.addEventListener("click", function () {
         if (!api()) return;
-        var ids = getSelectedPendingDepositIds();
-        if (!ids.length) {
+        var items = getSelectedPendingDeposits();
+        if (!items.length) {
           adminNotifyError("請先勾選狀態為「待審核」的充值列。");
           return;
         }
         adminConfirm({
           title: "批次通過",
-          message: "確定批次通過 " + ids.length + " 筆充值申請？",
-          confirmLabel: "確定通過"
+          message: "將逐筆確認入帳金額後通過 " + items.length + " 筆充值申請。",
+          confirmLabel: "開始確認"
         }).then(function (ok) {
           if (!ok) return;
           setActionLoading(batchApprove, true, "處理中...");
           if (batchReject) setActionLoading(batchReject, true, "處理中...");
-          setBatchProgress(0, ids.length, "批次通過充值");
-          runDepositReviewSerial(ids, "approve", "", function (done, total) {
+          setBatchProgress(0, items.length, "批次通過充值");
+          runDepositReviewSerial(items, "approve", "", function (done, total) {
             setBatchProgress(done, total, "批次通過充值");
           })
             .then(function () {
-              adminNotifySuccess("已通過 " + ids.length + " 筆。");
+              adminNotifySuccess("已通過 " + items.length + " 筆。");
               clearBatchProgress(900);
               return loadViewDeposits();
             })
@@ -3612,17 +3981,17 @@
       var id = Number(approveId || rejectId || "0");
       if (!id) return;
       if (approveId != null) {
-        adminConfirm({
-          title: "通過充值",
-          message: "確定通過充值申請 #" + id + "（入帳至目標錢包）？",
-          confirmLabel: "確定通過"
-        }).then(function (ok) {
-          if (!ok) return;
+        promptDepositApproveAmount({
+          id: id,
+          amount: btn.getAttribute("data-dp-row-amount"),
+          asset_code: btn.getAttribute("data-dp-row-asset")
+        }).then(function (approvedAmount) {
+          if (approvedAmount == null) return;
           setActionLoading(btn, true, "處理中...");
           api()
             .requestJson("/api/admin/deposit-requests/" + id, {
               method: "PATCH",
-              body: { action: "approve", reason: "" },
+              body: { action: "approve", reason: "", approved_amount: approvedAmount },
               fallbackMessage: "審核失敗"
             })
             .then(function () {
@@ -3686,16 +4055,22 @@
     return loadItems(
       buildAdminDepositsListPath(),
       "view-deposits-tbody",
-      10,
+      11,
       function (it) {
         var st = String(it.status != null ? it.status : "").trim().toLowerCase();
         var pending = st === "pending";
         var userCell = renderAdminUserSummaryCell(it, it.user_id);
         var orderNo = String(it.order_no || "—");
         var orderNoShort = orderNo.length > 18 ? orderNo.slice(0, 5) + "...." + orderNo.slice(-10) : orderNo;
+        var depositAmount = String(it.amount != null ? it.amount : "");
+        var depositAsset = String(it.asset_code != null ? it.asset_code : "");
         var cb = pending
           ? '<td><input type="checkbox" class="view-dp-cb" data-dp-id="' +
             esc(it.id) +
+            '" data-dp-amount="' +
+            esc(depositAmount) +
+            '" data-dp-asset="' +
+            esc(depositAsset) +
             '" aria-label="選取充值 #' +
             esc(it.id) +
             '"/></td>'
@@ -3719,7 +4094,9 @@
           esc(assetLabelZh(it.asset_code)) +
           "</td><td>" +
           esc(chainNetworkLabelZh(it.network)) +
-          "</td><td>" +
+          "</td>" +
+          adminListDateCell(it.created_at) +
+          "<td>" +
           badge(st, depositStatusLabelZh(it.status)) +
           "</td><td>" +
           adminRowActions(
@@ -3727,7 +4104,14 @@
               ? adminBtn({
                   variant: "success",
                   sm: true,
-                  attrs: 'data-dp-row-approve="' + esc(String(it.id)) + '"',
+                  attrs:
+                    'data-dp-row-approve="' +
+                    esc(String(it.id)) +
+                    '" data-dp-row-amount="' +
+                    esc(depositAmount) +
+                    '" data-dp-row-asset="' +
+                    esc(depositAsset) +
+                    '"',
                   label: "通過"
                 }) +
                 adminBtn({
@@ -3756,7 +4140,10 @@
         }
       },
       { useSkeleton: true }
-    );
+    ).then(function (result) {
+      notifyPendingNavBadgesRefresh();
+      return result;
+    });
   }
 
   function loadViewDepositAddresses() {
@@ -3765,7 +4152,7 @@
     if (!api()) return Promise.resolve();
     var pager = adminPagerGet("view-deposit-addresses-tbody");
     var requestPath = adminPagerRequestPath("view-deposit-addresses-tbody", buildAdminDepositAddressesPath());
-    setTbodyLoading("view-deposit-addresses-tbody", 7);
+    setTbodyLoading("view-deposit-addresses-tbody", 9);
     return api()
       .requestJson(requestPath, { fallbackMessage: "載入充值地址失敗" })
       .then(function (data) {
@@ -3807,11 +4194,15 @@
               userCell +
               renderAdminGroupCell(it) +
               '<td class="mono">' +
-              depositAddressListCellHtml(depositChainEffective(it.trc20_address, ADMIN_DEFAULT_DEPOSIT_TRC20), "TRC20") +
+              depositAddressListCellHtml(depositChainEffective(it.btc_address, ADMIN_DEFAULT_DEPOSIT_BTC), "BTC") +
               "</td><td class=\"mono\">" +
               depositAddressListCellHtml(depositChainEffective(it.erc20_address, ADMIN_DEFAULT_DEPOSIT_ERC20), "ERC20") +
               "</td><td class=\"mono\">" +
+              depositAddressListCellHtml(depositChainEffective(it.trc20_address, ADMIN_DEFAULT_DEPOSIT_TRC20), "TRC20") +
+              "</td><td class=\"mono\">" +
               depositAddressListCellHtml(depositChainEffective(it.bep20_address, ADMIN_DEFAULT_DEPOSIT_BEP20), "BEP20") +
+              "</td><td class=\"mono\">" +
+              depositAddressListCellHtml(depositChainEffective(it.solana_address, ADMIN_DEFAULT_DEPOSIT_SOLANA), "SOLANA") +
               "</td><td>" +
               adminRowActions(
                 adminBtn({
@@ -3829,7 +4220,7 @@
       })
       .catch(function (e) {
         if (e && e.adminSessionHandled) return;
-        setTbodyError("view-deposit-addresses-tbody", e.message, 7);
+        setTbodyError("view-deposit-addresses-tbody", e.message, 9);
       });
   }
 
@@ -3880,6 +4271,105 @@
         .then(step);
     }
     return step();
+  }
+
+  function parseWithdrawalRemarkParams(remark) {
+    var out = {};
+    String(remark || "")
+      .split(";")
+      .forEach(function (part) {
+        var s = String(part || "").trim();
+        var eq = s.indexOf("=");
+        if (eq <= 0) return;
+        out[s.slice(0, eq).trim()] = s.slice(eq + 1).trim();
+      });
+    return out;
+  }
+
+  function formatWithdrawalNumberDisplay(value) {
+    if (value === null || value === undefined || value === "") return "—";
+    var raw = String(value).trim().replace(/,/g, "");
+    if (raw === "") return "—";
+    var n = Number(raw);
+    if (!isFinite(n)) return raw;
+    var rounded = Math.round((n + Number.EPSILON) * 100000) / 100000;
+    var s = rounded.toFixed(5).replace(/\.?0+$/, "");
+    if (s === "" || s === "-0") return "0";
+    return s;
+  }
+
+  function withdrawalAmountDisplay(it) {
+    var asset = String((it && it.asset_code) || "EUR").trim().toUpperCase() || "EUR";
+    return formatWithdrawalNumberDisplay(it && it.amount) + " " + asset;
+  }
+
+  function withdrawalPayoutInfoHtml(it) {
+    var channel = String((it && it.channel_type) || "").trim().toLowerCase();
+    if (channel === "usdt") {
+      var address = String((it && it.payout_address) || "").trim();
+      var network = String((it && it.usdt_network) || "").trim();
+      if (!address) return "—";
+      return (
+        '<div class="admin-wd-payout">' +
+        (network ? '<div class="admin-wd-payout__label">' + esc(network) + "</div>" : "") +
+        '<div class="admin-wd-payout__value mono" title="' + esc(address) + '">' + esc(address) + "</div>" +
+        "</div>"
+      );
+    }
+    if (channel === "bank") {
+      var holder = String((it && it.account_holder) || "").trim();
+      var bank = String((it && it.bank_name) || "").trim();
+      var account = String((it && it.account_no_masked) || "").trim();
+      var currency = String((it && it.currency_code) || "").trim().toUpperCase();
+      var swift = String((it && it.bank_swift) || "").trim();
+      var holderAddress = String((it && it.holder_address) || "").trim();
+      var parts = [
+        currency ? "幣別：" + currency : "",
+        holder ? "戶名：" + holder : "",
+        bank ? "銀行：" + bank : "",
+        account ? "帳號：" + account : "",
+        swift ? "BIC/SWIFT：" + swift : "",
+        holderAddress ? "開戶地址：" + holderAddress : ""
+      ].filter(Boolean);
+      return parts.length ? '<div class="admin-wd-payout">' + parts.map(function (line) {
+        return '<div class="admin-wd-payout__line">' + esc(line) + "</div>";
+      }).join("") + "</div>" : "—";
+    }
+    if (channel === "pix") {
+      var pix = String((it && it.pix_key) || "").trim();
+      return pix ? '<div class="admin-wd-payout__value" title="' + esc(pix) + '">' + esc(pix) + "</div>" : "—";
+    }
+    return "—";
+  }
+
+  function withdrawalRemarkHtml(it) {
+    var remark = String((it && it.remark) || "").trim();
+    var channel = String((it && it.channel_type) || "").trim().toLowerCase();
+    var asset = String((it && it.asset_code) || "").trim().toUpperCase();
+    var sourceWallet = String((it && it.source_wallet_code) || "").trim().toLowerCase();
+    var isEurSwapToUsdt = channel === "usdt" && asset === "EUR" && sourceWallet === "eur";
+    if (!isEurSwapToUsdt) return esc(remark || "—");
+
+    var params = parseWithdrawalRemarkParams(remark);
+    var amount = Number(String((it && it.amount) || "0").replace(/,/g, ""));
+    var rate = Number(params.rate || "0");
+    var feeMode = params.fee_mode === "fixed_usdt" ? "fixed_usdt" : "percent";
+    var feePct = Number(params.fee_pct || "0");
+    var feeFixedUsdt = Number(params.fee_fixed_usdt || "0");
+    var grossUsdt = isFinite(amount) && isFinite(rate) ? amount * rate : 0;
+    var feeUsdt = feeMode === "fixed_usdt" ? feeFixedUsdt : grossUsdt * (feePct / 100);
+    var receivedUsdt = Math.max(0, grossUsdt - (isFinite(feeUsdt) ? feeUsdt : 0));
+    var lines = [
+      "實收 " + formatWithdrawalNumberDisplay(receivedUsdt) + " USDT",
+      "EUR 兌 USDT 鏈上提領",
+      "匯率 1 EUR = " + formatWithdrawalNumberDisplay(rate) + " USDT",
+      feeMode === "fixed_usdt"
+        ? "固定手續費 " + formatWithdrawalNumberDisplay(feeFixedUsdt) + " USDT"
+        : "手續費率 " + formatWithdrawalNumberDisplay(feePct) + "%"
+    ];
+    return '<div class="admin-wd-remark">' + lines.map(function (line, index) {
+      return '<div class="' + (index === 0 ? "admin-wd-remark__primary" : "admin-wd-remark__line") + '">' + esc(line) + "</div>";
+    }).join("") + "</div>";
   }
 
   function bindViewWithdrawalsPage() {
@@ -4105,7 +4595,7 @@
     return loadItems(
       buildAdminWithdrawalsListPath(),
       "view-withdrawals-tbody",
-      11,
+      12,
       function (it) {
         var st = String(it.status != null ? it.status : "").trim().toLowerCase();
         var pending = st === "pending";
@@ -4133,14 +4623,16 @@
           userCell +
           renderAdminGroupCell(it) +
           '<td class="mono">' +
-          esc(it.amount) +
-          "</td><td>" +
-          esc(assetLabelZh(it.asset_code)) +
+          esc(withdrawalAmountDisplay(it)) +
+          '</td><td class="admin-wd-payout-cell">' +
+          withdrawalPayoutInfoHtml(it) +
           "</td><td>" +
           esc(payoutChannelLabelZh(it.channel_type)) +
-          "</td><td>" +
-          esc(it.remark || "—") +
-          "</td><td>" +
+          '</td><td class="admin-wd-remark-cell">' +
+          withdrawalRemarkHtml(it) +
+          "</td>" +
+          adminListDateCell(it.created_at) +
+          "<td>" +
           badge(it.status, withdrawalStatusLabelZh(it.status)) +
           "</td><td>" +
           adminRowActions(
@@ -4177,7 +4669,10 @@
         }
       },
       { useSkeleton: true }
-    );
+    ).then(function (result) {
+      notifyPendingNavBadgesRefresh();
+      return result;
+    });
   }
 
   function openWithdrawalDetail(id) {
@@ -4203,7 +4698,7 @@
             { label: "用戶", value: renderAdminUserSummaryHtml(user, it.user_id), raw: true },
             { label: "金額", value: formatListingPriceDisplay(it.amount) + " " + assetLabelZh(it.asset_code), mono: true },
             { label: "路徑", value: payoutChannelLabelZh(it.channel_type) },
-            { label: "收款資料", value: [it.bank_name, it.account_holder, it.account_no_masked, it.usdt_network, it.pix_key].filter(Boolean).join(" / ") || "—" },
+            { label: "收款資料", value: [it.currency_code, it.bank_name, it.account_holder, it.account_no_masked, it.bank_swift, it.holder_address, it.usdt_network, it.pix_key].filter(Boolean).join(" / ") || "—" },
             { label: "狀態", value: badge(it.status, withdrawalStatusLabelZh(it.status)), raw: true },
             { label: "備註", value: it.remark || "—" },
             { label: "審核原因", value: it.review_reason || it.reason || "—" },
@@ -4227,12 +4722,58 @@
     if (rowFixed) rowFixed.style.display = m === "fixed_usdt" ? "" : "none";
   }
 
+  function selectedViewEurSwapGroupCode() {
+    var groupEl = document.getElementById("view-eur-swap-admin-group");
+    return groupEl && groupEl.value ? String(groupEl.value).trim() : "";
+  }
+
+  function viewEurSwapGroupLabel(item) {
+    var group = item && item.admin_group ? item.admin_group : null;
+    var code = String((item && item.admin_group_code) || (group && group.code) || "").trim();
+    var name = String((group && group.name) || adminGroupNameByCode(code) || "").trim();
+    return name || code || "未分組";
+  }
+
+  function fillViewEurSwapGroupSelect(groups, item) {
+    if (Array.isArray(groups) && groups.length) _adminGroupCache = groups.slice();
+    var groupEl = document.getElementById("view-eur-swap-admin-group");
+    if (!groupEl) return;
+    var currentCode = String((item && item.admin_group_code) || "").trim();
+    var list = Array.isArray(groups) && groups.length ? groups.slice() : [];
+    if (currentCode && !list.some(function (group) { return String(group.group_code || "").trim() === currentCode; })) {
+      list.unshift({
+        group_code: currentCode,
+        group_name: viewEurSwapGroupLabel(item)
+      });
+    }
+    if (!list.length && currentCode) {
+      list = [{
+        group_code: currentCode,
+        group_name: viewEurSwapGroupLabel(item)
+      }];
+    }
+    var options = list
+      .map(function (group) {
+        var code = String(group.group_code || "").trim();
+        if (!code) return "";
+        return '<option value="' + esc(code) + '">' + esc(adminGroupOptionLabel(group)) + "</option>";
+      })
+      .join("");
+    groupEl.innerHTML = options || '<option value="">未取得組別</option>';
+    if (currentCode && Array.prototype.some.call(groupEl.options, function (opt) { return opt.value === currentCode; })) {
+      groupEl.value = currentCode;
+    }
+    groupEl.disabled = !currentAdminIsRoot() || !list.length;
+  }
+
   function bindViewEurSwapPage() {
     var root = document.getElementById("view-eur-swap-withdraw-config");
     if (!root || root.dataset.eurSwapPageBound === "1") return;
     root.dataset.eurSwapPageBound = "1";
     var modeEl = document.getElementById("view-eur-swap-fee-mode");
     if (modeEl) modeEl.addEventListener("change", syncViewEurSwapFeeModeUi);
+    var groupEl = document.getElementById("view-eur-swap-admin-group");
+    if (groupEl) groupEl.addEventListener("change", function () { loadViewEurSwap(); });
     var refreshBtn = document.getElementById("view-eur-swap-refresh");
     if (refreshBtn) refreshBtn.addEventListener("click", function () { loadViewEurSwap(); });
     var saveBtn = document.getElementById("view-eur-swap-save");
@@ -4268,6 +4809,7 @@
           .requestJson("/api/admin/withdrawal-settings/eur-swap", {
             method: "PATCH",
             body: {
+              admin_group_code: selectedViewEurSwapGroupCode(),
               rate: rateStr,
               fee_mode: feeMode,
               fee_rate: feeRateStr,
@@ -4313,7 +4855,7 @@
           api()
             .requestJson("/api/admin/withdrawal-settings/eur-swap/copy", {
               method: "POST",
-              body: { reason: reason || "" },
+              body: { admin_group_code: selectedViewEurSwapGroupCode(), reason: reason || "" },
               fallbackMessage: "複製換匯規則失敗"
             })
             .then(function () {
@@ -4335,8 +4877,10 @@
       historyBtn.addEventListener("click", function () {
         if (!api()) return;
         historyBtn.disabled = true;
+        var historyGroupCode = selectedViewEurSwapGroupCode();
+        var historyQs = historyGroupCode ? "?admin_group_code=" + encodeURIComponent(historyGroupCode) : "";
         api()
-          .requestJson("/api/admin/withdrawal-settings/eur-swap/history", {
+          .requestJson("/api/admin/withdrawal-settings/eur-swap/history" + historyQs, {
             fallbackMessage: "載入換匯規則版本紀錄失敗"
           })
           .then(function (data) {
@@ -4347,6 +4891,7 @@
                   return [
                     "#" + it.id,
                     it.created_at || "—",
+                    viewEurSwapGroupLabel(after),
                     "rate=" + (after.rate || "—"),
                     "fee=" + (after.fee_mode || "—") + "/" + (after.fee_rate || after.fee_fixed_usdt || "0"),
                     it.reason ? "reason=" + it.reason : ""
@@ -4371,10 +4916,13 @@
   }
 
   function loadViewEurSwap() {
+    var groupCode = selectedViewEurSwapGroupCode();
+    var qs = groupCode ? "?admin_group_code=" + encodeURIComponent(groupCode) : "";
     return api()
-      .requestJson("/api/admin/withdrawal-settings/eur-swap", { fallbackMessage: "載入換匯設定失敗" })
+      .requestJson("/api/admin/withdrawal-settings/eur-swap" + qs, { fallbackMessage: "載入換匯設定失敗" })
       .then(function (data) {
         var item = (data && data.item) || {};
+        fillViewEurSwapGroupSelect(data && data.admin_groups, item);
         var rate = document.getElementById("view-eur-swap-rate");
         var mode = document.getElementById("view-eur-swap-fee-mode");
         var fr = document.getElementById("view-eur-swap-fee-rate");
@@ -4389,8 +4937,10 @@
             item.fee_mode === "fixed_usdt"
               ? "固定 USDT 扣費 " + (item.fee_fixed_usdt != null ? item.fee_fixed_usdt : "0")
               : "百分比扣費 " + (item.fee_rate != null ? item.fee_rate : "0") + "%";
-          current.textContent = "目前配置：匯率 " + (item.rate || "—") + "，" + feeText;
+          current.textContent = "目前配置：" + viewEurSwapGroupLabel(item) + "｜匯率 " + (item.rate || "—") + "，" + feeText;
         }
+        var ruleGroup = document.getElementById("view-eur-swap-rule-group");
+        if (ruleGroup) ruleGroup.textContent = viewEurSwapGroupLabel(item);
         var updated = document.getElementById("view-eur-swap-rule-updated");
         if (updated) updated.textContent = item.updated_at || "目前設定";
         syncViewEurSwapFeeModeUi();
@@ -4459,7 +5009,7 @@
     return loadItems(
       buildAdminOrdersListPath(),
       "view-orders-tbody",
-      9,
+      10,
       function (it) {
         var buyerCell =
           renderAdminUserSummaryHtml(adminUserFromPrefixedFields(it, "buyer_"), it.buyer_user_id) +
@@ -4488,7 +5038,9 @@
           buyerCell +
           "</td><td>" +
           sellerCell +
-          "</td><td>" +
+          "</td>" +
+          adminListDateCell(it.created_at) +
+          "<td>" +
           badge(it.status, orderStatusLabelZh(it.status)) +
           "</td><td>" +
           adminRowActions(
@@ -4542,6 +5094,14 @@
         var buyer = adminUserFromPrefixedFields(it, "buyer_");
         var seller = adminUserFromPrefixedFields(it, "seller_");
         var evidence = it.evidences || it.evidence || it.proofs || [];
+        var orderAsset = String(it.asset_code || "USDT").toUpperCase();
+        var orderAmount = Number(String(it.amount || "0").replace(/,/g, ""));
+        var orderFeeRate = Number(it.fee_rate || 0.005) || 0.005;
+        var orderFeeAmount = it.fee_amount != null && String(it.fee_amount).trim() !== "" ? Number(it.fee_amount || 0) : orderAmount * orderFeeRate;
+        var orderActualAmount = it.actual_amount != null && String(it.actual_amount).trim() !== "" ? Number(it.actual_amount || 0) : Math.max(0, orderAmount - orderFeeAmount);
+        var orderFeeRateText = (orderFeeRate * 100).toLocaleString("en-GB", { minimumFractionDigits: 0, maximumFractionDigits: 4 }) + "%";
+        var orderFeeText = "-" + orderFeeAmount.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " " + orderAsset;
+        var orderActualText = orderActualAmount.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " " + orderAsset;
         setModalBodyHtml(
           "view-order-detail-body",
           '<div class="admin-modal__subgrid">' +
@@ -4560,6 +5120,9 @@
               { label: "方向", value: orderSideBadge(it.side), raw: true },
               { label: "數量", value: formatListingPriceDisplay(it.amount) + " " + assetLabelZh(it.asset_code), mono: true },
               { label: "單價", value: it.price != null ? formatListingPriceDisplay(it.price) : "—", mono: true },
+              { label: "手續費率", value: orderFeeRateText, mono: true },
+              { label: "手續費", value: '<span style="color:#d94c5b;font-weight:800;">' + orderFeeText + '</span>', raw: true },
+              { label: "實際數量", value: orderActualText, mono: true },
               { label: "狀態", value: badge(it.status, orderStatusLabelZh(it.status)), raw: true }
             ]) +
             "</section></div>" +
@@ -4764,7 +5327,7 @@
     return loadItems(
       buildFinancialOrdersPath(),
       "view-financial-orders-tbody",
-      8,
+      9,
       function (it) {
         return (
           "<tr><td class=\"mono\">" +
@@ -4779,7 +5342,9 @@
           esc(it.amount != null ? it.amount : it.principal_amount || "—") +
           "</td><td>" +
           esc(financialReturnModeLabelZh(it.return_mode)) +
-          "</td><td>" +
+          "</td>" +
+          adminListDateCell(it.subscribed_at || it.created_at) +
+          "<td>" +
           badge(it.status, financialSubscriptionStatusLabelZh(it.status)) +
           "</td><td>" +
           adminRowActions(
@@ -4873,12 +5438,31 @@
     });
   }
 
+  function syncListingFiatTabUi() {
+    var r = document.getElementById("view-listings");
+    if (!r) return;
+    var cur = r.getAttribute("data-listing-fiat") != null ? String(r.getAttribute("data-listing-fiat")).trim().toUpperCase() : "";
+    if (["EUR", "CHF", "USD", "GBP"].indexOf(cur) === -1) cur = "";
+    r.setAttribute("data-listing-fiat", cur);
+    r.querySelectorAll("[data-listing-fiat-tab]").forEach(function (btn) {
+      var v = btn.getAttribute("data-listing-fiat-tab");
+      var tabVal = v != null ? String(v).trim().toUpperCase() : "";
+      if (["EUR", "CHF", "USD", "GBP"].indexOf(tabVal) === -1) tabVal = "";
+      var active = tabVal === cur;
+      btn.classList.toggle("is-active", active);
+      btn.setAttribute("aria-selected", active ? "true" : "false");
+    });
+  }
+
   function buildAdminListingsListPath() {
     var q = new URLSearchParams();
     var root = document.getElementById("view-listings");
     var sideRaw =
       root && root.getAttribute("data-listing-side") != null ? String(root.getAttribute("data-listing-side")).trim().toLowerCase() : "";
     if (sideRaw === "buy" || sideRaw === "sell") q.set("side", sideRaw);
+    var fiatRaw =
+      root && root.getAttribute("data-listing-fiat") != null ? String(root.getAttribute("data-listing-fiat")).trim().toUpperCase() : "";
+    if (["EUR", "CHF", "USD", "GBP"].indexOf(fiatRaw) !== -1) q.set("fiat_code", fiatRaw);
     var kwEl = document.getElementById("view-listings-keyword");
     var ownEl = document.getElementById("view-listings-owner");
     var stEl = document.getElementById("view-listings-status");
@@ -5099,6 +5683,17 @@
       });
     });
 
+    root.querySelectorAll("[data-listing-fiat-tab]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        var v = btn.getAttribute("data-listing-fiat-tab");
+        var val = v != null ? String(v).trim().toUpperCase() : "";
+        if (["EUR", "CHF", "USD", "GBP"].indexOf(val) === -1) val = "";
+        root.setAttribute("data-listing-fiat", val);
+        syncListingFiatTabUi();
+        loadViewListings();
+      });
+    });
+
     var resetBtn = document.getElementById("view-listings-reset");
     var queryBtn = document.getElementById("view-listings-query");
     var refreshBtn = document.getElementById("view-listings-refresh");
@@ -5112,7 +5707,9 @@
         if (ownEl) ownEl.value = "";
         if (stEl) stEl.value = "";
         root.setAttribute("data-listing-side", "");
+        root.setAttribute("data-listing-fiat", "");
         syncListingSideTabUi();
+        syncListingFiatTabUi();
         loadViewListings();
       });
     }
@@ -5130,6 +5727,7 @@
     }
 
     syncListingSideTabUi();
+    syncListingFiatTabUi();
   }
 
   function loadViewListings() {
@@ -5169,6 +5767,8 @@
                 esc(formatC2cOrderSideLabel(it.side)) +
                 '</td><td class="mono">' +
                 esc(formatListingPriceDisplay(it.price)) +
+                " " +
+                esc(String(it.fiat_code || "EUR").toUpperCase()) +
                 '</td><td class="mono">' +
                 esc(formatListingRangeCell(it.min_amount, it.max_amount)) +
                 '</td><td class="mono">' +
@@ -5912,7 +6512,10 @@
       "尚無 KYC 申請",
       function () {},
       { useSkeleton: true }
-    );
+    ).then(function (result) {
+      notifyPendingNavBadgesRefresh();
+      return result;
+    });
   }
 
   function buildAdminPayoutMethodsPath() {
@@ -6007,14 +6610,26 @@
         var holderLine = it.account_holder
           ? '<div class="admin-cell-sub">戶名：' + esc(it.account_holder) + "</div>"
           : "";
+        var currencyLine = it.currency_code
+          ? '<div class="admin-cell-sub">幣別：' + esc(String(it.currency_code).toUpperCase()) + "</div>"
+          : "";
+        var swiftLine = it.bank_swift
+          ? '<div class="admin-cell-sub mono">BIC/SWIFT：' + esc(it.bank_swift) + "</div>"
+          : "";
+        var holderAddressLine = it.holder_address
+          ? '<div class="admin-cell-sub">開戶地址：' + esc(it.holder_address) + "</div>"
+          : "";
         var pixLine = it.pix_key
           ? '<div class="admin-cell-sub mono">PIX：' + esc(it.pix_key) + "</div>"
           : "";
         var editFields =
           ch === "bank"
-            ? payoutMethodEditField("bank_name", "銀行", it.bank_name, "銀行名稱") +
+            ? payoutMethodEditField("currency_code", "幣別", it.currency_code || "EUR", "EUR / CHF / USD / GBP") +
+              payoutMethodEditField("bank_name", "銀行", it.bank_name, "銀行名稱") +
               payoutMethodEditField("account_holder", "戶名", it.account_holder, "收款戶名") +
-              payoutMethodEditField("account_no_masked", "卡號", it.account_no_masked, "銀行帳號")
+              payoutMethodEditField("account_no_masked", "帳號 / IBAN", it.account_no_masked, "銀行帳號或 IBAN") +
+              payoutMethodEditField("bank_swift", "BIC/SWIFT", it.bank_swift, "選填") +
+              payoutMethodEditField("holder_address", "開戶地址", it.holder_address, "選填")
             : ch === "usdt"
               ? payoutMethodEditField("usdt_network", "網路", it.usdt_network, "TRC20 / ERC20") +
                 payoutMethodEditField("payout_address", "地址", it.payout_address, "鏈上地址")
@@ -6024,7 +6639,7 @@
           "<div><div><strong>" +
           esc(payoutMethodCardTitle(it)) +
           "</strong></div>" +
-          (ch === "bank" ? bankLine + holderLine + accountLine : ch === "usdt" ? addrLine + netLine : pixLine) +
+          (ch === "bank" ? currencyLine + bankLine + holderLine + accountLine + swiftLine + holderAddressLine : ch === "usdt" ? addrLine + netLine : pixLine) +
           '<div class="admin-cell-sub mono">方式 ID：' +
           esc(it.id) +
           '</div></div><form data-pm-edit-form data-pm-id="' +
@@ -6466,6 +7081,7 @@
     listings: "商戶掛單",
     "trade-feed": "成交播報",
     "home-content": "運營配置",
+    "customer-service-config": "客服配置",
     kyc: "實名 / KYC",
     "payout-methods": "收款方",
     "auth-events": "操作日誌",
@@ -6632,7 +7248,7 @@
         );
       return;
     }
-    var order = ["finance_ops", "reviewer", "customer_service"];
+    var order = ["super_admin", "finance_ops", "reviewer", "customer_service"];
     keys.sort(function (a, b) {
       var ia = order.indexOf(a);
       var ib = order.indexOf(b);
@@ -6831,11 +7447,9 @@
     var roleTpl = document.getElementById("view-admin-create-role-template");
     var superEl = document.getElementById("view-admin-create-super");
     if (!wrap || !matrix || !roleTpl) return;
-    var isSuper = currentAdminIsRoot() && superEl && superEl.checked;
     var isCustom = roleTpl.value === "custom";
-    if (!isCustom || isSuper) {
+    if (!isCustom) {
       wrap.hidden = true;
-      if (isSuper) matrix.innerHTML = "";
       return;
     }
     wrap.hidden = false;
@@ -7053,6 +7667,7 @@
     var base = roleCodesSummaryZh(it.role_codes, it.is_super_admin, it.role_template);
     var canDelete = currentAdminIsSuper() && Number(it.id) !== currentAdminId() && it.role_template !== "big_boss";
     var canRestore = currentAdminIsRoot() && Number(it.id) !== currentAdminId();
+    var isLoginLocked = it.lock_state === "temporary" || it.lock_state === "permanent" || it.status === "locked";
     var ipAllowlistCount = Array.isArray(it.login_ip_allowlist) ? it.login_ip_allowlist.length : 0;
     return (
       '<tr data-admin-id="' +
@@ -7099,27 +7714,16 @@
               '"',
             label: "編輯"
           }) +
-          (it.is_super_admin
-            ? adminBtn({
-                variant: "info",
-                sm: true,
-                attrs:
-                  'data-admin-modal-open="admin-modal-admin-user-permissions" data-admin-operator-id="' +
-                  esc(it.id) +
-                  '"',
-                label: "檢視權限",
-                title: "組超級管理員：後端對授權範圍內全部模組等同讀寫；此處為唯讀對照表。"
-              })
-            : adminBtn({
-                variant: "accent",
-                sm: true,
-                attrs:
-                  'data-admin-modal-open="admin-modal-admin-user-permissions" data-admin-operator-id="' +
-                  esc(it.id) +
-                  '"',
-                label: "權限",
-                title: "編輯模組讀寫權限"
-              })) +
+          adminBtn({
+            variant: it.is_super_admin ? "accent" : "accent",
+            sm: true,
+            attrs:
+              'data-admin-modal-open="admin-modal-admin-user-permissions" data-admin-operator-id="' +
+              esc(it.id) +
+              '"',
+            label: it.is_super_admin ? "權限" : "權限",
+            title: it.is_super_admin ? "編輯組超級管理員的細項模組權限" : "編輯模組讀寫權限"
+          }) +
           adminBtn({
             variant: "warning",
             sm: true,
@@ -7139,8 +7743,8 @@
                   '" data-admin-operator-account="' +
                   esc(it.account || "") +
                   '"',
-                label: "恢復",
-                title: "大老板可恢復帳號狀態並清除登入失敗與限流"
+                label: isLoginLocked ? "解鎖" : "恢復",
+                title: "大老板可恢復帳號狀態並清除登入失敗、臨時鎖定、永久鎖定與限流"
               })
             : "") +
           (canDelete
@@ -7339,7 +7943,7 @@
   function fillAdminRoleTemplateSelects(templates) {
     var keys = templates && typeof templates === "object" ? Object.keys(templates).filter(function (k) { return k !== "big_boss"; }) : [];
     var fallback =
-      '<option value="finance_ops">財務</option><option value="reviewer">審核</option><option value="customer_service">客服</option>';
+      '<option value="super_admin">組超級管理員</option><option value="finance_ops">財務</option><option value="reviewer">審核</option><option value="customer_service">客服</option>';
     var core =
       keys.length > 0
         ? keys
@@ -7358,7 +7962,7 @@
     }
     var editSel = document.getElementById("view-admin-edit-role-template");
     if (editSel) {
-      editSel.innerHTML = '<option value="super_admin">組超級管理員</option>' + core;
+      editSel.innerHTML = core;
     }
   }
 
@@ -7619,7 +8223,7 @@
           ? _adminCreateUserModuleAccessDraft
           : null;
       var module_access = {};
-      if (!isSuper && roleVal === "custom") {
+      if (roleVal === "custom") {
         var fromMatrix = collectCreateAdminModuleMatrix();
         if (Object.keys(fromMatrix).length > 0) {
           module_access = fromMatrix;
@@ -7627,7 +8231,7 @@
           module_access = Object.assign({}, draft);
         }
       }
-      if (!isSuper && roleVal === "custom" && Object.keys(module_access).length === 0) {
+      if (roleVal === "custom" && Object.keys(module_access).length === 0) {
         if (msg) msg.textContent = "請至少為一個模組選擇「閱讀」或「修改」。";
         return;
       }
@@ -7843,34 +8447,25 @@
       .then(function (data) {
         var u = (data && data.admin_user) || {};
         if (hiddenId) hiddenId.value = String(u.id || id);
+        if (matrix) {
+          matrix.setAttribute("data-admin-perm-super-target", u.is_super_admin ? "1" : "0");
+        }
         if (u.is_super_admin) {
           if (note) {
             note.hidden = false;
             note.textContent =
-              "此帳號為組超級管理員：後端在其授權範圍內對全部模組等同「修改」。下列為與目錄對照之唯讀預覽（無法於此儲存變更）。";
+              "此帳號為組超級管理員：身份保留組級管理能力，但下方模組權限可單獨細調。大老板可直接儲存變更。";
           }
-          var moduleKeysSuper = Object.keys(catalog).sort();
-          var rowsSuper = moduleKeysSuper
-            .map(function (mk) {
-              return buildModuleAccessRowHTML(mk, "write", "write", true, "perm");
-            })
-            .join("");
-          if (matrix) matrix.innerHTML = rowsSuper || '<p class="admin-muted">尚無模組目錄</p>';
-          if (saveBtn) {
-            saveBtn.disabled = true;
-            saveBtn.textContent = "僅供檢視";
-          }
-          if (copyPermBtn) copyPermBtn.disabled = true;
-          return;
+        } else if (note) {
+          note.hidden = true;
         }
-        if (note) note.hidden = true;
         var access = u.module_access || {};
         var moduleKeys = Object.keys(catalog).sort();
         var rows = moduleKeys
           .map(function (mk) {
             var cur = access[mk];
             var grant = currentAdminModuleGrant(mk);
-            return buildModuleAccessRowHTML(mk, cur, grant, false, "perm");
+              return buildModuleAccessRowHTML(mk, cur, currentAdminIsRoot() ? "write" : grant, false, "perm");
           })
           .join("");
         if (matrix) matrix.innerHTML = rows || '<p class="admin-muted">尚無模組目錄</p>';
@@ -7975,10 +8570,11 @@
         return;
       }
       if (msg) msg.textContent = "儲存中…";
+      var isSuperTarget = matrix && matrix.getAttribute("data-admin-perm-super-target") === "1";
       api()
         .requestJson("/api/admin/admin-users/" + encodeURIComponent(uid), {
           method: "PATCH",
-          body: { module_access: module_access, role_template: "custom" },
+          body: { module_access: module_access, role_template: "custom", is_super_admin: isSuperTarget },
           fallbackMessage: "更新權限失敗"
         })
         .then(function () {
@@ -8014,7 +8610,7 @@
         display_name: document.getElementById("view-admin-edit-display").value.trim(),
         staff_invite_code: document.getElementById("view-admin-edit-invite").value.trim() || null,
         status: document.getElementById("view-admin-edit-status").value,
-        is_super_admin: currentAdminIsRoot() && editSuper && editSuper.checked,
+        is_super_admin: !!(editSuper && editSuper.checked),
         role_template: document.getElementById("view-admin-edit-role-template").value,
         admin_group_code: editGroupCode ? editGroupCode.value.trim() : "",
         login_ip_allowlist_enabled: !!(ipEnabled && ipEnabled.checked),
@@ -8173,6 +8769,103 @@
     }
   }
 
+  function renderCustomerServiceConfigRow(item) {
+    item = item || {};
+    var code = String(item.admin_group_code || "").trim();
+    var cfg = item.config || {};
+    var effective = item.effective || {};
+    var enabled = !!cfg.enabled;
+    var baseUrl = String(cfg.base_url || "").trim();
+    var token = String(cfg.website_token || "").trim();
+    var remark = String(cfg.remark || "").trim();
+    var effectiveText = effective.enabled
+      ? (String(effective.source || "") === "group" ? "本組客服" : "預設客服")
+      : "未啟用";
+    return [
+      '<tr data-cs-row="' + esc(code) + '">',
+      '<td><strong>' + esc(item.admin_group_name || code || "未命名組別") + '</strong><div class="admin-muted mono">' + esc(code || "-") + "</div></td>",
+      '<td><label class="admin-checkline"><input type="checkbox" data-cs-enabled ' + (enabled ? "checked" : "") + "> <span>啟用</span></label></td>",
+      '<td><input class="admin-input" data-cs-base-url value="' + esc(baseUrl) + '" placeholder="https://chat.example.com"/></td>',
+      '<td><input class="admin-input mono" data-cs-token value="' + esc(token) + '" placeholder="Chatwoot website token"/></td>',
+      '<td><input class="admin-input" data-cs-remark value="' + esc(remark) + '" placeholder="例如：十二客服 A"/></td>',
+      '<td><span class="admin-badge ' + (effective.enabled ? "admin-badge--success" : "admin-badge--warning") + '">' + esc(effectiveText) + "</span></td>",
+      '<td><button type="button" class="admin-btn admin-btn--primary admin-btn--sm" data-cs-save="' + esc(code) + '">保存</button></td>',
+      "</tr>"
+    ].join("");
+  }
+
+  function loadViewCustomerServiceConfig() {
+    if (!api()) return Promise.resolve();
+    setTbodyLoading("view-cs-tbody", 7);
+    return api()
+      .requestJson("/api/admin/customer-service-configs", { fallbackMessage: "載入客服配置失敗" })
+      .then(function (data) {
+        var items = (data && data.items) || [];
+        var tb = document.getElementById("view-cs-tbody");
+        if (!tb) return;
+        tb.innerHTML = items.length
+          ? items.map(renderCustomerServiceConfigRow).join("")
+          : tableEmptyRow(7, "尚無組別", "請先在「後台管理員」中建立代理組別。");
+      })
+      .catch(function (e) {
+        if (e && e.adminSessionHandled) return;
+        setTbodyError("view-cs-tbody", e.message || "載入客服配置失敗", 7);
+      });
+  }
+
+  function saveCustomerServiceConfig(row, groupCode) {
+    if (!row || !groupCode || !api()) return;
+    var enabledEl = row.querySelector("[data-cs-enabled]");
+    var baseUrlEl = row.querySelector("[data-cs-base-url]");
+    var tokenEl = row.querySelector("[data-cs-token]");
+    var remarkEl = row.querySelector("[data-cs-remark]");
+    var body = {
+      admin_group_code: groupCode,
+      enabled: !!(enabledEl && enabledEl.checked),
+      base_url: baseUrlEl ? baseUrlEl.value.trim() : "",
+      website_token: tokenEl ? tokenEl.value.trim() : "",
+      remark: remarkEl ? remarkEl.value.trim() : "",
+      reason: "update customer service config"
+    };
+    if (body.enabled && (!body.base_url || !body.website_token)) {
+      adminNotifyError("啟用客服時必須填寫 API 地址和 Token。");
+      return;
+    }
+    api()
+      .requestJson("/api/admin/customer-service-configs", {
+        method: "PATCH",
+        body: body,
+        fallbackMessage: "保存客服配置失敗"
+      })
+      .then(function () {
+        adminNotifySuccess("客服配置已保存。");
+        return loadViewCustomerServiceConfig();
+      })
+      .catch(function (e) {
+        if (e && e.adminSessionHandled) return;
+        adminNotifyError((e && e.message) || "保存客服配置失敗");
+      });
+  }
+
+  function bindCustomerServiceConfigPage() {
+    var refreshBtn = document.getElementById("view-cs-refresh");
+    if (refreshBtn && !refreshBtn._adminBound) {
+      refreshBtn._adminBound = true;
+      refreshBtn.addEventListener("click", loadViewCustomerServiceConfig);
+    }
+    var tb = document.getElementById("view-cs-tbody");
+    if (tb && !tb._adminBound) {
+      tb._adminBound = true;
+      tb.addEventListener("click", function (e) {
+        var btn = e.target.closest && e.target.closest("[data-cs-save]");
+        if (!btn) return;
+        var groupCode = btn.getAttribute("data-cs-save") || "";
+        var row = btn.closest("tr");
+        saveCustomerServiceConfig(row, groupCode);
+      });
+    }
+  }
+
   var LOADERS = {
     dashboard: loadViewDashboard,
     users: loadViewUsers,
@@ -8180,9 +8873,15 @@
       bindWalletsReload();
       return loadViewWallets();
     },
-    tiers: loadViewTiers,
+    tiers: function () {
+      initTierTemplateForms();
+      return loadViewTiers();
+    },
     deposits: loadViewDeposits,
-    "deposit-addresses": loadViewDepositAddresses,
+    "deposit-addresses": function () {
+      initDepositAddressForms();
+      return loadViewDepositAddresses();
+    },
     withdrawals: function () {
       bindViewWithdrawalsPage();
       return loadViewWithdrawals();
@@ -8196,6 +8895,7 @@
       return loadViewOrders();
     },
     "financial-products": function () {
+      initFinancialProductForms();
       bindSimpleFilterControls("view-financial-products", {
         query: "view-fp-query",
         refresh: "view-fp-refresh",
@@ -8213,8 +8913,12 @@
       }, loadViewFinancialOrders);
       return loadViewFinancialOrders();
     },
-    listings: loadViewListings,
+    listings: function () {
+      initListingForms();
+      return loadViewListings();
+    },
     "trade-feed": function () {
+      initTradeFeedForms();
       bindSimpleFilterControls("view-trade-feed", {
         query: "view-tf-query",
         refresh: "view-tf-refresh",
@@ -8224,8 +8928,14 @@
       return loadViewTradeFeed();
     },
     "home-content": function () {
+      initHomeBannerForms();
+      initTutorialLinkForms();
       bindHomeNoticeSave();
       return loadViewHomeContent();
+    },
+    "customer-service-config": function () {
+      bindCustomerServiceConfigPage();
+      return loadViewCustomerServiceConfig();
     },
     kyc: loadViewKyc,
     "payout-methods": loadViewPayoutMethods,
@@ -8312,13 +9022,6 @@
     window.addEventListener("hashchange", reloadCurrentView);
     window.addEventListener("eurforex-admin-api-token-ready", reloadCurrentView);
     function start() {
-      initTradeFeedForms();
-      initHomeBannerForms();
-      initFinancialProductForms();
-      initDepositAddressForms();
-      initListingForms();
-      initTierTemplateForms();
-      initTutorialLinkForms();
       setTimeout(reloadCurrentView, 0);
     }
     if (document.readyState === "loading") {

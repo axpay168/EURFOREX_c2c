@@ -1,8 +1,8 @@
 <template>
-  <div>
+        <div>
     <header class="fixed top-0 w-full border-b border-primary/10 bg-white/75 backdrop-blur-3xl shadow-[0_12px_32px_rgba(33,79,131,0.08)] flex justify-between items-center px-6 h-14 w-full z-50">
       <a class="flex shrink-0 items-center justify-center rounded-full p-2 text-primary-dim transition-colors hover:bg-primary/10" href="javascript:;" @click="backGo($event, '#/pages/setting/user')"><span class="material-symbols-outlined">arrow_back</span></a>
-      <div class="font-headline text-lg font-bold text-on-surface">更換密碼</div>
+      <div class="font-headline text-lg font-bold text-on-surface">{{ localizedText("更換密碼", "Change password") }}</div>
       <div class="w-10 shrink-0" aria-hidden="true"></div>
     </header>
     <main class="pt-20 pb-16 px-4 max-w-3xl mx-auto">
@@ -11,18 +11,24 @@
           <p v-if="errorMessage" class="rounded-2xl border border-error/15 bg-error-container/35 px-4 py-3 text-error">{{ errorMessage }}</p>
           <p v-if="successMessage" class="rounded-2xl border border-primary/15 bg-primary-container/40 px-4 py-3 text-primary-dim">{{ successMessage }}</p>
           <div>
-            <label class="mb-1 block text-xs font-medium text-on-surface-variant" for="cp-current">目前密碼</label>
-            <input class="w-full min-w-0 rounded-2xl border border-outline-variant/10 bg-surface-container-low px-4 py-3 text-on-surface placeholder:text-on-surface-variant/70 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/20" id="cp-current" name="current_password" type="password" autocomplete="current-password" placeholder="請輸入目前密碼" v-model="currentPassword" />
+            <label class="mb-1 block text-xs font-medium text-on-surface-variant" for="cp-current">{{ localizedText("目前密碼", "Current password") }}</label>
+            <input class="w-full min-w-0 rounded-2xl border border-outline-variant/10 bg-surface-container-low px-4 py-3 text-on-surface placeholder:text-on-surface-variant/70 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/20" id="cp-current" name="current_password" type="password" autocomplete="current-password" :placeholder="localizedText('請輸入目前密碼', 'Enter current password')" v-model="currentPassword" />
           </div>
           <div>
-            <label class="mb-1 block text-xs font-medium text-on-surface-variant" for="cp-new">新密碼</label>
-            <input class="w-full min-w-0 rounded-2xl border border-outline-variant/10 bg-surface-container-low px-4 py-3 text-on-surface placeholder:text-on-surface-variant/70 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/20" id="cp-new" name="new_password" type="password" autocomplete="new-password" placeholder="請輸入新密碼" v-model="newPassword" />
+            <label class="mb-1 block text-xs font-medium text-on-surface-variant" for="cp-new">{{ localizedText("新密碼", "New password") }}</label>
+            <input class="w-full min-w-0 rounded-2xl border border-outline-variant/10 bg-surface-container-low px-4 py-3 text-on-surface placeholder:text-on-surface-variant/70 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/20" id="cp-new" name="new_password" type="password" autocomplete="new-password" :placeholder="localizedText('請輸入新密碼', 'Enter new password')" v-model="newPassword" />
           </div>
           <div>
-            <label class="mb-1 block text-xs font-medium text-on-surface-variant" for="cp-confirm">確認新密碼</label>
-            <input class="w-full min-w-0 rounded-2xl border border-outline-variant/10 bg-surface-container-low px-4 py-3 text-on-surface placeholder:text-on-surface-variant/70 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/20" id="cp-confirm" name="confirm_password" type="password" autocomplete="new-password" placeholder="請再次輸入新密碼" v-model="confirmPassword" />
+            <label class="mb-1 block text-xs font-medium text-on-surface-variant" for="cp-confirm">{{ localizedText("確認新密碼", "Confirm new password") }}</label>
+            <input class="w-full min-w-0 rounded-2xl border border-outline-variant/10 bg-surface-container-low px-4 py-3 text-on-surface placeholder:text-on-surface-variant/70 focus:border-primary/40 focus:outline-none focus:ring-2 focus:ring-primary/20" id="cp-confirm" name="confirm_password" type="password" autocomplete="new-password" :placeholder="localizedText('請再次輸入新密碼', 'Re-enter new password')" v-model="confirmPassword" />
           </div>
-          <button class="mt-4 w-full bg-primary text-white font-headline text-[12px] px-5 py-3 rounded-full hover:bg-primary-dim transition-colors uppercase tracking-[0.18em] font-bold flex items-center justify-center" type="submit">更新密碼</button>
+        <button
+          class="mt-4 w-full bg-primary text-white font-headline text-[12px] px-5 py-3 rounded-full hover:bg-primary-dim transition-colors uppercase tracking-[0.18em] font-bold flex items-center justify-center disabled:opacity-60 disabled:cursor-not-allowed"
+          type="submit"
+          :disabled="submitting"
+        >
+          {{ submitting ? localizedText("更新中...", "Updating...") : localizedText("更新密碼", "Update password") }}
+        </button>
         </form>
       </section>
       <section class="mt-4 grid grid-cols-3 gap-3 text-sm">
@@ -62,7 +68,8 @@ export default {
       newPassword: "",
       confirmPassword: "",
       errorMessage: "",
-      successMessage: ""
+      successMessage: "",
+      submitting: false
     };
   },
   mounted: function () {
@@ -93,31 +100,35 @@ export default {
       }
     },
     handleChangePassword: function () {
+      if (this.submitting) return;
       var currentPassword = (this.currentPassword || "").trim();
       var newPassword = (this.newPassword || "").trim();
       var confirmPassword = (this.confirmPassword || "").trim();
       this.errorMessage = "";
       this.successMessage = "";
       if (!currentPassword) {
-        this.errorMessage = "請輸入目前密碼";
+        this.errorMessage = this.localizedText("請輸入目前密碼", "Please enter current password");
         return;
       }
       if (!newPassword) {
-        this.errorMessage = "請輸入新密碼";
+        this.errorMessage = this.localizedText("請輸入新密碼", "Please enter new password");
         return;
       }
       if (newPassword !== confirmPassword) {
-        this.errorMessage = "兩次輸入的新密碼不一致";
+        this.errorMessage = this.localizedText("兩次輸入的新密碼不一致", "The new passwords entered do not match");
         return;
       }
+      this.submitting = true;
       var self = this;
       changePassword(currentPassword, newPassword).then(function () {
-        self.successMessage = "密碼已更新，請使用新密碼登入。";
+        self.successMessage = self.localizedText("密碼已更新，請使用新密碼登入。", "Password updated, please log in with the new password.");
         self.currentPassword = "";
         self.newPassword = "";
         self.confirmPassword = "";
       }).catch(function (error) {
-        self.errorMessage = (error && error.message) || "更新失敗，請稍後再試。";
+        self.errorMessage = (error && error.message) || self.localizedText("更新失敗，請稍後再試。", "Update failed, please try again later.");
+      }).finally(function () {
+        self.submitting = false;
       });
     }
   }

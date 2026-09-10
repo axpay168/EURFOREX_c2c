@@ -5,38 +5,38 @@
         <a class="text-sm font-medium text-primary-dim hover:text-primary hover:underline" href="#/pages/index/financial" @click="backGo($event, '#/pages/index/financial')">返回</a>
       </div>
       <section class="glass-panel rounded-[28px] p-5 md:p-6 mb-6">
-        <h1 class="font-headline text-2xl">商戶認證</h1>
-        <p class="text-sm text-on-surface-variant mt-2">完成 KYC、收款綁定、保證金配置並聯繫客服開通後，即可申請掛單權限。</p>
+        <h1 class="font-headline text-2xl">{{ localizedText("商戶認證", "Merchant verification") }}</h1>
+        <p class="text-sm text-on-surface-variant mt-2">{{ localizedText("完成 KYC、收款綁定、保證金配置並聯繫客服開通後，即可申請掛單權限。", "Complete KYC, payout binding, and margin setup then contact support to apply for listing permission.") }}</p>
       </section>
       <section class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <div class="glass-panel rounded-[24px] p-5">
           <div class="text-xs uppercase tracking-[0.16em] text-on-surface-variant">步驟 1</div>
           <div class="mt-2 flex flex-wrap items-center gap-2">
-            <h2 class="font-headline text-lg">身份驗證</h2>
-            <span class="merchant-step-tag" :class="tagClass('kyc')" id="merchant-status-kyc" :data-done="steps.kyc ? 'true' : 'false'">{{ steps.kyc ? '已完成' : '未完成' }}</span>
+            <h2 class="font-headline text-lg">{{ localizedText("身份驗證", "Identity verification") }}</h2>
+            <span class="merchant-step-tag" :class="tagClass('kyc')" id="merchant-status-kyc" :data-done="steps.kyc ? 'true' : 'false'">{{ steps.kyc ? localizedText("已完成", "Completed") : localizedText("未完成", "Not completed") }}</span>
           </div>
-          <p class="text-sm text-on-surface-variant mt-2">完成個人或企業實名資料審核。</p>
+          <p class="text-sm text-on-surface-variant mt-2">{{ localizedText("完成個人或企業實名資料審核。", "Complete personal or business identity verification.") }}</p>
           <a class="inline-block mt-5 rounded-full bg-primary-container px-4 py-2 text-sm font-semibold text-primary-dim" href="#/pages/setting/kycVerification">前往 KYC</a>
         </div>
         <div class="glass-panel rounded-[24px] p-5">
           <div class="text-xs uppercase tracking-[0.16em] text-on-surface-variant">步驟 2</div>
           <div class="mt-2 flex flex-wrap items-center gap-2">
-            <h2 class="font-headline text-lg">收款綁定</h2>
-            <span class="merchant-step-tag" :class="tagClass('binding')" id="merchant-status-binding" :data-done="steps.binding ? 'true' : 'false'">{{ steps.binding ? '已完成' : '未完成' }}</span>
+            <h2 class="font-headline text-lg">{{ localizedText("收款綁定", "Payout binding") }}</h2>
+            <span class="merchant-step-tag" :class="tagClass('binding')" id="merchant-status-binding" :data-done="steps.binding ? 'true' : 'false'">{{ steps.binding ? localizedText("已完成", "Completed") : localizedText("未完成", "Not completed") }}</span>
           </div>
-          <p class="text-sm text-on-surface-variant mt-2">綁定法幣收款帳戶與 USDT 地址。</p>
+          <p class="text-sm text-on-surface-variant mt-2">{{ localizedText("綁定法幣收款帳戶與 USDT 地址。", "Bind fiat payout account and USDT address.") }}</p>
           <a class="inline-block mt-5 rounded-full bg-primary-container px-4 py-2 text-sm font-semibold text-primary-dim" href="#/pages/setting/bindinfo">管理綁定</a>
         </div>
         <div class="glass-panel rounded-[24px] p-5">
           <div class="text-xs uppercase tracking-[0.16em] text-on-surface-variant">步驟 3</div>
           <div class="mt-2 flex flex-wrap items-center gap-2">
-            <h2 class="font-headline text-lg">保證金設定</h2>
-            <span class="merchant-step-tag" :class="tagClass('margin')" id="merchant-status-margin" :data-done="steps.margin ? 'true' : 'false'">{{ steps.margin ? '已完成' : '未完成' }}</span>
+            <h2 class="font-headline text-lg">{{ localizedText("保證金設定", "Margin setup") }}</h2>
+            <span class="merchant-step-tag" :class="tagClass('margin')" id="merchant-status-margin" :data-done="steps.margin ? 'true' : 'false'">{{ steps.margin ? localizedText("已完成", "Completed") : localizedText("未完成", "Not completed") }}</span>
           </div>
-          <p class="text-sm text-on-surface-variant mt-2">鎖定商戶保證金，解鎖發布掛單與優先成交。</p>
+          <p class="text-sm text-on-surface-variant mt-2">{{ localizedText("鎖定商戶保證金，解鎖發布掛單與優先成交。", "Lock merchant margin to unlock listing and priority matching.") }}</p>
           <a class="inline-block mt-5 rounded-full bg-gradient-to-br from-primary to-primary-dim px-4 py-2 text-sm font-semibold text-white" href="#/pages/setting/wallet">查看資產</a>
         </div>
-        <div class="glass-panel rounded-[24px] p-5"><div class="text-xs uppercase tracking-[0.16em] text-on-surface-variant">步驟 4</div><h2 class="font-headline text-lg mt-2">聯繫客服開通</h2><p class="text-sm text-on-surface-variant mt-2">聯繫客服提交開通申請，完成最後審核與掛單權限開通。</p><a class="inline-block mt-5 rounded-full bg-primary-container px-4 py-2 text-sm font-semibold text-primary-dim" href="#/pages/index/serviceCenter">聯繫客服</a></div>
+        <div class="glass-panel rounded-[24px] p-5"><div class="text-xs uppercase tracking-[0.16em] text-on-surface-variant">步驟 4</div><h2 class="font-headline text-lg mt-2">{{ localizedText("聯繫客服開通", "Contact support to enable") }}</h2><p class="text-sm text-on-surface-variant mt-2">{{ localizedText("聯繫客服提交開通申請，完成最後審核與掛單權限開通。", "Submit an enablement request to support to complete final review and listing permission.") }}</p><a class="inline-block mt-5 rounded-full bg-primary-container px-4 py-2 text-sm font-semibold text-primary-dim" href="#/pages/index/serviceCenter">聯繫客服</a></div>
       </section>
     </main>
   </div>
@@ -63,8 +63,8 @@ var BODY_CLASSES = [
 
 export default {
   name: "MerchantAuthH5",
-  data: function () {
-    return {
+    data: function () {
+      return {
       steps: { kyc: false, binding: false, margin: false }
     };
   },
@@ -89,6 +89,18 @@ export default {
     } catch (e) {}
   },
   methods: {
+    isChineseLocale: function () {
+      var locale = this.$i18n && this.$i18n.locale ? String(this.$i18n.locale) : "";
+      return /^zh/i.test(locale);
+    },
+    normalizeKycStatus: function (value) {
+      var status = String(value || "").trim().toLowerCase();
+      if (!status) return "";
+      if (status === "approved" || status === "success" || status === "verified" || status === "passed" || status === "complete") return "approved";
+      if (status === "pending" || status.indexOf("pending") !== -1 || status === "reviewing" || status === "in_review" || status === "under_review") return "pending";
+      if (status === "rejected" || status.indexOf("reject") !== -1 || status === "failed" || status === "need_resubmit") return "rejected";
+      return status;
+    },
     backGo: function (event, fallback) {
       if (window.EurforexBack && typeof window.EurforexBack.go === "function") {
         if (event && event.preventDefault) event.preventDefault();
@@ -101,8 +113,9 @@ export default {
         .then(function (data) {
           var latestKyc = (data && data.latest_kyc) || {};
           var tier = (data && data.tier_profile) || {};
+          var kycStatus = self.normalizeKycStatus(latestKyc.status);
           self.steps = {
-            kyc: String(latestKyc.status || "") === "approved",
+            kyc: kycStatus === "approved",
             binding: Number((data && data.approved_payout_method_count) || 0) > 0,
             margin: tier.merchant_enabled === true || tier.merchant_enabled === 1 || tier.merchant_enabled === "1"
           };

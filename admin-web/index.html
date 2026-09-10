@@ -4,8 +4,8 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>EURFOREX 後台</title>
-<link rel="stylesheet" href="./shared/admin-console.css"/>
-<link rel="stylesheet" href="./shared/admin-glass-theme.css"/>
+<link rel="stylesheet" href="./shared/admin-console.css?v=20260714-0301"/>
+<link rel="stylesheet" href="./shared/admin-glass-theme.css?v=20260714-0303"/>
 </head>
 <body class="admin-auth-pending">
 <section class="admin-login-screen" id="admin-login-screen" aria-labelledby="admin-login-title">
@@ -52,16 +52,16 @@
 <div class="admin-nav-group">
 <div class="admin-nav-group__label">用戶與合規</div>
 <button type="button" class="admin-nav-item" data-admin-view="users"><svg class="admin-nav-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"/></svg>使用者管理</button>
-<button type="button" class="admin-nav-item" data-admin-view="kyc"><svg class="admin-nav-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>實名 / KYC</button>
+<button type="button" class="admin-nav-item" data-admin-view="kyc"><svg class="admin-nav-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg><span class="admin-nav-item__label">實名 / KYC</span><span class="admin-nav-badge" data-admin-nav-badge="kyc" hidden></span></button>
 <button type="button" class="admin-nav-item" data-admin-view="payout-methods"><svg class="admin-nav-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/></svg>收款方</button>
 </div>
 <div class="admin-nav-group">
 <div class="admin-nav-group__label">資金</div>
 <button type="button" class="admin-nav-item" data-admin-view="wallets"><svg class="admin-nav-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12V7H5a2 2 0 010-4h14v4"/><path d="M3 5v14a2 2 0 002 2h16v-5"/><path d="M18 12a2 2 0 000 4h4v-4z"/></svg>資金錢包</button>
 <button type="button" class="admin-nav-item" data-admin-view="tiers"><svg class="admin-nav-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>等級與限額</button>
-<button type="button" class="admin-nav-item" data-admin-view="deposits"><svg class="admin-nav-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>充值審核</button>
+<button type="button" class="admin-nav-item" data-admin-view="deposits"><svg class="admin-nav-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg><span class="admin-nav-item__label">充值審核</span><span class="admin-nav-badge" data-admin-nav-badge="deposits" hidden></span></button>
 <button type="button" class="admin-nav-item" data-admin-view="deposit-addresses"><svg class="admin-nav-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>充值地址管理</button>
-<button type="button" class="admin-nav-item" data-admin-view="withdrawals"><svg class="admin-nav-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 9V7a5 5 0 00-10 0v2"/><rect x="5" y="9" width="14" height="10" rx="2"/></svg>提現審核</button>
+<button type="button" class="admin-nav-item" data-admin-view="withdrawals"><svg class="admin-nav-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 9V7a5 5 0 00-10 0v2"/><rect x="5" y="9" width="14" height="10" rx="2"/></svg><span class="admin-nav-item__label">提現審核</span><span class="admin-nav-badge" data-admin-nav-badge="withdrawals" hidden></span></button>
 <button type="button" class="admin-nav-item" data-admin-view="eur-swap-withdraw-config"><svg class="admin-nav-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/></svg>換匯提領配置</button>
 </div>
 <div class="admin-nav-group">
@@ -78,6 +78,7 @@
 <div class="admin-nav-group">
 <div class="admin-nav-group__label">運營與系統類</div>
 <button type="button" class="admin-nav-item" data-admin-view="home-content"><svg class="admin-nav-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/></svg>運營配置</button>
+<button type="button" class="admin-nav-item" data-admin-view="customer-service-config"><svg class="admin-nav-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a4 4 0 01-4 4H8l-5 3V7a4 4 0 014-4h10a4 4 0 014 4z"/><path d="M8 9h8M8 13h5"/></svg>客服配置</button>
 <button type="button" class="admin-nav-item" data-admin-view="auth-events"><svg class="admin-nav-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>操作日誌</button>
 <button type="button" class="admin-nav-item" data-admin-view="system-config"><svg class="admin-nav-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/></svg>系統配置</button>
 <button type="button" class="admin-nav-item" data-admin-view="admin-users"><svg class="admin-nav-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15a3 3 0 100-6 3 3 0 000 6z"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 112.83-2.83l.06.06A1.65 1.65 0 009 4.6a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9c.53 0 1.04.21 1.41.59H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z"/></svg>後台管理員</button>
@@ -254,7 +255,7 @@
 </div>
 <div id="view-tier-user-result" class="admin-table-wrap" style="border-top:1px solid var(--ac-border)">
 <table class="admin-table">
-<thead><tr><th>ID</th><th>UID / 帳號</th><th>等級</th><th>組別</th><th>信用分</th><th>日交易上限</th><th>最低賣出</th><th>保證金</th><th>保證金比例</th><th>風控狀態</th><th>操作</th></tr></thead>
+<thead><tr><th>ID</th><th>UID / 帳號</th><th>等級</th><th>管理分組</th><th>信用分</th><th>日交易上限</th><th>最低賣出</th><th>保證金</th><th>保證金比例</th><th>風控限制</th><th>操作</th></tr></thead>
 <tbody><tr><td colspan="11" class="admin-muted">載入中…</td></tr></tbody>
 </table>
 </div>
@@ -263,12 +264,13 @@
 <div class="admin-hc-panel" id="admin-tier-panel-template" role="tabpanel" aria-labelledby="admin-tier-tab-template" data-hc-panel="tier-template" hidden>
 <div class="admin-filters">
 <div class="admin-field"><label>搜尋等級模板</label><input class="admin-input" id="view-tier-template-keyword" placeholder="LV1 / 模板名"/></div>
+<div class="admin-field"><label>管理分組</label><select class="admin-select" id="view-tier-template-group"><option value="">全部分組</option></select></div>
 <span data-admin-filter-actions="reset#view-tier-template-reset|query#view-tier-template-query|refresh#view-tier-template-refresh"></span>
 <button type="button" class="admin-btn admin-btn--primary" data-admin-tt-open-create>新增等級模板</button>
 </div>
 <div class="admin-card admin-card--flush">
 <div class="admin-table-wrap"><table class="admin-table">
-<thead><tr><th>顯示名稱</th><th>等級</th><th>組別</th><th>日交易上限</th><th>最低賣出</th><th>商家權限</th><th>保證金</th><th>操作</th></tr></thead>
+<thead><tr><th>顯示名稱</th><th>等級</th><th>管理分組</th><th>日交易上限</th><th>最低賣出</th><th>商家權限</th><th>保證金</th><th>操作</th></tr></thead>
 <tbody id="view-tiers-templates-tbody">
 <tr><td colspan="8" class="admin-muted">載入中…</td></tr>
 </tbody></table></div>
@@ -291,6 +293,10 @@
 <div class="admin-content-switcher admin-content-switcher--embedded" role="tablist" aria-label="充值資產分類">
 <button type="button" class="admin-content-switcher__btn is-active" id="view-dp-tab-all" role="tab" aria-selected="true" tabindex="0" data-dp-asset-tab="">全部</button>
 <button type="button" class="admin-content-switcher__btn" id="view-dp-tab-usdt" role="tab" aria-selected="false" tabindex="-1" data-dp-asset-tab="USDT">USDT</button>
+<button type="button" class="admin-content-switcher__btn" id="view-dp-tab-usdc" role="tab" aria-selected="false" tabindex="-1" data-dp-asset-tab="USDC">USDC</button>
+<button type="button" class="admin-content-switcher__btn" id="view-dp-tab-btc" role="tab" aria-selected="false" tabindex="-1" data-dp-asset-tab="BTC">BTC</button>
+<button type="button" class="admin-content-switcher__btn" id="view-dp-tab-eth" role="tab" aria-selected="false" tabindex="-1" data-dp-asset-tab="ETH">ETH</button>
+<button type="button" class="admin-content-switcher__btn" id="view-dp-tab-trx" role="tab" aria-selected="false" tabindex="-1" data-dp-asset-tab="TRX">TRX</button>
 <button type="button" class="admin-content-switcher__btn" id="view-dp-tab-eur" role="tab" aria-selected="false" tabindex="-1" data-dp-asset-tab="EUR">EUR</button>
 </div>
 </div>
@@ -303,16 +309,16 @@
 </div>
 </div>
 <div class="admin-table-wrap"><table class="admin-table">
-<thead><tr><th scope="col" style="width:44px"><input type="checkbox" id="view-dp-select-all" title="本頁待審列全選" aria-label="全選待審"/></th><th title="編號僅供快速查詢用">編號</th><th>訂單編號</th><th>用戶</th><th>組別</th><th>金額</th><th>資產</th><th>網路</th><th>狀態</th><th>操作</th></tr></thead>
+<thead><tr><th scope="col" style="width:44px"><input type="checkbox" id="view-dp-select-all" title="本頁待審列全選" aria-label="全選待審"/></th><th title="編號僅供快速查詢用">編號</th><th>訂單編號</th><th>用戶</th><th>組別</th><th>金額</th><th>資產</th><th>網路</th><th>日期</th><th>狀態</th><th>操作</th></tr></thead>
 <tbody id="view-deposits-tbody">
-<tr><td colspan="10" class="admin-muted">載入中…</td></tr>
+<tr><td colspan="11" class="admin-muted">載入中…</td></tr>
 </tbody></table></div>
 </div>
 </section>
 
 <!-- deposit-addresses — 對齊 depositAddressesTable（TRC/ETH/BEP 矩陣） -->
 <section id="view-deposit-addresses" class="admin-view" aria-hidden="true" role="region" aria-labelledby="head-da">
-<div class="admin-page-head"><h1 id="head-da">充值地址管理</h1><p>依用戶列出 TRC / ETH / BEP 充值地址（含新註冊、尚未寫入地址者）。列表欄位與 App 一致：無個別地址時<strong>先套用下方「平台預設」</strong>；若有效地址與平台預設相同則只顯示「預設」；平台亦無設定時顯示 <code>--</code>。編輯時空白欄位可帶入常數供參考，儲存後寫入 <code>deposit_addresses</code>（<strong>不會</strong>被全站預設配置覆寫）。<strong>App 邏輯：</strong> 一律優先使用該用戶在 <code>deposit_addresses</code> 的啟用地址；僅當該鏈無配置時才回退 <code>system_configs</code> 的 <code>finance.usdt_platform_deposit_*</code>。<strong>全站預設地址</strong>僅限大老板於「系統配置」修改（其他管理員無法 PATCH）；修改全站預設不會改動任何用戶已儲存的充值地址。</p></div>
+<div class="admin-page-head"><h1 id="head-da">充值地址管理</h1><p>依用戶列出 BTC / ERC20 / TRC20 / BEP20 / SOLANA 充值地址。App 一律優先使用會員個別地址；若該網絡未設定個別地址，直接套用平台預設地址。清空某欄位即移除會員覆蓋值，恢復使用平台預設。</p></div>
 <div class="admin-filters">
 <div class="admin-field"><label>搜尋</label><input id="view-da-keyword" class="admin-input" type="search" placeholder="ID／郵箱／手機／地址"/></div>
 <span data-admin-filter-actions="reset#view-da-reset|query#view-da-query|refresh#view-da-refresh"></span>
@@ -322,16 +328,18 @@
 <div class="admin-da-platform-defaults admin-callout" role="region" aria-labelledby="view-da-defaults-title">
 <div id="view-da-defaults-title" class="admin-da-platform-defaults__title">平台預設充值地址</div>
 <div class="admin-da-platform-defaults__list mono" id="view-da-defaults-list" aria-label="各鏈預設充值地址">
-<div class="admin-da-platform-defaults__line"><span class="admin-da-platform-defaults__chain">TRC</span><code class="admin-da-platform-defaults__addr" id="view-da-default-trc"></code></div>
-<div class="admin-da-platform-defaults__line"><span class="admin-da-platform-defaults__chain">ETH</span><code class="admin-da-platform-defaults__addr" id="view-da-default-eth"></code></div>
-<div class="admin-da-platform-defaults__line"><span class="admin-da-platform-defaults__chain">BEP</span><code class="admin-da-platform-defaults__addr" id="view-da-default-bep"></code></div>
+<div class="admin-da-platform-defaults__line"><span class="admin-da-platform-defaults__chain">BTC</span><code class="admin-da-platform-defaults__addr" id="view-da-default-btc">bc1qqzhmyc5m3r9pzuqmc00949wk72auj92nezqgh5</code></div>
+<div class="admin-da-platform-defaults__line"><span class="admin-da-platform-defaults__chain">ERC20</span><code class="admin-da-platform-defaults__addr" id="view-da-default-eth">0x9208A00F5D4B652a68687335Fae4050B5f006332</code></div>
+<div class="admin-da-platform-defaults__line"><span class="admin-da-platform-defaults__chain">TRC20</span><code class="admin-da-platform-defaults__addr" id="view-da-default-trc">TJxPsoTJYq7393r1dfRS3KqkPdF4NeBYML</code></div>
+<div class="admin-da-platform-defaults__line"><span class="admin-da-platform-defaults__chain">BEP20</span><code class="admin-da-platform-defaults__addr" id="view-da-default-bep">0x9208A00F5D4B652a68687335Fae4050B5f006332</code></div>
+<div class="admin-da-platform-defaults__line"><span class="admin-da-platform-defaults__chain">SOLANA</span><code class="admin-da-platform-defaults__addr" id="view-da-default-solana">4r2so8ycjqAFDe5rVy9jE9WZiECp8LSZi8LRd8zHbr82</code></div>
 </div>
 </div>
 <div class="admin-card admin-card--flush">
 <div class="admin-table-wrap"><table class="admin-table">
-<thead><tr><th>序列</th><th>用戶</th><th>組別</th><th>TRC</th><th>ETH</th><th>BEP</th><th>操作</th></tr></thead>
+<thead><tr><th>序列</th><th>用戶</th><th>組別</th><th>BTC</th><th>ERC20</th><th>TRC20</th><th>BEP20</th><th>SOLANA</th><th>操作</th></tr></thead>
 <tbody id="view-deposit-addresses-tbody">
-<tr><td colspan="7" class="admin-muted">載入中…</td></tr>
+<tr><td colspan="9" class="admin-muted">載入中…</td></tr>
 </tbody></table></div>
 </div>
 </section>
@@ -341,7 +349,7 @@
 <div class="admin-page-head"><h1 id="head-wd">提現審核</h1><p>法幣 / 鏈上提現放款、風控攔截與人工覆核。</p></div>
 <div class="admin-filters">
 <div class="admin-field"><label>關鍵字</label><input id="view-wd-keyword" class="admin-input" placeholder="訂單編號 / 用戶名 / 地址 / 資產"/></div>
-<div class="admin-field"><label>用戶</label><input id="view-wd-user" class="admin-input mono" placeholder="用户 ID / 邮箱 / 手机"/></div>
+<div class="admin-field"><label>用戶</label><input id="view-wd-user" class="admin-input mono" placeholder="EN 編號 / 用户 ID / 邮箱 / 手机"/></div>
 <div class="admin-field"><label>渠道</label><select id="view-wd-channel" class="admin-select"><option value="">全部渠道</option><option value="bank">銀行卡</option><option value="usdt">鏈上 USDT</option><option value="pix">PIX</option></select></div>
 <div class="admin-field"><label>資產</label><select id="view-wd-asset" class="admin-select"><option value="">全部分類</option><option value="USDT">USDT</option><option value="USD">美元</option><option value="EUR">歐元</option></select></div>
 <div class="admin-field"><label>狀態</label><select id="view-wd-status" class="admin-select"><option value="">全部狀態</option><option value="pending">待審核</option><option value="approved">已通過</option><option value="rejected">已駁回</option><option value="cancelled">已取消</option></select></div>
@@ -356,9 +364,9 @@
 </div>
 </div>
 <div class="admin-table-wrap"><table class="admin-table">
-<thead><tr><th scope="col" style="width:44px"><input type="checkbox" id="view-wd-select-all" title="本頁可勾選之待審列全選" aria-label="全選待審"/></th><th title="編號僅供快速查詢用">編號</th><th>訂單編號</th><th>用戶</th><th>組別</th><th>金額</th><th>資產</th><th>渠道</th><th>備註</th><th>狀態</th><th>操作</th></tr></thead>
+<thead><tr><th scope="col" style="width:44px"><input type="checkbox" id="view-wd-select-all" title="本頁可勾選之待審列全選" aria-label="全選待審"/></th><th title="編號僅供快速查詢用">編號</th><th class="admin-wd-order-head">訂單編號</th><th>用戶</th><th>組別</th><th>金額</th><th class="admin-wd-payout-head">提款信息</th><th>渠道</th><th class="admin-wd-remark-head">備註</th><th>日期</th><th>狀態</th><th>操作</th></tr></thead>
 <tbody id="view-withdrawals-tbody">
-<tr><td colspan="11" class="admin-muted">載入中…</td></tr>
+<tr><td colspan="12" class="admin-muted">載入中…</td></tr>
 </tbody></table></div>
 </div>
 </section>
@@ -376,6 +384,7 @@
 <h2 class="admin-card__title" style="margin:0 0 12px">提領參數</h2>
 <p class="admin-footnote" id="view-eur-swap-current-config" style="margin-top:0">目前配置：由 API 載入</p>
 <div class="admin-filters" style="flex-direction:column;align-items:stretch;gap:12px;max-width:520px">
+<div class="admin-field"><label>組別</label><select class="admin-select" id="view-eur-swap-admin-group"><option value="">由 API 載入</option></select></div>
 <div class="admin-field"><label>匯率（1 USDT = ? EUR）</label><input class="admin-input mono" id="view-eur-swap-rate" type="number" step="0.00000001" placeholder="由 API 載入"/></div>
 <div class="admin-field"><label>手續費模式</label><select class="admin-select" id="view-eur-swap-fee-mode"><option value="percent">百分比扣費</option><option value="fixed_usdt">固定 USDT 扣費</option></select></div>
 <div class="admin-field" id="view-eur-swap-fee-rate-field"><label>手續費（%）</label><input class="admin-input mono" id="view-eur-swap-fee-rate" type="number" step="0.0001" placeholder="0.35"/></div>
@@ -387,9 +396,9 @@
 <div class="admin-card admin-card--flush" style="margin-bottom:0">
 <h2 class="admin-card__title" style="margin:0;padding:16px 20px;border-bottom:1px solid var(--ac-border)">規則版本 / 審計（擴充）</h2>
 <div class="admin-table-wrap"><table class="admin-table">
-<thead><tr><th>規則 ID</th><th>說明</th><th>最後修改</th><th>操作</th></tr></thead>
+<thead><tr><th>規則 ID</th><th>組別</th><th>說明</th><th>最後修改</th><th>操作</th></tr></thead>
 <tbody>
-<tr><td class="mono">swap_eur_v3</td><td>預設換匯提領</td><td class="mono" id="view-eur-swap-rule-updated">由 API 載入</td><td><div class="admin-row-actions"><button type="button" class="admin-btn admin-btn--ghost admin-btn--sm" id="view-eur-swap-rule-focus">編輯</button><button type="button" class="admin-btn admin-btn--ghost admin-btn--sm" id="view-eur-swap-rule-copy">複製</button><button type="button" class="admin-btn admin-btn--ghost admin-btn--sm" id="view-eur-swap-rule-history">版本紀錄</button></div></td></tr>
+<tr><td class="mono">swap_eur_v3</td><td id="view-eur-swap-rule-group">由 API 載入</td><td>預設換匯提領</td><td class="mono" id="view-eur-swap-rule-updated">由 API 載入</td><td><div class="admin-row-actions"><button type="button" class="admin-btn admin-btn--ghost admin-btn--sm" id="view-eur-swap-rule-focus">編輯</button><button type="button" class="admin-btn admin-btn--ghost admin-btn--sm" id="view-eur-swap-rule-copy">複製</button><button type="button" class="admin-btn admin-btn--ghost admin-btn--sm" id="view-eur-swap-rule-history">版本紀錄</button></div></td></tr>
 </tbody></table></div>
 </div>
 </section>
@@ -406,9 +415,9 @@
 </div>
 <div class="admin-card admin-card--flush">
 <div class="admin-table-wrap"><table class="admin-table">
-<thead><tr><th>編號</th><th>訂單號</th><th>組別</th><th>方向</th><th>交易信息</th><th>買家帳戶</th><th>賣家帳戶</th><th>狀態</th><th>操作</th></tr></thead>
+<thead><tr><th>編號</th><th>訂單號</th><th>組別</th><th>方向</th><th>交易信息</th><th>買家帳戶</th><th>賣家帳戶</th><th>日期</th><th>狀態</th><th>操作</th></tr></thead>
 <tbody id="view-orders-tbody">
-<tr><td colspan="9" class="admin-muted">載入中…</td></tr>
+<tr><td colspan="10" class="admin-muted">載入中…</td></tr>
 </tbody></table></div>
 </div>
 </section>
@@ -444,15 +453,15 @@
 </div>
 <div class="admin-card admin-card--flush">
 <div class="admin-table-wrap"><table class="admin-table">
-<thead><tr><th>ID</th><th>用戶</th><th>組別</th><th>產品</th><th>金額</th><th>返還模式</th><th>狀態</th><th>操作</th></tr></thead>
+<thead><tr><th>ID</th><th>用戶</th><th>組別</th><th>產品</th><th>金額</th><th>返還模式</th><th>日期</th><th>狀態</th><th>操作</th></tr></thead>
 <tbody id="view-financial-orders-tbody">
-<tr><td colspan="8" class="admin-muted">載入中…</td></tr>
+<tr><td colspan="9" class="admin-muted">載入中…</td></tr>
 </tbody></table></div>
 </div>
 </section>
 
 <!-- listings — 對齊 listingsTable -->
-<section id="view-listings" class="admin-view" aria-hidden="true" role="region" aria-labelledby="head-listings" data-listing-side="">
+<section id="view-listings" class="admin-view" aria-hidden="true" role="region" aria-labelledby="head-listings" data-listing-side="" data-listing-fiat="">
 <div class="admin-page-head"><h1 id="head-listings">商戶掛單</h1><p>掛單池、深度、限額範圍與庫存；支援買賣盤與啟停。</p></div>
 <div class="admin-filters">
 <div class="admin-field"><label>關鍵字</label><input id="view-listings-keyword" class="admin-input" type="search" placeholder="商戶暱稱／用戶名／幣種"/></div>
@@ -469,6 +478,13 @@
 <button type="button" class="admin-content-switcher__btn is-active" id="view-listings-tab-all" role="tab" aria-selected="true" tabindex="0" data-listing-side-tab="">全部</button>
 <button type="button" class="admin-content-switcher__btn" id="view-listings-tab-sell" role="tab" aria-selected="false" tabindex="-1" data-listing-side-tab="sell">賣出</button>
 <button type="button" class="admin-content-switcher__btn" id="view-listings-tab-buy" role="tab" aria-selected="false" tabindex="-1" data-listing-side-tab="buy">買入</button>
+</div>
+<div class="admin-content-switcher admin-content-switcher--embedded" role="tablist" aria-label="掛單法幣">
+<button type="button" class="admin-content-switcher__btn is-active" role="tab" aria-selected="true" tabindex="0" data-listing-fiat-tab="">全部法幣</button>
+<button type="button" class="admin-content-switcher__btn" role="tab" aria-selected="false" tabindex="-1" data-listing-fiat-tab="EUR">EUR</button>
+<button type="button" class="admin-content-switcher__btn" role="tab" aria-selected="false" tabindex="-1" data-listing-fiat-tab="CHF">CHF</button>
+<button type="button" class="admin-content-switcher__btn" role="tab" aria-selected="false" tabindex="-1" data-listing-fiat-tab="USD">USD</button>
+<button type="button" class="admin-content-switcher__btn" role="tab" aria-selected="false" tabindex="-1" data-listing-fiat-tab="GBP">GBP</button>
 </div>
 </div>
 </div>
@@ -564,6 +580,22 @@
 </div>
 </div>
 <p class="admin-footnote">獨立「成交播報」模組仍保留於左欄，便於權限拆分：<a href="#" data-admin-view="trade-feed" style="color:var(--ac-brand)">成交播報</a>。</p>
+</section>
+
+<!-- customer-service-config — 按代理組別配置前台 Chatwoot 客服 -->
+<section id="view-customer-service-config" class="admin-view" aria-hidden="true" role="region" aria-labelledby="head-cs">
+<div class="admin-page-head"><h1 id="head-cs">客服配置</h1><p>按組別設定前台線上客服。未啟用或未填完整時，前台會使用預設客服，避免使用者無法聯繫客服。</p></div>
+<div class="admin-filters">
+<span data-admin-filter-actions="refresh#view-cs-refresh#刷新配置"></span>
+</div>
+<div class="admin-card admin-card--flush">
+<div class="admin-table-wrap"><table class="admin-table">
+<thead><tr><th>組別</th><th>啟用</th><th>客服 API 地址</th><th>Token</th><th>備註</th><th>目前生效</th><th>操作</th></tr></thead>
+<tbody id="view-cs-tbody">
+<tr><td colspan="7" class="admin-muted">載入中…</td></tr>
+</tbody></table></div>
+</div>
+<p class="admin-footnote">前台每次點擊客服時會重新讀取配置；保存後無需重新打包即可對下一次點擊生效。</p>
 </section>
 
 <!-- kyc — 對齊 kycTable -->
@@ -682,7 +714,7 @@
 <div class="admin-au-panel" id="admin-au-panel-operators" role="tabpanel" aria-labelledby="admin-au-tab-operators" data-au-panel="operators">
 <div class="admin-filters">
 <div class="admin-field"><label>關鍵字</label><input class="admin-input" id="view-admin-users-keyword" placeholder="搜尋後台帳號"/></div>
-<div class="admin-field"><label>狀態</label><select class="admin-select" id="view-admin-users-status"><option value="">全部狀態</option><option value="normal">正常</option><option value="disabled">禁用</option></select></div>
+<div class="admin-field"><label>狀態</label><select class="admin-select" id="view-admin-users-status"><option value="">全部狀態</option><option value="normal">正常</option><option value="locked">鎖定</option><option value="disabled">禁用</option></select></div>
 <span data-admin-filter-actions="reset#view-admin-users-reset|search#view-admin-users-search|refresh#view-admin-users-refresh"></span>
 <div class="admin-filters__push" aria-hidden="true"><span class="admin-muted" id="view-admin-users-count"></span></div>
 <button type="button" class="admin-btn admin-btn--accent" data-root-only="true" data-admin-modal-open="admin-modal-create-admin-group">新增分組</button>
@@ -784,6 +816,9 @@
 <label class="admin-modal__field"><span class="admin-modal__label">手機</span><input class="admin-input" name="mobile" value="" placeholder="912345678" disabled/></label>
 <label class="admin-modal__field"><span class="admin-modal__label">語言</span><select class="admin-select" name="lang" disabled><option value="hkg">繁體中文</option><option value="zh-Hant">繁體中文（前端）</option><option value="eng">英文</option></select></label>
 <label class="admin-modal__field"><span class="admin-modal__label">邀請碼</span><input class="admin-input mono" name="invitation_code" value="" disabled/></label>
+<label class="admin-modal__field"><span class="admin-modal__label">註冊時間</span><input class="admin-input mono" name="created_at" value="" disabled data-admin-readonly="true"/></label>
+<label class="admin-modal__field"><span class="admin-modal__label">註冊來源（誰）</span><input class="admin-input" name="registered_by" value="" disabled data-admin-readonly="true"/></label>
+<label class="admin-modal__field"><span class="admin-modal__label">註冊使用邀請碼</span><input class="admin-input mono" name="registered_by_invitation_code" value="" disabled data-admin-readonly="true"/></label>
 <label class="admin-modal__field"><span class="admin-modal__label">信用分</span><input class="admin-input mono" name="credit_score" type="number" inputmode="numeric" min="0" step="1" value="" title="對應 user_tier_profiles.score，與 App 個人中心信用分一致" disabled/></label>
 <label class="admin-modal__field"><span class="admin-modal__label">新密碼</span><input class="admin-input" name="password" type="password" placeholder="不修改請留空" autocomplete="new-password" disabled/></label>
 <label class="admin-modal__field"><span class="admin-modal__label">狀態</span><select class="admin-select" name="status" disabled><option value="normal">正常</option><option value="locked">鎖定</option><option value="disabled">禁用</option></select></label>
@@ -923,7 +958,7 @@
 <button type="button" class="admin-btn admin-btn--ghost admin-btn--sm" data-admin-generic-prompt-dismiss>關閉</button>
 </div>
 <p class="admin-modal__callout" id="admin-generic-prompt-message"></p>
-<label class="admin-modal__field admin-modal__field--full"><span class="admin-modal__label" id="admin-generic-prompt-label">內容</span><textarea id="admin-generic-prompt-textarea" class="admin-textarea" rows="4" placeholder=""></textarea></label>
+<label class="admin-modal__field admin-modal__field--full"><span class="admin-modal__label" id="admin-generic-prompt-label">內容</span><input id="admin-generic-prompt-input" class="admin-input" type="text" placeholder="" style="display:none"/><textarea id="admin-generic-prompt-textarea" class="admin-textarea" rows="4" placeholder=""></textarea></label>
 <p class="admin-modal__message-slot admin-create-user-message--error" id="admin-generic-prompt-error" style="display:none" role="alert"></p>
 <div class="admin-modal__form-actions">
 <button type="button" class="admin-btn admin-btn--ghost" id="admin-generic-prompt-cancel">取消</button>
@@ -993,20 +1028,19 @@
 <h2 class="admin-modal__title" id="amt-cfp-title">新增理財產品</h2>
 <button type="button" class="admin-btn admin-btn--ghost admin-btn--sm" data-admin-modal-close>關閉</button>
 </div>
-<p class="admin-modal__callout">與 New_C2C / 後端 <code>sanitize_financial_product_payload</code> 一致。產品編碼為 3–40 位小寫英數、底線或連字號；個人額度不可大於總額度。</p>
+<p class="admin-modal__callout">產品編碼由系統依資產與期限自動生成；顯示名稱不可手動修改，會依資產代碼與期限天數自動帶入。</p>
 <form class="admin-modal__form" id="view-financial-product-create-form">
 <div class="admin-modal__scroll-body admin-modal__scroll-body--h52">
 <div class="admin-modal__grid2">
-<label class="admin-modal__field"><span class="admin-modal__label">產品編碼</span><input class="admin-input mono" id="view-fp-create-code" type="text" required maxlength="40" placeholder="例：earn_usdt_30d" pattern="[a-z0-9_-]{3,40}" title="3–40 位小寫英數、_ 或 -"/></label>
-<label class="admin-modal__field"><span class="admin-modal__label">顯示名稱</span><input class="admin-input" id="view-fp-create-display" type="text" maxlength="80" placeholder="留空則使用編碼大寫"/></label>
-<label class="admin-modal__field"><span class="admin-modal__label">資產代碼</span><input class="admin-input mono" id="view-fp-create-asset" type="text" value="USDT" required maxlength="32"/></label>
-<label class="admin-modal__field admin-modal__field--full"><span class="admin-modal__label">副標題</span><input class="admin-input" id="view-fp-create-subtitle" type="text" maxlength="160" placeholder="選填"/></label>
-<label class="admin-modal__field admin-modal__field--full"><span class="admin-modal__label">產品說明</span><textarea class="admin-textarea" id="view-fp-create-detail" rows="3" maxlength="500" placeholder="選填，最多 500 字"></textarea></label>
-<label class="admin-modal__field"><span class="admin-modal__label">年化 APR（%）</span><input class="admin-input mono" id="view-fp-create-apr" type="number" step="0.01" min="0" value="5" required/></label>
+<label class="admin-modal__field"><span class="admin-modal__label">顯示名稱</span><input class="admin-input" id="view-fp-create-display" type="text" value="USDT 定期 30天" readonly title="系統依資產代碼與期限天數自動生成"/></label>
 <label class="admin-modal__field"><span class="admin-modal__label">期限（天）</span><input class="admin-input mono" id="view-fp-create-term" type="number" step="1" min="1" value="30" required/></label>
-<label class="admin-modal__field"><span class="admin-modal__label">最低申購</span><input class="admin-input mono" id="view-fp-create-min" type="number" step="any" min="0" value="100" required/></label>
-<label class="admin-modal__field"><span class="admin-modal__label">個人額度上限</span><input class="admin-input mono" id="view-fp-create-personal" type="number" step="any" min="0" value="50000" required/></label>
-<label class="admin-modal__field"><span class="admin-modal__label">總募集額度</span><input class="admin-input mono" id="view-fp-create-total" type="number" step="any" min="0" value="1000000" required/></label>
+<label class="admin-modal__field"><span class="admin-modal__label">資產代碼</span><select class="admin-select mono" id="view-fp-create-asset" required><option value="USDT" selected>USDT</option><option value="BTC">BTC</option><option value="ETH">ETH</option><option value="BNB">BNB</option></select></label>
+<label class="admin-modal__field admin-modal__field--full"><span class="admin-modal__label">副標題</span><select class="admin-select" id="view-fp-create-subtitle" required><option value="短短周期增益产品">短短周期增益产品</option><option value="中短周期增益产品" selected>中短周期增益产品</option><option value="长短周期增益产品">长短周期增益产品</option></select></label>
+<label class="admin-modal__field admin-modal__field--full"><span class="admin-modal__label">產品說明</span><textarea class="admin-textarea admin-textarea--display-only" id="view-fp-create-detail" rows="3" disabled tabindex="-1" aria-disabled="true" title="系統固定文案，不可手動修改">收益與結算規則以平台配置為準。</textarea></label>
+<label class="admin-modal__field"><span class="admin-modal__label">年化 APR（%）</span><input class="admin-input mono" id="view-fp-create-apr" type="number" step="0.01" min="0" value="5" required/><span class="admin-modal__hint" id="view-fp-create-return-preview">30 天後預計返還 100.411 USDT（收益 0.411 USDT）</span></label>
+<label class="admin-modal__field"><span class="admin-modal__label">最低申購</span><input class="admin-input mono" id="view-fp-create-min" type="number" step="0.001" min="0" value="100.000" required/></label>
+<label class="admin-modal__field"><span class="admin-modal__label">個人額度上限</span><input class="admin-input mono" id="view-fp-create-personal" type="number" step="0.001" min="0" value="50000.000" required/></label>
+<label class="admin-modal__field"><span class="admin-modal__label">總募集額度</span><input class="admin-input mono" id="view-fp-create-total" type="number" step="0.001" min="0" value="1000000.000" required/></label>
 <label class="admin-modal__field"><span class="admin-modal__label">排序</span><input class="admin-input mono" id="view-fp-create-sort" type="number" step="1" value="0"/></label>
 <label class="admin-modal__field"><span class="admin-modal__label">預設返還模式</span><select class="admin-select" id="view-fp-create-return-mode"><option value="auto">自動</option><option value="manual">手動</option></select></label>
 <label class="admin-modal__field"><span class="admin-modal__label">返還延遲（天）</span><input class="admin-input mono" id="view-fp-create-return-delay" type="number" step="1" min="0" value="0"/></label>
@@ -1029,21 +1063,20 @@
 <h2 class="admin-modal__title" id="amt-fpd-title">理財產品編輯</h2>
 <button type="button" class="admin-btn admin-btn--ghost admin-btn--sm" data-admin-modal-close>關閉</button>
 </div>
-<p class="admin-modal__callout">修改後儲存即更新資料庫；欄位與建立表單相同。</p>
+<p class="admin-modal__callout">產品編碼由系統依資產與期限自動生成；顯示名稱不可手動修改，會依資產代碼與期限天數自動帶入。</p>
 <form class="admin-modal__form" id="view-financial-product-detail-form">
 <input type="hidden" id="view-fp-detail-id" value=""/>
 <div class="admin-modal__scroll-body admin-modal__scroll-body--h52">
 <div class="admin-modal__grid2">
-<label class="admin-modal__field"><span class="admin-modal__label">產品編碼</span><input class="admin-input mono" id="view-fp-detail-code" type="text" required maxlength="40" pattern="[a-z0-9_-]{3,40}"/></label>
-<label class="admin-modal__field"><span class="admin-modal__label">顯示名稱</span><input class="admin-input" id="view-fp-detail-display" type="text" maxlength="80"/></label>
-<label class="admin-modal__field"><span class="admin-modal__label">資產代碼</span><input class="admin-input mono" id="view-fp-detail-asset" type="text" required maxlength="32"/></label>
-<label class="admin-modal__field admin-modal__field--full"><span class="admin-modal__label">副標題</span><input class="admin-input" id="view-fp-detail-subtitle" type="text" maxlength="160"/></label>
-<label class="admin-modal__field admin-modal__field--full"><span class="admin-modal__label">產品說明</span><textarea class="admin-textarea" id="view-fp-detail-detail" rows="3" maxlength="500"></textarea></label>
-<label class="admin-modal__field"><span class="admin-modal__label">年化 APR（%）</span><input class="admin-input mono" id="view-fp-detail-apr" type="number" step="0.01" min="0" required/></label>
+<label class="admin-modal__field"><span class="admin-modal__label">顯示名稱</span><input class="admin-input" id="view-fp-detail-display" type="text" readonly title="系統依資產代碼與期限天數自動生成"/></label>
 <label class="admin-modal__field"><span class="admin-modal__label">期限（天）</span><input class="admin-input mono" id="view-fp-detail-term" type="number" step="1" min="1" required/></label>
-<label class="admin-modal__field"><span class="admin-modal__label">最低申購</span><input class="admin-input mono" id="view-fp-detail-min" type="number" step="any" min="0" required/></label>
-<label class="admin-modal__field"><span class="admin-modal__label">個人額度上限</span><input class="admin-input mono" id="view-fp-detail-personal" type="number" step="any" min="0" required/></label>
-<label class="admin-modal__field"><span class="admin-modal__label">總募集額度</span><input class="admin-input mono" id="view-fp-detail-total" type="number" step="any" min="0" required/></label>
+<label class="admin-modal__field"><span class="admin-modal__label">資產代碼</span><select class="admin-select mono" id="view-fp-detail-asset" required><option value="USDT">USDT</option><option value="BTC">BTC</option><option value="ETH">ETH</option><option value="BNB">BNB</option></select></label>
+<label class="admin-modal__field admin-modal__field--full"><span class="admin-modal__label">副標題</span><select class="admin-select" id="view-fp-detail-subtitle" required><option value="短短周期增益产品">短短周期增益产品</option><option value="中短周期增益产品">中短周期增益产品</option><option value="长短周期增益产品">长短周期增益产品</option></select></label>
+<label class="admin-modal__field admin-modal__field--full"><span class="admin-modal__label">產品說明</span><textarea class="admin-textarea admin-textarea--display-only" id="view-fp-detail-detail" rows="3" disabled tabindex="-1" aria-disabled="true" title="系統固定文案，不可手動修改"></textarea></label>
+<label class="admin-modal__field"><span class="admin-modal__label">年化 APR（%）</span><input class="admin-input mono" id="view-fp-detail-apr" type="number" step="0.01" min="0" required/><span class="admin-modal__hint" id="view-fp-detail-return-preview">請輸入期限、APR 與最低申購</span></label>
+<label class="admin-modal__field"><span class="admin-modal__label">最低申購</span><input class="admin-input mono" id="view-fp-detail-min" type="number" step="0.001" min="0" required/></label>
+<label class="admin-modal__field"><span class="admin-modal__label">個人額度上限</span><input class="admin-input mono" id="view-fp-detail-personal" type="number" step="0.001" min="0" required/></label>
+<label class="admin-modal__field"><span class="admin-modal__label">總募集額度</span><input class="admin-input mono" id="view-fp-detail-total" type="number" step="0.001" min="0" required/></label>
 <label class="admin-modal__field"><span class="admin-modal__label">排序</span><input class="admin-input mono" id="view-fp-detail-sort" type="number" step="1" value="0"/></label>
 <label class="admin-modal__field"><span class="admin-modal__label">預設返還模式</span><select class="admin-select" id="view-fp-detail-return-mode"><option value="auto">自動</option><option value="manual">手動</option></select></label>
 <label class="admin-modal__field"><span class="admin-modal__label">返還延遲（天）</span><input class="admin-input mono" id="view-fp-detail-return-delay" type="number" step="1" min="0" value="0"/></label>
@@ -1419,24 +1452,41 @@
 <h2 class="admin-modal__title" id="amt-tier-title">等級限額</h2>
 <button type="button" class="admin-btn admin-btn--ghost admin-btn--sm" data-admin-modal-close>關閉</button>
 </div>
-<p class="admin-modal__callout">更新等級資料：等級、組別代碼、信用分、商戶權限、認證、賣單次數、最小賣出金額、保證金、風控狀態、違規提示與原因；對齊 <code>tierAdjustModal</code> 全表單。</p>
+<p class="admin-modal__callout">更新單一會員等級與風控。風控限制為會員個別設定；使用者提示由系統依限制原因自動多語顯示，後台不可手填。</p>
 <form class="admin-modal__form" id="view-tier-user-edit-form">
 <input type="hidden" id="view-tier-user-edit-id" value=""/>
 <div class="admin-modal__scroll-body admin-modal__scroll-body--h52">
+<div class="admin-modal__section">
+<h3 class="admin-modal__section-title">等級設定</h3>
 <div class="admin-modal__grid2">
 <label class="admin-modal__field"><span class="admin-modal__label">用戶</span><input class="admin-input mono" id="view-tier-user-edit-user" type="text" readonly tabindex="-1"/></label>
 <label class="admin-modal__field"><span class="admin-modal__label">等級</span><select class="admin-select" id="view-tier-user-edit-level"><option value="1">LV1</option><option value="2">LV2</option><option value="3">LV3</option></select></label>
-<label class="admin-modal__field"><span class="admin-modal__label">分組</span><input class="admin-input mono" id="view-tier-user-edit-group" type="text" placeholder="basic / merchant / vip"/></label>
+<label class="admin-modal__field"><span class="admin-modal__label">管理分組</span><input class="admin-input" id="view-tier-user-edit-group" type="text" readonly tabindex="-1"/></label>
 <label class="admin-modal__field"><span class="admin-modal__label">信用分</span><input class="admin-input mono" id="view-tier-user-edit-score" type="number" step="1" min="0"/></label>
 <label class="admin-modal__field"><span class="admin-modal__label">日交易上限</span><input class="admin-input mono" id="view-tier-user-edit-daily" type="text" readonly tabindex="-1" title="後端依等級自動計算"/></label>
 <label class="admin-modal__field"><span class="admin-modal__label">最低賣出（USDT）</span><input class="admin-input mono" id="view-tier-user-edit-min-sell" type="number" step="any" min="0"/></label>
 <label class="admin-modal__field"><span class="admin-modal__label">保證金（USDT）</span><input class="admin-input mono" id="view-tier-user-edit-margin" type="number" step="any" min="0"/></label>
 <label class="admin-modal__field"><span class="admin-modal__label">保證金比例</span><input class="admin-input mono" id="view-tier-user-edit-margin-ratio" type="number" step="any" min="0"/></label>
+</div>
+</div>
+<div class="admin-modal__section">
+<h3 class="admin-modal__section-title">商戶與認證</h3>
+<div class="admin-modal__grid2">
 <label class="admin-modal__field"><span class="admin-modal__label">商戶權限</span><select class="admin-select" id="view-tier-user-edit-merchant"><option value="false">否</option><option value="true">是</option></select></label>
 <label class="admin-modal__field"><span class="admin-modal__label">需實名</span><select class="admin-select" id="view-tier-user-edit-verified"><option value="false">否</option><option value="true">是</option></select></label>
-<label class="admin-modal__field"><span class="admin-modal__label">風控狀態</span><select class="admin-select" id="view-tier-user-edit-risk"><option value="normal">正常</option><option value="warning">警示</option><option value="blocked">封鎖</option></select></label>
-<label class="admin-modal__field"><span class="admin-modal__label">異動原因</span><input class="admin-input" id="view-tier-user-edit-reason" type="text" placeholder="可留空"/></label>
-<label class="admin-modal__field admin-modal__field--full"><span class="admin-modal__label">違規提示</span><textarea class="admin-textarea" id="view-tier-user-edit-violation" rows="3" placeholder="風控提示或違規原因，可留空"></textarea></label>
+</div>
+</div>
+<div class="admin-modal__section">
+<h3 class="admin-modal__section-title">風控限制</h3>
+<p class="admin-modal__section-note">勾選後只限制對應操作；全部未勾選時，不會額外限制會員。使用者提示由限制原因自動多語顯示，後台不手填。</p>
+<div class="admin-modal__grid2">
+<label class="admin-checkline"><input type="checkbox" id="view-tier-user-edit-restrict-withdrawal"/> <span>限制提領</span></label>
+<label class="admin-checkline"><input type="checkbox" id="view-tier-user-edit-restrict-trade"/> <span>限制交易</span></label>
+<label class="admin-checkline"><input type="checkbox" id="view-tier-user-edit-restrict-login"/> <span>限制登入</span></label>
+<label class="admin-modal__field"><span class="admin-modal__label">限制原因（決定使用者多語提示）</span><select class="admin-select" id="view-tier-user-edit-restriction-reason"><option value="kyc_required">尚未完成實名認證</option><option value="risk_review">風控審核中</option><option value="violation">違規操作</option><option value="manual_review">平台人工審核</option></select></label>
+<label class="admin-modal__field admin-modal__field--full"><span class="admin-modal__label">管理員備註（僅後台可見）</span><textarea class="admin-textarea" id="view-tier-user-edit-admin-note" rows="3" placeholder="僅供後台管理員查看，不會顯示給用戶"></textarea></label>
+<label class="admin-modal__field admin-modal__field--full"><span class="admin-modal__label">異動原因（審計紀錄，僅後台可見）</span><input class="admin-input" id="view-tier-user-edit-reason" type="text" placeholder="例：因尚未完成實名認證，限制提領"/></label>
+</div>
 </div>
 </div>
 <p class="admin-modal__message-slot" id="view-tier-user-edit-msg" role="status"></p>
@@ -1456,14 +1506,16 @@
 <h2 class="admin-modal__title" id="amt-cda-title">新增地址</h2>
 <button type="button" class="admin-btn admin-btn--ghost admin-btn--sm" data-admin-modal-close>關閉</button>
 </div>
-<p class="admin-modal__callout">為指定用戶設定 USDT 的 TRC20／ERC20／BEP20 充值地址；至少填寫一條鏈地址。與 New_C2C <code>createDepositAddressModal</code> 欄位一致。</p>
+<p class="admin-modal__callout">為指定用戶設定各網絡充值地址。留空代表使用平台預設地址；填寫後會覆蓋該會員該網絡的預設顯示。</p>
 <form class="admin-modal__form" id="view-da-create-form">
 <div class="admin-modal__scroll-body admin-modal__scroll-body--h52">
 <div class="admin-modal__grid2">
 <label class="admin-modal__field"><span class="admin-modal__label">ID</span><input class="admin-input mono" id="view-da-create-user-id" type="number" min="1" step="1" required placeholder="與會員列表「ID」欄相同（數字）"/></label>
+<label class="admin-modal__field admin-modal__field--full"><span class="admin-modal__label">BTC 地址</span><input class="admin-input mono" id="view-da-create-btc" type="text" placeholder="選填，留空使用平台預設"/></label>
 <label class="admin-modal__field admin-modal__field--full"><span class="admin-modal__label">TRC20 地址</span><input class="admin-input mono" id="view-da-create-trc20" type="text" placeholder="選填"/></label>
 <label class="admin-modal__field admin-modal__field--full"><span class="admin-modal__label">ERC20 地址</span><input class="admin-input mono" id="view-da-create-erc20" type="text" placeholder="選填"/></label>
 <label class="admin-modal__field admin-modal__field--full"><span class="admin-modal__label">BEP20 地址</span><input class="admin-input mono" id="view-da-create-bep20" type="text" placeholder="選填"/></label>
+<label class="admin-modal__field admin-modal__field--full"><span class="admin-modal__label">SOLANA 地址</span><input class="admin-input mono" id="view-da-create-solana" type="text" placeholder="選填，留空使用平台預設"/></label>
 </div>
 </div>
 <p class="admin-modal__message-slot" id="view-da-create-msg" role="status"></p>
@@ -1482,15 +1534,17 @@
 <h2 class="admin-modal__title" id="amt-dad-title">充值地址編輯</h2>
 <button type="button" class="admin-btn admin-btn--ghost admin-btn--sm" data-admin-modal-close>關閉</button>
 </div>
-<p class="admin-modal__callout">修改後儲存即呼叫 <code>PATCH /api/admin/deposit-addresses/:user_id</code>；清空某鏈欄位將移除該鏈地址。</p>
+<p class="admin-modal__callout">修改後儲存即呼叫 <code>PATCH /api/admin/deposit-addresses/:user_id</code>；清空某網絡欄位將移除會員覆蓋地址，恢復使用平台預設。</p>
 <form class="admin-modal__form" id="view-da-detail-form">
 <input type="hidden" id="view-da-detail-user-id" value=""/>
 <div class="admin-modal__scroll-body admin-modal__scroll-body--h52">
 <div class="admin-modal__grid2">
 <label class="admin-modal__field"><span class="admin-modal__label">ID</span><input class="admin-input mono" id="view-da-detail-user-id-display" type="text" readonly tabindex="-1"/></label>
+<label class="admin-modal__field admin-modal__field--full"><span class="admin-modal__label">BTC 地址</span><input class="admin-input mono" id="view-da-detail-btc" type="text" placeholder="選填，留空使用平台預設"/></label>
 <label class="admin-modal__field admin-modal__field--full"><span class="admin-modal__label">TRC20 地址</span><input class="admin-input mono" id="view-da-detail-trc20" type="text" placeholder="選填"/></label>
 <label class="admin-modal__field admin-modal__field--full"><span class="admin-modal__label">ERC20 地址</span><input class="admin-input mono" id="view-da-detail-erc20" type="text" placeholder="選填"/></label>
 <label class="admin-modal__field admin-modal__field--full"><span class="admin-modal__label">BEP20 地址</span><input class="admin-input mono" id="view-da-detail-bep20" type="text" placeholder="選填"/></label>
+<label class="admin-modal__field admin-modal__field--full"><span class="admin-modal__label">SOLANA 地址</span><input class="admin-input mono" id="view-da-detail-solana" type="text" placeholder="選填，留空使用平台預設"/></label>
 </div>
 </div>
 <p class="admin-modal__message-slot" id="view-da-detail-msg" role="status"></p>
@@ -1646,7 +1700,7 @@
 <h2 class="admin-modal__title" id="amt-cl-title">新增掛單</h2>
 <button type="button" class="admin-btn admin-btn--ghost admin-btn--sm" data-admin-modal-close>關閉</button>
 </div>
-<p class="admin-modal__callout">資產固定為 USDT、法幣為 EUR（後端預設）。商戶暱稱、方向、單價、限額與庫存為必填；買盤可填「收款方式摘要」。與 New_C2C <code>createListingModal</code> 一致。</p>
+<p class="admin-modal__callout">資產固定為 USDT；法幣可選 EUR / CHF / USD / GBP。商戶暱稱、方向、單價、限額與庫存為必填；買盤可填「收款方式摘要」。</p>
 <form class="admin-modal__form" id="view-listing-create-form">
 <div class="admin-modal__scroll-body admin-modal__scroll-body--h52">
 <div class="admin-modal__grid2">
@@ -1660,7 +1714,13 @@
 <option value="active">啟用</option>
 <option value="inactive">停用</option>
 </select></label>
-<label class="admin-modal__field"><span class="admin-modal__label">單價（EUR）</span><input class="admin-input mono" id="view-listing-create-price" type="number" step="any" min="0" required placeholder="例：0.92"/></label>
+<label class="admin-modal__field"><span class="admin-modal__label">法幣</span><select class="admin-select" id="view-listing-create-fiat" required>
+<option value="EUR">EUR</option>
+<option value="CHF">CHF</option>
+<option value="USD">USD</option>
+<option value="GBP">GBP</option>
+</select></label>
+<label class="admin-modal__field"><span class="admin-modal__label">單價</span><input class="admin-input mono" id="view-listing-create-price" type="number" step="any" min="0" required placeholder="例：0.92"/></label>
 <label class="admin-modal__field"><span class="admin-modal__label">單筆最小（USDT）</span><input class="admin-input mono" id="view-listing-create-min" type="number" step="any" min="0" required/></label>
 <label class="admin-modal__field"><span class="admin-modal__label">單筆最大（USDT）</span><input class="admin-input mono" id="view-listing-create-max" type="number" step="any" min="0" required/></label>
 <label class="admin-modal__field"><span class="admin-modal__label">庫存（USDT）</span><input class="admin-input mono" id="view-listing-create-available" type="number" step="any" min="0" required/></label>
@@ -1708,7 +1768,13 @@
 <option value="active">啟用</option>
 <option value="inactive">停用</option>
 </select></label>
-<label class="admin-modal__field"><span class="admin-modal__label">單價（EUR）</span><input class="admin-input mono" id="view-listing-detail-price" type="number" step="any" min="0" required/></label>
+<label class="admin-modal__field"><span class="admin-modal__label">法幣</span><select class="admin-select" id="view-listing-detail-fiat" required>
+<option value="EUR">EUR</option>
+<option value="CHF">CHF</option>
+<option value="USD">USD</option>
+<option value="GBP">GBP</option>
+</select></label>
+<label class="admin-modal__field"><span class="admin-modal__label">單價</span><input class="admin-input mono" id="view-listing-detail-price" type="number" step="any" min="0" required/></label>
 <label class="admin-modal__field"><span class="admin-modal__label">單筆最小（USDT）</span><input class="admin-input mono" id="view-listing-detail-min" type="number" step="any" min="0" required/></label>
 <label class="admin-modal__field"><span class="admin-modal__label">單筆最大（USDT）</span><input class="admin-input mono" id="view-listing-detail-max" type="number" step="any" min="0" required/></label>
 <label class="admin-modal__field"><span class="admin-modal__label">庫存（USDT）</span><input class="admin-input mono" id="view-listing-detail-available" type="number" step="any" min="0" required/></label>
@@ -1742,14 +1808,15 @@
 <h2 class="admin-modal__title" id="amt-ctt-title">新增等級模板</h2>
 <button type="button" class="admin-btn admin-btn--ghost admin-btn--sm" data-admin-modal-close>關閉</button>
 </div>
-<p class="admin-modal__callout">對齊 New_C2C 新增模板流程：提交 <code>POST /api/admin/tier-templates</code>。模板代碼、顯示名稱、等級 1–3 與交易/保證金參數請完整填寫；異動原因為審計留痕。</p>
+<p class="admin-modal__callout">提交 <code>POST /api/admin/tier-templates</code>。管理分組由後台分組決定，等級分組會自動生成為「分組代碼_lv等級」，避免不同管理分組互相衝突。</p>
 <form class="admin-modal__form" id="view-tt-create-form">
 <div class="admin-modal__scroll-body admin-modal__scroll-body--h52">
 <div class="admin-modal__grid2">
-<label class="admin-modal__field"><span class="admin-modal__label">模板代碼</span><input class="admin-input mono" id="view-tt-create-code" type="text" required placeholder="例：vip_seller"/></label>
+<label class="admin-modal__field"><span class="admin-modal__label">模板代碼</span><input class="admin-input mono" id="view-tt-create-code" type="text" placeholder="留空由系統依分組與等級生成"/></label>
 <label class="admin-modal__field"><span class="admin-modal__label">顯示名稱</span><input class="admin-input" id="view-tt-create-display" type="text" required placeholder="例：VIP 商戶"/></label>
 <label class="admin-modal__field"><span class="admin-modal__label">等級（1–3）</span><input class="admin-input mono" id="view-tt-create-level" type="number" min="1" max="3" step="1" value="1" required/></label>
-<label class="admin-modal__field"><span class="admin-modal__label">組別代碼</span><input class="admin-input mono" id="view-tt-create-group" type="text" placeholder="預設隨等級：basic / vip / vip_plus"/></label>
+<label class="admin-modal__field"><span class="admin-modal__label">管理分組</span><select class="admin-select" id="view-tt-create-admin-group"></select></label>
+<label class="admin-modal__field"><span class="admin-modal__label">系統分組</span><input class="admin-input mono" id="view-tt-create-group" type="text" readonly tabindex="-1" title="由管理分組與等級自動生成"/></label>
 <label class="admin-modal__field"><span class="admin-modal__label">信用分</span><input class="admin-input mono" id="view-tt-create-score" type="number" step="1" value="0"/></label>
 <label class="admin-modal__field"><span class="admin-modal__label">日交易上限</span><input class="admin-input mono" id="view-tt-create-daily" type="number" step="1" min="0" placeholder="留空由系統依等級帶入（LV1=1 / LV2=2 / LV3=不限）"/></label>
 <label class="admin-modal__field"><span class="admin-modal__label">商戶權限</span><select class="admin-select" id="view-tt-create-merchant"><option value="false">否</option><option value="true">是</option></select></label>
@@ -1780,7 +1847,7 @@
 <h2 class="admin-modal__title" id="amt-ttd-title">編輯等級模板</h2>
 <button type="button" class="admin-btn admin-btn--ghost admin-btn--sm" data-admin-modal-close>關閉</button>
 </div>
-<p class="admin-modal__callout">對齊 New_C2C 編輯模板流程：儲存即 <code>PATCH /api/admin/tier-templates/:id</code>；請同時更新異動原因供審計追蹤。</p>
+<p class="admin-modal__callout">儲存即 <code>PATCH /api/admin/tier-templates/:id</code>。系統分組由管理分組與等級自動生成，不再手動填寫 basic / vip / vip_plus。</p>
 <form class="admin-modal__form" id="view-tt-detail-form">
 <input type="hidden" id="view-tt-detail-id" value=""/>
 <div class="admin-modal__scroll-body admin-modal__scroll-body--h52">
@@ -1788,7 +1855,8 @@
 <label class="admin-modal__field"><span class="admin-modal__label">模板代碼</span><input class="admin-input mono" id="view-tt-detail-code" type="text" required/></label>
 <label class="admin-modal__field"><span class="admin-modal__label">顯示名稱</span><input class="admin-input" id="view-tt-detail-display" type="text" required/></label>
 <label class="admin-modal__field"><span class="admin-modal__label">等級（1–3）</span><input class="admin-input mono" id="view-tt-detail-level" type="number" min="1" max="3" step="1" required/></label>
-<label class="admin-modal__field"><span class="admin-modal__label">組別代碼</span><input class="admin-input mono" id="view-tt-detail-group" type="text" placeholder="預設隨等級：basic / vip / vip_plus"/></label>
+<label class="admin-modal__field"><span class="admin-modal__label">管理分組</span><select class="admin-select" id="view-tt-detail-admin-group"></select></label>
+<label class="admin-modal__field"><span class="admin-modal__label">系統分組</span><input class="admin-input mono" id="view-tt-detail-group" type="text" readonly tabindex="-1" title="由管理分組與等級自動生成"/></label>
 <label class="admin-modal__field"><span class="admin-modal__label">信用分</span><input class="admin-input mono" id="view-tt-detail-score" type="number" step="1"/></label>
 <label class="admin-modal__field"><span class="admin-modal__label">日交易上限</span><input class="admin-input mono" id="view-tt-detail-daily" type="number" step="1" min="0" placeholder="留空由系統依等級帶入（LV1=1 / LV2=2 / LV3=不限）"/></label>
 <label class="admin-modal__field"><span class="admin-modal__label">商戶權限</span><select class="admin-select" id="view-tt-detail-merchant"><option value="false">否</option><option value="true">是</option></select></label>
@@ -1887,132 +1955,12 @@
 </div>
 
 <!-- 後台 API 位址：預設由 runtime-config.js 依「與本頁同源」自動帶入；僅在 API 與靜態頁不同網域時才需改該檔的 apiBaseUrl。 -->
-<script src="./runtime-config.js?v=20260505-2353"></script>
-<script src="./shared/admin-console.js?v=20260506-0018"></script>
-<script src="./shared/admin-api-fetch.js?v=20260506-0018"></script>
-<script src="./shared/admin-modals.js?v=20260506-0018"></script>
-<script src="./shared/admin-view-loaders.js?v=20260506-0146"></script>
-<script src="./shared/admin-api-client.js?v=20260506-0018"></script>
-<script>
-(function () {
-  var el = document.getElementById("admin-clock");
-  function tick() {
-    if (!el) return;
-    el.textContent = new Date().toLocaleString("zh-TW", { hour12: false });
-  }
-  tick();
-  setInterval(tick, 1000);
-})();
-(function () {
-  function initHcTabGroup(root) {
-    if (!root) return;
-    var tabBtns = root.querySelectorAll("[data-hc-tab]");
-    var panels = root.querySelectorAll("[data-hc-panel]");
-    if (!tabBtns.length || !panels.length) return;
-
-    function show(key) {
-      if (!key) return;
-      tabBtns.forEach(function (btn) {
-        var k = btn.getAttribute("data-hc-tab");
-        var on = k === key;
-        btn.classList.toggle("is-active", on);
-        btn.setAttribute("aria-selected", on ? "true" : "false");
-        btn.setAttribute("tabindex", on ? "0" : "-1");
-      });
-      panels.forEach(function (panel) {
-        var k = panel.getAttribute("data-hc-panel");
-        panel.hidden = k !== key;
-      });
-    }
-
-    tabBtns.forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        show(btn.getAttribute("data-hc-tab"));
-      });
-    });
-
-    var tablist = root.querySelector('[role="tablist"]');
-    if (tablist) {
-      tablist.addEventListener("keydown", function (e) {
-        if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
-        var i;
-        var active = -1;
-        for (i = 0; i < tabBtns.length; i++) {
-          if (tabBtns[i].getAttribute("aria-selected") === "true") {
-            active = i;
-            break;
-          }
-        }
-        if (active < 0) return;
-        e.preventDefault();
-        var next = e.key === "ArrowRight"
-          ? (active + 1) % tabBtns.length
-          : (active - 1 + tabBtns.length) % tabBtns.length;
-        var nextKey = tabBtns[next].getAttribute("data-hc-tab");
-        show(nextKey);
-        tabBtns[next].focus();
-      });
-    }
-  }
-
-  ["view-home-content", "view-tiers", "view-eur-swap-withdraw-config"].forEach(function (id) {
-    initHcTabGroup(document.getElementById(id));
-  });
-
-  function initAuTabGroup(root) {
-    if (!root) return;
-    var tabBtns = root.querySelectorAll("[data-au-tab]");
-    var panels = root.querySelectorAll("[data-au-panel]");
-    if (!tabBtns.length || !panels.length) return;
-
-    function show(key) {
-      if (!key) return;
-      tabBtns.forEach(function (btn) {
-        var k = btn.getAttribute("data-au-tab");
-        var on = k === key;
-        btn.classList.toggle("is-active", on);
-        btn.setAttribute("aria-selected", on ? "true" : "false");
-        btn.setAttribute("tabindex", on ? "0" : "-1");
-      });
-      panels.forEach(function (panel) {
-        var k = panel.getAttribute("data-au-panel");
-        panel.hidden = k !== key;
-      });
-    }
-
-    tabBtns.forEach(function (btn) {
-      btn.addEventListener("click", function () {
-        show(btn.getAttribute("data-au-tab"));
-      });
-    });
-
-    var tablist = root.querySelector('[role="tablist"]');
-    if (tablist) {
-      tablist.addEventListener("keydown", function (e) {
-        if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
-        var i;
-        var active = -1;
-        for (i = 0; i < tabBtns.length; i++) {
-          if (tabBtns[i].getAttribute("aria-selected") === "true") {
-            active = i;
-            break;
-          }
-        }
-        if (active < 0) return;
-        e.preventDefault();
-        var next =
-          e.key === "ArrowRight"
-            ? (active + 1) % tabBtns.length
-            : (active - 1 + tabBtns.length) % tabBtns.length;
-        var nextKey = tabBtns[next].getAttribute("data-au-tab");
-        show(nextKey);
-        tabBtns[next].focus();
-      });
-    }
-  }
-
-  initAuTabGroup(document.getElementById("view-admin-users"));
-})();
-</script>
+<script src="./runtime-config.js?v=20260714-0301"></script>
+<script src="./shared/admin-console.js?v=20260714-0301"></script>
+<script src="./shared/admin-api-fetch.js?v=20260714-0301"></script>
+<script src="./shared/admin-modals.js?v=20260714-0305"></script>
+<script src="./shared/admin-view-loaders.js?v=20260831-addr6"></script>
+<script src="./shared/admin-api-client.js?v=20260714-0301"></script>
+<script src="./shared/admin-tabs.js?v=20260714-0301"></script>
 </body>
 </html>

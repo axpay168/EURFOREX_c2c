@@ -2,7 +2,7 @@
   <div>
     <header class="fixed top-0 w-full border-b border-primary/10 bg-white/75 backdrop-blur-3xl shadow-[0_12px_32px_rgba(33,79,131,0.08)] flex justify-between items-center px-6 h-14 w-full z-50">
       <a class="flex shrink-0 items-center justify-center rounded-full p-2 text-primary-dim transition-colors hover:bg-primary/10" href="#/pages/setting/user" @click="backGo($event, '#/pages/setting/user')"><span class="material-symbols-outlined">arrow_back</span></a>
-      <div class="font-headline text-lg font-bold text-on-surface">安全中心</div>
+      <div class="font-headline text-lg font-bold text-on-surface">{{ localizedText('安全中心', 'Security center') }}</div>
       <div class="w-10 shrink-0" aria-hidden="true"></div>
     </header>
     <main class="pt-20 pb-16 px-4 md:px-8 max-w-4xl mx-auto">
@@ -14,8 +14,8 @@
                 <span class="material-symbols-outlined">account_balance</span>
               </div>
               <div class="min-w-0">
-                <div class="font-headline text-lg text-on-surface">銀行綁定</div>
-                <div class="text-sm text-on-surface-variant">管理收付款銀行帳戶與結算資料。</div>
+                <div class="font-headline text-lg text-on-surface">{{ localizedText('銀行綁定', 'Bank binding') }}</div>
+                <div class="text-sm text-on-surface-variant">{{ localizedText('管理收付款銀行帳戶與結算資料。', 'Manage your bank accounts for payment and settlement.') }}</div>
               </div>
             </div>
             <span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors shrink-0">chevron_right</span>
@@ -27,8 +27,8 @@
                 <span class="material-symbols-outlined">account_balance_wallet</span>
               </div>
               <div class="min-w-0">
-                <div class="font-headline text-lg text-on-surface">提領地址綁定</div>
-                <div class="text-sm text-on-surface-variant">管理加密資產提領地址、白名單與到帳驗證。</div>
+                <div class="font-headline text-lg text-on-surface">{{ localizedText('提領地址綁定', 'Withdrawal address binding') }}</div>
+                <div class="text-sm text-on-surface-variant">{{ localizedText('管理加密資產提領地址、白名單與到帳驗證。', 'Manage crypto withdrawal addresses, whitelist, and arrival verification.') }}</div>
               </div>
             </div>
             <span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors shrink-0">chevron_right</span>
@@ -40,8 +40,8 @@
                 <span class="material-symbols-outlined">verified_user</span>
               </div>
               <div class="min-w-0">
-                <div class="font-headline text-lg text-on-surface">身份認證</div>
-                <div class="text-sm text-on-surface-variant">提交證件、完成 KYC 並提升交易限額。</div>
+                <div class="font-headline text-lg text-on-surface">{{ localizedText('身份認證', 'Identity verification') }}</div>
+                <div class="text-sm text-on-surface-variant">{{ localizedText('提交證件、完成 KYC 並提升交易限額。', 'Submit documents, complete KYC, and raise your trading limit.') }}</div>
               </div>
             </div>
             <span class="material-symbols-outlined text-on-surface-variant group-hover:text-secondary transition-colors shrink-0">chevron_right</span>
@@ -53,8 +53,8 @@
                 <span class="material-symbols-outlined">lock_reset</span>
               </div>
               <div class="min-w-0">
-                <div class="font-headline text-lg text-on-surface">更換密碼</div>
-                <div class="text-sm text-on-surface-variant">更新登入密碼並強化帳戶安全。</div>
+                <div class="font-headline text-lg text-on-surface">{{ localizedText('更換密碼', 'Change password') }}</div>
+                <div class="text-sm text-on-surface-variant">{{ localizedText('更新登入密碼並強化帳戶安全。', 'Update login password and strengthen account security.') }}</div>
               </div>
             </div>
             <span class="material-symbols-outlined text-on-surface-variant group-hover:text-tertiary transition-colors shrink-0">chevron_right</span>
@@ -66,8 +66,8 @@
                 <span class="material-symbols-outlined">link</span>
               </div>
               <div class="min-w-0">
-                <div class="font-headline text-lg text-on-surface">綁定關聯帳戶</div>
-                <div class="text-sm text-on-surface-variant">用於綁定手機號與郵箱，提升帳戶安全性</div>
+                <div class="font-headline text-lg text-on-surface">{{ localizedText('綁定關聯帳戶', 'Bind linked account') }}</div>
+                <div class="text-sm text-on-surface-variant">{{ localizedText('用於綁定手機號與郵箱，提升帳戶安全性', 'Link phone number and email to improve account security.') }}</div>
               </div>
             </div>
             <span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors shrink-0">chevron_right</span>
@@ -76,13 +76,13 @@
       </section>
       <section class="glass-panel-high rounded-[24px] p-4 mt-6">
         <div class="flex items-center justify-between gap-4 mb-4">
-          <h2 class="font-headline text-lg text-on-surface">延伸入口</h2>
-          <a class="text-sm text-primary-dim font-semibold" href="#/pages/index/serviceCenter">需要協助？</a>
+          <h2 class="font-headline text-lg text-on-surface">{{ localizedText('延伸入口', 'Quick links') }}</h2>
+          <a class="text-sm text-primary-dim font-semibold" href="#/pages/index/serviceCenter">{{ localizedText('需要協助？', 'Need help?') }}</a>
         </div>
         <div class="grid grid-cols-3 gap-3 text-sm">
-          <a class="rounded-2xl bg-surface-bright/82 border border-outline-variant/10 px-4 py-4 text-center hover:bg-surface-bright transition-colors" href="#/pages/setting/wallet">我的資產</a>
-          <a class="rounded-2xl bg-surface-bright/82 border border-outline-variant/10 px-4 py-4 text-center hover:bg-surface-bright transition-colors" href="#/pages/setting/withdraw">提現設定</a>
-          <a class="rounded-2xl bg-surface-bright/82 border border-outline-variant/10 px-4 py-4 text-center hover:bg-surface-bright transition-colors" href="#/pages/setting/merchantAuth">商戶認證</a>
+          <a class="rounded-2xl bg-surface-bright/82 border border-outline-variant/10 px-4 py-4 text-center hover:bg-surface-bright transition-colors" href="#/pages/setting/wallet">{{ localizedText('我的資產', 'My assets') }}</a>
+          <a class="rounded-2xl bg-surface-bright/82 border border-outline-variant/10 px-4 py-4 text-center hover:bg-surface-bright transition-colors" href="#/pages/setting/withdraw">{{ localizedText('提現設定', 'Withdrawal settings') }}</a>
+          <a class="rounded-2xl bg-surface-bright/82 border border-outline-variant/10 px-4 py-4 text-center hover:bg-surface-bright transition-colors" href="#/pages/setting/merchantAuth">{{ localizedText('商戶認證', 'Merchant verification') }}</a>
         </div>
       </section>
     </main>
@@ -94,7 +94,7 @@
             <span class="material-symbols-outlined">arrow_back</span>
           </button>
           <div v-else class="h-9 w-9" aria-hidden="true"></div>
-          <h2 class="font-headline text-xl text-on-surface text-center">{{ bindingFormOpen ? activeBindingLabel + '綁定' : '關聯帳戶管理' }}</h2>
+          <h2 class="font-headline text-xl text-on-surface text-center">{{ bindingFormOpen ? activeBindingTitle : localizedText('關聯帳戶管理', 'Manage linked account') }}</h2>
           <button class="flex h-9 w-9 items-center justify-center rounded-full text-on-surface-variant hover:bg-surface-container-low" type="button" @click="closeBindingManager">
             <span class="material-symbols-outlined">close</span>
           </button>
@@ -108,13 +108,13 @@
               </div>
               <div class="min-w-0">
                 <div class="font-headline text-base text-on-surface">{{ item.label }}</div>
-                <div class="text-xs text-on-surface-variant truncate">{{ item.bound ? item.value : '未綁定' }}</div>
+                <div class="text-xs text-on-surface-variant truncate">{{ item.bound ? item.value : localizedText('未綁定', 'Not linked') }}</div>
               </div>
             </div>
             <div class="flex shrink-0 flex-col items-end gap-2">
-              <span class="text-xs font-semibold" :class="item.bound ? 'text-on-surface-variant' : 'text-primary-dim'">{{ item.bound ? '已綁定' : '未綁定' }}</span>
+              <span class="text-xs font-semibold" :class="item.bound ? 'text-on-surface-variant' : 'text-primary-dim'">{{ item.bound ? localizedText('已綁定', 'Linked') : localizedText('未綁定', 'Not linked') }}</span>
               <button class="rounded-2xl px-3 py-2 text-xs font-semibold" :class="item.bound ? 'bg-surface-container-low text-on-surface-variant cursor-not-allowed' : 'bg-gradient-to-br from-primary to-primary-dim text-white shadow-[0_10px_22px_rgba(47,127,119,0.20)]'" type="button" :disabled="item.bound" @click="openBindingForm(item.type)">
-                {{ item.bound ? '已綁定' : '去綁定' }}
+                {{ item.bound ? localizedText('已綁定', 'Linked') : localizedText('去綁定', 'Link now') }}
               </button>
             </div>
           </div>
@@ -122,21 +122,21 @@
 
         <form v-else class="mt-5 space-y-4" @submit.prevent="submitBindingForm">
           <div v-if="activeBindingType === 'phone'">
-            <label class="text-sm font-semibold text-on-surface" for="bindingPhoneInput">手機號</label>
-            <input id="bindingPhoneInput" v-model="bindingForm.phone" class="mt-2 w-full rounded-2xl border border-outline-variant/20 bg-surface-bright/90 px-4 py-3 text-on-surface outline-none focus:border-primary" type="tel" placeholder="請輸入手機號" />
+            <label class="text-sm font-semibold text-on-surface" for="bindingPhoneInput">{{ localizedText('手機號', 'Phone number') }}</label>
+            <input id="bindingPhoneInput" v-model="bindingForm.phone" class="mt-2 w-full rounded-2xl border border-outline-variant/20 bg-surface-bright/90 px-4 py-3 text-on-surface outline-none focus:border-primary" type="tel" :placeholder="localizedText('請輸入手機號', 'Please enter phone number')" />
           </div>
 
           <div v-if="activeBindingType === 'email'">
-            <label class="text-sm font-semibold text-on-surface" for="bindingEmailInput">郵箱</label>
-            <input id="bindingEmailInput" v-model="bindingForm.email" class="mt-2 w-full rounded-2xl border border-outline-variant/20 bg-surface-bright/90 px-4 py-3 text-on-surface outline-none focus:border-primary" type="email" placeholder="請輸入郵箱" />
+            <label class="text-sm font-semibold text-on-surface" for="bindingEmailInput">{{ localizedText('郵箱', 'Email') }}</label>
+            <input id="bindingEmailInput" v-model="bindingForm.email" class="mt-2 w-full rounded-2xl border border-outline-variant/20 bg-surface-bright/90 px-4 py-3 text-on-surface outline-none focus:border-primary" type="email" :placeholder="localizedText('請輸入郵箱', 'Please enter email')" />
           </div>
 
           <div v-if="bindingNeedsCode">
-            <label class="text-sm font-semibold text-on-surface" for="bindingCodeInput">驗證碼</label>
+            <label class="text-sm font-semibold text-on-surface" for="bindingCodeInput">{{ localizedText('驗證碼', 'Verification code') }}</label>
             <div class="mt-2 flex gap-2">
-              <input id="bindingCodeInput" v-model="bindingForm.code" class="min-w-0 flex-1 rounded-2xl border border-outline-variant/20 bg-surface-bright/90 px-4 py-3 text-on-surface outline-none focus:border-primary" type="text" inputmode="numeric" placeholder="請輸入驗證碼" />
+              <input id="bindingCodeInput" v-model="bindingForm.code" class="min-w-0 flex-1 rounded-2xl border border-outline-variant/20 bg-surface-bright/90 px-4 py-3 text-on-surface outline-none focus:border-primary" type="text" inputmode="numeric" :placeholder="localizedText('請輸入驗證碼', 'Please enter verification code')" />
               <button class="shrink-0 rounded-2xl px-4 py-3 text-sm font-semibold" :class="bindingCodeCountdown > 0 ? 'bg-surface-container-low text-on-surface-variant' : 'bg-primary/10 text-primary-dim'" type="button" :disabled="bindingCodeCountdown > 0" @click="sendBindingCode">
-                {{ bindingCodeCountdown > 0 ? bindingCodeCountdown + 's' : '獲取驗證碼' }}
+                {{ bindingCodeCountdown > 0 ? bindingCodeCountdown + 's' : localizedText('獲取驗證碼', 'Get code') }}
               </button>
             </div>
           </div>
@@ -145,11 +145,17 @@
           <p v-if="bindingStatusMessage" class="text-sm" :class="bindingStatusError ? 'text-red-500' : 'text-primary-dim'">{{ bindingStatusMessage }}</p>
 
           <div class="grid grid-cols-2 gap-3 pt-1">
-            <button class="rounded-2xl bg-surface-container-low px-4 py-3 text-on-surface-variant font-semibold" type="button" @click="backToBindingList">取消</button>
-            <button class="rounded-2xl bg-gradient-to-br from-primary to-primary-dim px-4 py-3 text-white font-semibold disabled:opacity-60" type="submit" :disabled="!canSubmitBinding">提交綁定</button>
+            <button class="rounded-2xl bg-surface-container-low px-4 py-3 text-on-surface-variant font-semibold" type="button" @click="backToBindingList">{{ localizedText('取消', 'Cancel') }}</button>
+          <button
+            class="rounded-2xl bg-gradient-to-br from-primary to-primary-dim px-4 py-3 text-white font-semibold disabled:opacity-60 disabled:cursor-not-allowed"
+            type="submit"
+            :disabled="!canSubmitBinding || bindingSubmitting"
+          >
+            {{ bindingSubmitting ? localizedText("提交中...", "Submitting...") : localizedText('提交綁定', 'Submit binding') }}
+          </button>
           </div>
         </form>
-        <div v-if="!bindingFormOpen" class="mt-4 text-xs leading-5 text-on-surface-variant">目前綁定狀態會優先讀取帳戶資料，表單提交後會同步保存於本機使用者資料。</div>
+        <div v-if="!bindingFormOpen" class="mt-4 text-xs leading-5 text-on-surface-variant">{{ localizedText('目前綁定狀態會優先讀取帳戶資料，表單提交後會同步保存於本機使用者資料。', 'Current binding status is loaded from account data first; after submitting, the form is synced to local user data.') }}</div>
       </div>
     </div>
   </div>
@@ -234,6 +240,7 @@ export default {
       },
       bindingCodeCountdown: 0,
       bindingCodeTimer: null,
+      bindingSubmitting: false,
       bindingStatusMessage: "",
       bindingStatusError: false
     };
@@ -244,23 +251,28 @@ export default {
         {
           type: "phone",
           icon: "smartphone",
-          label: "手機號",
+          label: this.localizedText("手機號", "Phone number"),
           bound: this.accountBindings.phone.bound,
           value: this.accountBindings.phone.value
         },
         {
           type: "email",
           icon: "mail",
-          label: "郵箱",
+          label: this.localizedText("郵箱", "Email"),
           bound: this.accountBindings.email.bound,
           value: this.accountBindings.email.value
         }
       ];
     },
     activeBindingLabel: function () {
-      if (this.activeBindingType === "phone") return "手機號";
-      if (this.activeBindingType === "email") return "郵箱";
+      if (this.activeBindingType === "phone") return this.localizedText("手機號", "Phone number");
+      if (this.activeBindingType === "email") return this.localizedText("郵箱", "Email");
       return "";
+    },
+    activeBindingTitle: function () {
+      if (this.activeBindingType === "phone") return this.localizedText("綁定手機號", "Bind phone number");
+      if (this.activeBindingType === "email") return this.localizedText("綁定郵箱", "Bind email");
+      return this.localizedText("關聯帳戶", "Account link");
     },
     bindingNeedsCode: function () {
       return this.activeBindingType === "phone" || this.activeBindingType === "email";
@@ -372,14 +384,14 @@ export default {
     },
     sendBindingCode: function () {
       if (this.activeBindingType === "phone" && !safeTrim(this.bindingForm.phone)) {
-        this.showBindingStatus("請先輸入手機號", true);
+        this.showBindingStatus(this.localizedText("請先輸入手機號", "Please enter phone number"), true);
         return;
       }
       if (this.activeBindingType === "email" && !safeTrim(this.bindingForm.email)) {
-        this.showBindingStatus("請先輸入郵箱", true);
+        this.showBindingStatus(this.localizedText("請先輸入郵箱", "Please enter email"), true);
         return;
       }
-      this.showBindingStatus("驗證碼已發送，請查收", false);
+      this.showBindingStatus(this.localizedText("驗證碼已發送，請查收", "Verification code sent, please check"), false);
       this.bindingCodeCountdown = 60;
       var self = this;
       this.bindingCodeTimer = setInterval(function () {
@@ -388,9 +400,10 @@ export default {
       }, 1000);
     },
     submitBindingForm: function () {
+      if (this.bindingSubmitting) return;
       var type = this.activeBindingType;
       if (!this.canSubmitBinding) {
-        this.showBindingStatus("請確認綁定資料已填寫完整", true);
+        this.showBindingStatus(this.localizedText("請確認綁定資料已填寫完整", "Please complete all binding details"), true);
         return;
       }
 
@@ -398,7 +411,7 @@ export default {
       if (type === "phone") displayValue = maskPhone(this.bindingForm.phone);
       if (type === "email") displayValue = maskEmail(this.bindingForm.email);
       if (!displayValue) {
-        this.showBindingStatus("請確認綁定資料是否正確", true);
+        this.showBindingStatus(this.localizedText("請確認綁定資料是否正確", "Please check if binding details are correct"), true);
         return;
       }
 
@@ -410,10 +423,14 @@ export default {
       this.accountBindings = next;
       writeLocalBindings(next);
       this.persistBindingToStoredUser(type);
-      this.showBindingStatus(this.activeBindingLabel + "已綁定", false);
+      var label = type === "phone" ? this.localizedText("手機號", "Phone number") : this.localizedText("郵箱", "Email");
+      this.bindingSubmitting = true;
+      var linkedText = this.localizedText("已綁定", "linked");
+      this.showBindingStatus(this.isChineseLocale() ? label + linkedText : label + " " + linkedText, false);
       var self = this;
       setTimeout(function () {
         self.backToBindingList();
+        self.bindingSubmitting = false;
       }, 600);
     },
     persistBindingToStoredUser: function (type) {

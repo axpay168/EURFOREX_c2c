@@ -1,333 +1,267 @@
 <template>
   <div>
-    <header class="fixed top-0 w-full border-b border-primary/10 bg-white/75 backdrop-blur-3xl shadow-[0_12px_32px_rgba(33,79,131,0.08)] flex justify-between items-center px-6 h-14 w-full z-50">
-      <a class="flex shrink-0 items-center justify-center rounded-full p-2 text-primary-dim transition-colors hover:bg-primary/10" href="#/pages/setting/myTask" @click="backGo($event, '#/pages/setting/myTask')"><span class="material-symbols-outlined">arrow_back</span></a>
-      <div class="font-headline text-lg font-bold text-on-surface">訂單詳情</div>
-      <a class="flex shrink-0 items-center justify-center rounded-full p-2 text-primary-dim transition-colors hover:bg-primary/10 scale-95 active:duration-150" href="#/pages/index/serviceCenter"><span class="material-symbols-outlined">support_agent</span></a>
+    <header class="fixed top-0 w-full border-b border-primary/10 bg-white/75 backdrop-blur-3xl shadow-[0_12px_32px_rgba(33,79,131,0.08)] flex justify-between items-center px-6 h-14 z-50">
+      <a class="order-top-logo" href="#/pages/setting/myTask" @click="backGo($event, '#/pages/setting/myTask')" :aria-label="localizedText('返回訂單列表', 'Back to orders')">
+        <img :src="logoSrc" alt="EURFOREX" />
+      </a>
+      <div class="font-headline text-lg font-bold text-on-surface">{{ localizedText('交易詳情', 'Transaction details') }}</div>
+      <a class="order-top-bell" href="#/pages/index/serviceCenter" :aria-label="localizedText('客服中心', 'Support')">
+        <img :src="profileIcons.bell" alt="" aria-hidden="true" />
+      </a>
     </header>
-    <main class="pt-20 px-4 max-w-3xl mx-auto space-y-5 pb-10 pb-safe">
-      <LoadingInlineSpinner v-if="loading && !order" aria-label="訂單詳情載入" />
-      <section v-else-if="!order" class="glass-panel rounded-[24px] p-6 text-center">
-        <div class="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-primary-container text-primary-dim">
-          <span class="material-symbols-outlined">receipt_long</span>
+
+    <main class="order-detail-page mx-auto max-w-lg px-4 pt-20 pb-10">
+      <LoadingInlineSpinner v-if="loading && !order" :aria-label="localizedText('訂單詳情載入', 'Order details loading')" />
+
+      <section v-else-if="!order" class="order-receipt-card order-receipt-card--empty">
+        <div class="order-result-icon order-result-icon--unknown">
+          <img :src="profileIcons.records" alt="" aria-hidden="true" />
         </div>
-        <h2 class="font-headline text-xl font-bold">找不到此訂單</h2>
-        <p class="mt-2 text-sm leading-relaxed text-on-surface-variant">{{ errorMessage || '此訂單可能已不存在，或連結缺少訂單編號。請返回訂單列表重新選擇。' }}</p>
-        <a class="mt-5 inline-flex h-11 items-center justify-center rounded-full bg-gradient-to-br from-primary to-primary-dim px-6 text-sm font-bold text-white" href="#/pages/setting/myTask">返回訂單列表</a>
+        <h2>{{ localizedText('找不到此訂單', 'Order not found') }}</h2>
+        <p>{{ errorMessage || localizedText('此訂單可能已不存在，請返回訂單列表重新選擇。', 'This order may not exist. Please return to the order list and choose again.') }}</p>
+        <a class="order-close-btn" href="#/pages/setting/myTask">{{ localizedText('返回訂單列表', 'Back to order list') }}</a>
       </section>
-      <section v-if="order" class="order-card">
-        <div class="flex items-start justify-between gap-4">
-          <div class="min-w-0">
-            <div class="order-card__id">訂單編號 {{ order.orderNo }}</div>
-            <h2 class="order-card__title font-headline text-2xl mt-1">{{ order.title }}</h2>
-          </div>
-          <span class="order-card__badge shrink-0 rounded-full px-3 py-1 text-[11px] font-semibold tracking-[0.14em]" :class="order.badgeClass">{{ order.statusLabel }}</span>
+
+      <section v-else class="order-receipt-card">
+        <div class="order-result-icon" :class="order.resultClass">
+          <img :src="order.icon" alt="" aria-hidden="true" />
+          <span>{{ order.sideLabelShort }}</span>
         </div>
-        <div class="grid grid-cols-2 gap-3 mt-4 text-sm">
-          <div class="info-box"><div class="orders-subtext">{{ order.totalLabel }}</div><div class="order-card__value mt-1 font-semibold">{{ order.fiatAmount }}</div></div>
-          <div class="info-box"><div class="orders-subtext">單價</div><div class="order-card__value mt-1 font-semibold">{{ order.price }}</div></div>
-          <div class="info-box"><div class="orders-subtext">對手方</div><div class="order-card__value mt-1 font-semibold">{{ order.counterparty }}</div></div>
-          <div class="info-box"><div class="orders-subtext">{{ order.methodLabel }}</div><div class="order-card__value mt-1 font-semibold">{{ order.method }}</div></div>
+
+        <div class="order-main-amount" :class="order.amountClass">{{ order.mainAmount }}</div>
+        <div class="order-status-line" :class="order.statusClass">
+          <span aria-hidden="true">{{ order.statusIcon }}</span>
+          <strong>{{ order.statusText }}</strong>
+        </div>
+
+        <div class="order-divider"></div>
+
+        <dl class="order-detail-list">
+          <div>
+            <dt>{{ localizedText('交易時間', 'Transaction time') }}</dt>
+            <dd>{{ order.transactionTime }}</dd>
+          </div>
+          <div>
+            <dt>{{ localizedText('訂單編號', 'Order no.') }}</dt>
+            <dd class="mono">{{ order.orderNo }}</dd>
+          </div>
+          <div>
+            <dt>{{ localizedText('交易數量', 'Transaction amount') }}</dt>
+            <dd>{{ order.assetAmount }}</dd>
+          </div>
+          <div>
+            <dt>{{ localizedText('匯率', 'Exchange rate') }}</dt>
+            <dd>{{ order.rateLine }}</dd>
+          </div>
+          <div>
+            <dt>{{ localizedText('手續費', 'Fee') }}</dt>
+            <dd class="order-fee-value">{{ order.feeLine }}</dd>
+          </div>
+          <div>
+            <dt>{{ localizedText('實際數量', 'Actual quantity') }}</dt>
+            <dd>{{ order.actualQuantity }}</dd>
+          </div>
+        </dl>
+
+        <div class="order-divider"></div>
+
+        <div class="order-received-row" :class="order.receivedClass">
+          <span>{{ order.receivedLabel }}</span>
+          <strong>{{ order.receivedAmount }}</strong>
         </div>
       </section>
 
-      <section v-if="order" class="glass-panel rounded-[24px] p-5">
-        <h3 class="font-headline text-lg">進度</h3>
-        <div class="mt-4 space-y-4 text-sm">
-          <div v-for="(step, idx) in order.steps" :key="step.title" class="flex gap-3" :class="{ 'opacity-50': !step.done }">
-            <div class="w-8 h-8 rounded-full flex items-center justify-center shrink-0" :class="step.done ? 'bg-primary text-white' : 'bg-surface-container-high text-on-surface-variant'">{{ idx + 1 }}</div>
-            <div><div class="font-semibold">{{ step.title }}</div><div class="text-on-surface-variant">{{ step.desc }}</div></div>
-          </div>
-        </div>
-      </section>
-
-      <section v-if="order" class="order-tip-card">
-        <h3 class="font-headline text-lg">備註與安全提示</h3>
-        <p class="order-tip-card__text">{{ order.tip }}</p>
-        <div class="mt-6 grid gap-3" :class="order.canCancel ? 'grid-cols-3' : 'grid-cols-2'">
-          <a class="order-action-btn order-action-btn--support" href="#/pages/index/serviceCenter">聯繫客服</a>
-          <button v-if="order.canCancel" type="button" class="order-action-btn order-action-btn--cancel" :disabled="loading" @click="cancelOrder">{{ loading ? '處理中...' : '取消訂單' }}</button>
-          <a class="order-action-btn order-action-btn--primary" :href="order.primaryHref">{{ order.primaryAction }}</a>
-        </div>
-      </section>
+      <div v-if="order" class="order-actions">
+        <button v-if="order.canCancel" type="button" class="order-secondary-btn" :disabled="loading" @click="cancelOrder">
+          {{ loading ? localizedText('處理中...', 'Processing...') : localizedText('取消訂單', 'Cancel order') }}
+        </button>
+        <a class="order-close-btn" href="#/pages/setting/myTask">{{ localizedText('關閉', 'Close') }}</a>
+      </div>
     </main>
   </div>
 </template>
 
 <script>
+import { brandMarkLogo } from '@/assets/images'
+import profileBellIcon from '@/static/icons/profile/bell.svg'
+import profileRecordsIcon from '@/static/icons/profile/records-white.svg'
+import profileTopupIcon from '@/static/icons/profile/top-up-white.svg'
+import profileSellIcon from '@/static/icons/profile/sell-white.svg'
 import { userApi } from '@/utils/api'
 
-/**
- * EURNYSE - 訂單詳情 (純 H5 Vue2 Options API)
- * 以 docs/previews/nnn/order-detail.html 為唯一基準逐字遷移
- * 原稿無內聯 JS，僅外部 back-nav.js
- */
-var BODY_CLASSES = [
-  "nc2c-page",
-  "nc2c-page--order-detail",
-  "font-body",
-  "antialiased",
-  "min-h-screen",
-  "bg-background",
-  "text-on-surface",
-  "pb-8"
-];
+var BODY_CLASSES = ['nc2c-page', 'nc2c-page--order-detail', 'font-body', 'antialiased', 'min-h-screen', 'bg-background', 'text-on-surface', 'pb-8']
 
 export default {
-  name: "OrderDetailH5",
+  name: 'OrderDetailH5',
   data: function () {
-    return {
-      orderId: "",
-      loading: false,
-      errorMessage: "",
-      remoteOrder: null
-    };
+    return { logoSrc: brandMarkLogo, profileIcons: { bell: profileBellIcon, records: profileRecordsIcon }, orderId: '', loading: false, errorMessage: '', remoteOrder: null }
   },
   computed: {
-    order: function () {
-      return this.remoteOrder || null;
-    }
+    order: function () { return this.remoteOrder || null }
   },
   mounted: function () {
     try {
-      for (var i = 0; i < BODY_CLASSES.length; i++) {
-        document.body.classList.add(BODY_CLASSES[i]);
-      }
-      document.body.setAttribute("data-nc2c-page", "order-detail");
-      document.body.setAttribute("data-nc2c-locked", "true");
+      for (var i = 0; i < BODY_CLASSES.length; i++) document.body.classList.add(BODY_CLASSES[i])
+      document.body.setAttribute('data-nc2c-page', 'order-detail')
+      document.body.setAttribute('data-nc2c-locked', 'true')
     } catch (e) {}
-    this.orderId = this.getOrderIdFromHash();
-    this.loadSharedScript("/static/previews/shared/back-nav.js", "eurnyseBackNav");
-    this.fetchOrderDetail();
+    this.orderId = this.getOrderIdFromHash()
+    this.loadSharedScript('/static/previews/shared/marble-bg.js', 'eurforexMarbleBgJs')
+    this.loadSharedScript('/static/previews/shared/back-nav.js', 'eurnyseBackNav')
+    this.fetchOrderDetail()
   },
   beforeDestroy: function () {
     try {
-      for (var i = 0; i < BODY_CLASSES.length; i++) {
-        document.body.classList.remove(BODY_CLASSES[i]);
-      }
-      document.body.removeAttribute("data-nc2c-page");
-      document.body.removeAttribute("data-nc2c-locked");
+      for (var i = 0; i < BODY_CLASSES.length; i++) document.body.classList.remove(BODY_CLASSES[i])
+      document.body.removeAttribute('data-nc2c-page')
+      document.body.removeAttribute('data-nc2c-locked')
     } catch (e) {}
   },
   methods: {
     getOrderIdFromHash: function () {
       try {
-        var hash = window.location.hash || "";
-        var query = hash.indexOf("?") >= 0 ? hash.slice(hash.indexOf("?") + 1) : "";
-        var params = new URLSearchParams(query);
-        var id = params.get("id");
-        return id ? String(id).trim() : "";
-      } catch (e) {
-        return "";
-      }
+        var hash = window.location.hash || ''
+        var query = hash.indexOf('?') >= 0 ? hash.slice(hash.indexOf('?') + 1) : ''
+        var params = new URLSearchParams(query)
+        var id = params.get('id')
+        return id ? String(id).trim() : ''
+      } catch (e) { return '' }
     },
     backGo: function (event, fallback) {
-      if (window.EurnyseBack && typeof window.EurnyseBack.go === "function") {
-        if (event && event.preventDefault) event.preventDefault();
-        window.EurnyseBack.go(fallback);
+      if (window.EurnyseBack && typeof window.EurnyseBack.go === 'function') {
+        if (event && event.preventDefault) event.preventDefault()
+        window.EurnyseBack.go(fallback)
       }
     },
     fetchOrderDetail: function () {
-      if (!this.orderId || !/^\d+$/.test(this.orderId)) return;
-      var self = this;
-      this.loading = true;
-      this.errorMessage = "";
-      userApi.orderDetail(this.orderId)
-        .then(function (data) {
-          self.remoteOrder = self.mapApiOrder(data.order || {});
-        })
-        .catch(function (error) {
-          self.errorMessage = (error && error.message) || "載入訂單失敗";
-        })
-        .finally(function () {
-          self.loading = false;
-        });
+      if (!this.orderId || !/^\d+$/.test(this.orderId)) return
+      var self = this
+      this.loading = true
+      this.errorMessage = ''
+      userApi.orderDetail(this.orderId).then(function (data) {
+        self.remoteOrder = self.mapApiOrder(data.order || {})
+      }).catch(function (error) {
+        self.errorMessage = (error && error.message) || self.localizedText('載入訂單失敗', 'Failed to load order')
+      }).finally(function () { self.loading = false })
     },
     mapApiOrder: function (item) {
-      var side = String(item.side || "");
-      var status = String(item.status || "");
-      var amount = this.formatAmount(item.amount, 2);
-      var total = this.formatAmount(item.total_amount, 2);
-      var fiat = item.fiat_code || "EUR";
-      var asset = item.asset_code || "USDT";
-      var isBuy = side === "buy";
+      var side = String(item.side || '').toLowerCase()
+      var status = String(item.status || '').toLowerCase()
+      var isBuy = side === 'buy'
+      var amount = Number(item.amount || 0)
+      var total = Number(item.total_amount || 0)
+      var price = Number(item.price || 0)
+      var fiat = String(item.fiat_code || 'EUR').toUpperCase()
+      var asset = String(item.asset_code || 'USDT').toUpperCase()
+      var statusMeta = this.statusMeta(status)
+      var counterpartyName = String(item.counterparty_display_name || item.counterparty_username || '').trim()
+      var feeRate = Number(item.fee_rate || 0.005) || 0.005
+      var fee = item.fee_amount != null && String(item.fee_amount).trim() !== '' ? Number(item.fee_amount || 0) : amount * feeRate
+      var actual = Math.max(0, amount - fee)
+      if (item.actual_amount != null && String(item.actual_amount).trim() !== '') actual = Number(item.actual_amount || actual)
+      var mainAmount = isBuy ? ('+' + this.formatAmount(amount, 2) + ' ' + asset) : ('+' + this.formatAmount(total, 2) + ' ' + fiat)
+      var receivedAmount = isBuy ? (this.formatAmount(amount, 2) + ' ' + asset) : (this.formatAmount(total, 2) + ' ' + fiat)
       return {
         realId: item.id,
-        orderNo: item.order_no || String(item.id || "—"),
-        title: (isBuy ? "買入 " : "賣出 ") + amount + " " + asset,
-        statusLabel: this.statusLabel(status),
-        badgeClass: status === "completed" ? "bg-surface-container-high text-on-surface-variant" : status === "cancelled" ? "bg-error/10 text-error" : "bg-primary-container text-primary-dim",
-        totalLabel: isBuy ? "付款總額" : "收款總額",
-        fiatAmount: fiat + " " + total,
-        price: this.formatAmount(item.price, 4) + " " + fiat,
-        counterparty: isBuy ? ("賣家 #" + (item.seller_user_id || "-")) : ("買家 #" + (item.buyer_user_id || "-")),
-        methodLabel: isBuy ? "付款方式" : "收款方式",
+        orderNo: item.order_no || String(item.id || '-'),
+        icon: isBuy ? profileTopupIcon : profileSellIcon,
+        sideLabelShort: isBuy ? 'BUY' : 'SELL',
+        resultClass: isBuy ? 'order-result-icon--buy' : 'order-result-icon--sell',
+        amountClass: statusMeta.amountClass,
+        mainAmount: mainAmount,
+        statusText: statusMeta.text,
+        statusIcon: statusMeta.icon,
+        statusClass: statusMeta.className,
+        transactionTime: item.completed_at || item.updated_at || item.created_at || '-',
+        assetAmount: this.formatAmount(amount, 2) + ' ' + asset,
+        rateLine: '1 ' + asset + ' ≈ ' + this.formatAmount(price, 4) + ' ' + fiat,
+        feeLine: '-' + this.formatAmount(fee, 2) + ' ' + asset,
+        actualQuantity: this.formatAmount(actual || amount, 2) + ' ' + asset,
+        counterparty: counterpartyName || (isBuy ? this.localizedText('賣家 #-', 'Seller #-') : this.localizedText('買家 #-', 'Buyer #-')),
+        methodLabel: isBuy ? this.localizedText('付款方式', 'Payment method') : this.localizedText('收款方式', 'Settlement method'),
         method: this.paymentMethodLabel(item.payment_method_summary),
-        primaryAction: "查看資金紀錄",
-        primaryHref: "#/pages/setting/fundRecord",
-        canCancel: ["pending_payment", "paid_pending_release", "disputed"].indexOf(status) !== -1,
-        tip: status === "cancelled" ? "訂單已取消，已觸發對應資產退回。" : "請依平台流程完成付款或等待審核放行。",
-        steps: [
-          { title: "建立訂單", desc: item.created_at || "-", done: true },
-          { title: isBuy ? "資金凍結" : "USDT 凍結", desc: status === "cancelled" ? "已退回" : "等待處理", done: status !== "pending_payment" || isBuy },
-          { title: "訂單完成", desc: item.completed_at || "尚未完成", done: status === "completed" }
-        ]
-      };
+        receivedLabel: status === 'completed' ? this.localizedText('交易已到帳', 'Transaction received') : this.localizedText('預計到帳', 'Estimated received'),
+        receivedAmount: receivedAmount,
+        receivedClass: statusMeta.receivedClass,
+        canCancel: ['pending_payment', 'paid_pending_release', 'disputed'].indexOf(status) !== -1
+      }
+    },
+    statusMeta: function (status) {
+      if (status === 'completed') return { text: this.localizedText('交易成功', 'Transaction successful'), icon: '✓', className: 'order-status-line--success', amountClass: 'order-main-amount--success', receivedClass: 'order-received-row--success' }
+      if (status === 'cancelled') return { text: this.localizedText('交易已取消', 'Transaction canceled'), icon: '×', className: 'order-status-line--cancelled', amountClass: 'order-main-amount--muted', receivedClass: 'order-received-row--muted' }
+      if (status === 'disputed') return { text: this.localizedText('申訴處理中', 'Appeal in progress'), icon: '!', className: 'order-status-line--warning', amountClass: 'order-main-amount--warning', receivedClass: 'order-received-row--warning' }
+      if (status === 'paid_pending_release') return { text: this.localizedText('等待放行', 'Pending release'), icon: '…', className: 'order-status-line--pending', amountClass: 'order-main-amount--pending', receivedClass: 'order-received-row--pending' }
+      return { text: this.localizedText('等待付款', 'Pending payment'), icon: '…', className: 'order-status-line--pending', amountClass: 'order-main-amount--pending', receivedClass: 'order-received-row--pending' }
     },
     cancelOrder: function () {
-      if (!this.remoteOrder || !this.remoteOrder.realId || !this.remoteOrder.canCancel) return;
-      if (!window.confirm("確定取消此訂單？取消後會退回已凍結資產並恢復掛單庫存。")) return;
-      var self = this;
-      this.loading = true;
-      userApi.cancelOrder(this.remoteOrder.realId, "使用者取消訂單")
-        .then(function () {
-          return self.fetchOrderDetail();
-        })
-        .catch(function (error) {
-          alert((error && error.message) || "取消訂單失敗");
-        })
-        .finally(function () {
-          self.loading = false;
-        });
-    },
-    statusLabel: function (status) {
-      var map = {
-        pending_payment: "待付款",
-        paid_pending_release: "待放行",
-        completed: "已完成",
-        cancelled: "已取消",
-        disputed: "申訴中"
-      };
-      return map[status] || status || "未知";
+      if (!this.remoteOrder || !this.remoteOrder.realId || !this.remoteOrder.canCancel) return
+      if (!window.confirm(this.localizedText('確定取消此訂單？', 'Are you sure to cancel this order?'))) return
+      var self = this
+      this.loading = true
+      userApi.cancelOrder(this.remoteOrder.realId, '使用者取消訂單').then(function () {
+        return self.fetchOrderDetail()
+      }).catch(function (error) {
+        alert((error && error.message) || self.localizedText('取消訂單失敗', 'Failed to cancel order'))
+      }).finally(function () { self.loading = false })
     },
     paymentMethodLabel: function (summary) {
-      var s = String(summary || "").trim();
-      if (!s || s === "平台撮合") return this.$phrase("平台撮合", "平台撮合");
-      return s;
+      var s = String(summary || '').trim()
+      if (!s || s === '平台撮合') return this.localizedText('平台撮合', 'Platform matching')
+      return s
     },
     formatAmount: function (value, digits) {
-      return Number(value || 0).toLocaleString("en-GB", {
-        minimumFractionDigits: digits,
-        maximumFractionDigits: digits
-      });
+      var n = Number(value || 0)
+      return n.toLocaleString('en-GB', { minimumFractionDigits: digits, maximumFractionDigits: digits })
     }
   }
-};
+}
 </script>
 
 <style>
+@import url("../../static/previews/shared/marble-bg.css");
 @import url("../../static/previews/nc2c/css/preview-entry.css");
 
-.order-card {
-  margin: 0 0 22px;
-  padding: 22px;
-  border-radius: 30px;
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(247, 252, 255, 0.9));
-  border: 1px solid rgba(190, 220, 240, 0.85);
-  box-shadow:
-    0 18px 36px rgba(34, 82, 124, 0.13),
-    inset 0 1px 0 rgba(255, 255, 255, 0.9);
-  position: relative;
-  overflow: hidden;
-}
-
-.order-card::before {
-  content: "";
-  position: absolute;
-  left: 22px;
-  right: 22px;
-  top: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(44, 169, 255, 0.55), transparent);
-  pointer-events: none;
-}
-
-.order-card__id {
-  font-size: 11px;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
-  color: #647d92;
-}
-
-.order-card__title {
-  color: #1a4a6e;
-  letter-spacing: -0.02em;
-}
-
-.order-card__value {
-  color: #153a5c;
-}
-
-.info-box {
-  padding: 16px 18px;
-  border-radius: 20px;
-  background: linear-gradient(180deg, #f6fbff, #edf6fc);
-  border: 1px solid #d9e9f5;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.85);
-}
-
-.info-box .orders-subtext {
-  color: #5c758a;
-  font-size: 12px;
-  letter-spacing: 0.02em;
-}
-
-.order-tip-card {
-  border-radius: 24px;
-  padding: 20px;
-  background: linear-gradient(180deg, #f6fbff, #edf5ff);
-  border: 1px solid #d2e4f4;
-}
-
-.order-tip-card__text {
-  margin-top: 12px;
-  padding: 12px 14px;
-  border-radius: 14px;
-  font-size: 14px;
-  line-height: 1.7;
-  color: #35516b;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid rgba(145, 179, 207, 0.45);
-}
-
-.order-action-btn {
-  height: 56px;
-  border-radius: 999px;
-  font-size: 14px;
-  font-weight: 700;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-decoration: none;
-  transition: transform 0.15s ease, box-shadow 0.2s ease, opacity 0.2s ease;
-}
-
-.order-action-btn:active {
-  transform: scale(0.98);
-}
-
-.order-action-btn--support {
-  color: #194d74;
-  background: #ffffff;
-  border: 1px solid #b9d6ee;
-  box-shadow: 0 8px 20px rgba(40, 97, 145, 0.12);
-}
-
-.order-action-btn--cancel {
-  color: #b42336;
-  background: #fff3f5;
-  border: 1px solid #f3c2ca;
-  box-shadow: 0 8px 18px rgba(180, 35, 54, 0.12);
-}
-
-.order-action-btn--cancel:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-}
-
-.order-action-btn--primary {
-  color: #ffffff;
-  background: linear-gradient(135deg, #2e78c8, #1d5fa6);
-  box-shadow: 0 14px 30px rgba(47, 115, 205, 0.24);
-}
+.order-top-logo, .order-top-bell { align-items: center; border-radius: 999px; display: flex; height: 40px; justify-content: center; width: 40px; }
+.order-top-logo img { height: 40px; object-fit: contain; width: 40px; }
+.order-top-bell img { height: 22px; object-fit: contain; width: 22px; }
+.order-receipt-card { background: linear-gradient(145deg, rgba(255,255,255,.96), rgba(247,252,255,.86)); border: 1px solid rgba(255,255,255,.9); border-radius: 28px; box-shadow: 0 18px 38px rgba(40,88,142,.1), inset 0 1px 0 rgba(255,255,255,.96); overflow: hidden; padding: 42px 24px 22px; text-align: center; }
+.order-receipt-card--empty { padding-bottom: 28px; }
+.order-receipt-card--empty h2 { color: #16293f; font-size: 22px; font-weight: 800; margin-top: 14px; }
+.order-receipt-card--empty p { color: #738397; line-height: 1.6; margin: 10px 0 20px; }
+.order-result-icon { align-items: center; border: 7px solid rgba(255,255,255,.92); border-radius: 999px; box-shadow: 0 14px 28px rgba(40,88,142,.14); display: inline-flex; height: 88px; justify-content: center; position: relative; width: 88px; }
+.order-result-icon img { height: 46px; object-fit: contain; width: 46px; }
+.order-result-icon span { background: rgba(255,255,255,.28); border-radius: 999px; bottom: 5px; color: #fff; font-size: 12px; font-weight: 800; left: 50%; letter-spacing: .04em; padding: 2px 8px; position: absolute; transform: translateX(-50%); }
+.order-result-icon--sell { background: linear-gradient(145deg, #ff9b9f, #e45d65); }
+.order-result-icon--buy { background: linear-gradient(145deg, #72d3bd, #2f9c91); }
+.order-result-icon--unknown { background: linear-gradient(145deg, #8fd5ff, #4d87df); }
+.order-main-amount { color: #071633; font-family: Space Grotesk, Manrope, sans-serif; font-size: clamp(34px, 8.2vw, 44px); font-weight: 750; letter-spacing: -0.04em; line-height: 1.05; margin-top: 22px; overflow-wrap: anywhere; }
+.order-main-amount--muted { color: #738397; }
+.order-main-amount--warning { color: #ad741f; }
+.order-main-amount--pending { color: #2f73cd; }
+.order-status-line { align-items: center; display: inline-flex; font-size: 16px; gap: 8px; justify-content: center; margin-top: 14px; }
+.order-status-line span { align-items: center; border: 1.5px solid currentColor; border-radius: 999px; display: inline-flex; font-size: 13px; font-weight: 900; height: 22px; justify-content: center; line-height: 1; width: 22px; }
+.order-status-line--success { color: #3fa36a; }
+.order-status-line--cancelled { color: #d94c5b; }
+.order-status-line--warning { color: #bd8427; }
+.order-status-line--pending { color: #416bed; }
+.order-divider { background: linear-gradient(90deg, transparent, rgba(145,179,207,.42), transparent); height: 1px; margin: 34px 0 24px; }
+.order-detail-list { display: grid; gap: 22px; margin: 0; text-align: left; }
+.order-detail-list div { align-items: start; display: grid; gap: 18px; grid-template-columns: minmax(0, 1fr) minmax(0, 1.25fr); }
+.order-detail-list dt { color: #738397; font-size: 14px; }
+.order-detail-list dd { color: #16293f; font-size: 14px; font-weight: 650; margin: 0; min-width: 0; overflow-wrap: anywhere; text-align: right; }
+.order-detail-list dd.order-fee-value { color: #d94c5b; }
+.order-detail-list dd.mono { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 12px; }
+.order-received-row { align-items: center; background: linear-gradient(90deg, rgba(238,250,246,.95), rgba(232,248,244,.86)); border: 1px solid rgba(202,232,223,.72); border-radius: 14px; display: flex; gap: 12px; justify-content: space-between; padding: 14px 16px; text-align: left; }
+.order-received-row span { color: #16293f; font-weight: 800; }
+.order-received-row strong { color: #3fa36a; font-size: 22px; font-weight: 850; text-align: right; }
+.order-received-row--muted { background: rgba(241,246,250,.82); }
+.order-received-row--muted strong { color: #738397; }
+.order-received-row--warning strong { color: #bd8427; }
+.order-received-row--pending strong { color: #416bed; }
+.order-actions { display: grid; gap: 12px; margin-top: 16px; }
+.order-close-btn, .order-secondary-btn { align-items: center; border-radius: 999px; display: flex; font-family: Space Grotesk, Manrope, sans-serif; font-size: 17px; font-weight: 800; height: 56px; justify-content: center; text-decoration: none; width: 100%; }
+.order-close-btn { background: linear-gradient(135deg, #6687ff 0%, #416bed 100%); box-shadow: 0 18px 32px rgba(65,107,237,.24); color: #fff; }
+.order-secondary-btn { background: #fff3f5; border: 1px solid #f3c2ca; color: #b42336; }
+.order-secondary-btn:disabled { opacity: .65; }
+@media (max-width: 374px) { .order-receipt-card { padding-left: 20px; padding-right: 20px; } .order-detail-list div { gap: 10px; } .order-received-row strong { font-size: 18px; } }
 </style>

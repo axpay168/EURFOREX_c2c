@@ -2,17 +2,17 @@
   <div>
     <header class="fixed top-0 w-full border-b border-primary/10 bg-white/75 backdrop-blur-3xl shadow-[0_12px_32px_rgba(33,79,131,0.08)] flex justify-between items-center px-6 h-14 w-full z-50">
       <a class="flex shrink-0 items-center justify-center rounded-full p-2 text-primary-dim transition-colors hover:bg-primary/10" href="#/pages/setting/user" @click="backGo($event, '#/pages/setting/user')" aria-label="返回"><span class="material-symbols-outlined">arrow_back</span></a>
-      <div class="font-headline text-lg font-bold text-on-surface">邀請團隊</div>
+      <div class="font-headline text-lg font-bold text-on-surface">{{ localizedText("邀請團隊", "Invite team") }}</div>
       <div class="w-10 shrink-0" aria-hidden="true"></div>
     </header>
 
     <main class="mx-auto max-w-lg px-4 pt-20">
       <section class="invite-card invite-panel p-5 md:p-6">
-        <p class="invite-panel__title font-headline text-xl font-bold leading-snug md:text-2xl">邀請好友，一起成長</p>
+        <p class="invite-panel__title font-headline text-xl font-bold leading-snug md:text-2xl">{{ localizedText("邀請好友，一起成長", "Invite friends and grow together") }}</p>
 
         <div class="invite-panel__stats mt-5 grid grid-cols-2 gap-2">
           <div class="invite-stat-tile rounded-xl px-2 py-2 text-center">
-            <p class="invite-stat-tile__label text-[22px] font-semibold leading-tight">團隊人數</p>
+            <p class="invite-stat-tile__label text-[22px] font-semibold leading-tight">{{ localizedText("團隊人數", "Team size") }}</p>
             <p class="invite-stat-tile__value font-headline mt-1.5 text-2xl font-bold tabular-nums tracking-tight">{{ totalInvites }}</p>
           </div>
           <div class="invite-stat-tile invite-stat-tile--reward rounded-xl px-2 py-2 text-center">
@@ -27,7 +27,7 @@
             <div v-else class="invite-qr-placeholder" aria-hidden="true" title="邀請 QR" />
             <span class="invite-code-strip__value flex flex-1 items-center px-4 font-headline text-lg font-bold tracking-wide" id="invite-code-text">{{ invitationCode || '—' }}</span>
           </div>
-          <button type="button" class="invite-btn-copy-code invite-copy-btn flex h-12 w-[8.75rem] shrink-0 items-center justify-center rounded-full px-2 text-sm font-bold transition" data-copy-target="invite-code-text" @click="copyFromEl('invite-code-text')">複製邀請碼</button>
+          <button type="button" class="invite-btn-copy-code invite-copy-btn flex h-12 w-[8.75rem] shrink-0 items-center justify-center rounded-full px-2 text-sm font-bold transition" data-copy-target="invite-code-text" @click="copyFromEl('invite-code-text')">{{ $t('phrases.複製邀請碼') }}</button>
         </div>
 
         <div class="invite-panel__row mt-5 flex flex-col gap-4 sm:flex-row sm:items-stretch sm:gap-3">
@@ -35,7 +35,7 @@
             <span class="invite-link-panel__icon material-symbols-outlined shrink-0 text-[22px]">grid_view</span>
             <p class="invite-link-panel__url min-w-0 flex-1 break-all text-[12px] leading-snug" id="invite-link-text">{{ inviteLink }}</p>
           </div>
-          <button type="button" class="invite-link-btn invite-copy-btn flex h-12 w-[8.75rem] shrink-0 items-center justify-center rounded-full px-2 text-sm font-bold transition" data-copy-target="invite-link-text" @click="copyFromEl('invite-link-text')">複製連結</button>
+          <button type="button" class="invite-link-btn invite-copy-btn flex h-12 w-[8.75rem] shrink-0 items-center justify-center rounded-full px-2 text-sm font-bold transition" data-copy-target="invite-link-text" @click="copyFromEl('invite-link-text')">{{ $t('phrases.複製連結') }}</button>
         </div>
       </section>
     </main>
@@ -159,7 +159,7 @@ export default {
       var self = this;
       if (navigator.clipboard && navigator.clipboard.writeText) {
         navigator.clipboard.writeText(text.trim()).then(function () {
-          self.notify("已複製");
+          self.notify(self.$t("phrases.已複製"));
         }).catch(function () {
           self.fallbackCopy(text);
         });
@@ -176,9 +176,9 @@ export default {
       ta.select();
       try {
         document.execCommand("copy");
-        this.notify("已複製");
+        this.notify(this.$t("phrases.已複製"));
       } catch (e) {
-        this.notify("請手動複製");
+        this.notify(this.$t("phrases.請手動複製"));
       }
       document.body.removeChild(ta);
     },

@@ -2,53 +2,53 @@
   <div>
     <header class="fixed top-0 w-full border-b border-primary/10 bg-white/75 backdrop-blur-3xl shadow-[0_12px_32px_rgba(33,79,131,0.08)] flex justify-between items-center px-6 h-14 w-full z-50">
       <a class="flex shrink-0 items-center justify-center rounded-full p-2 text-primary-dim transition-colors hover:bg-primary/10" href="#/pages/setting/user" @click="backGo($event, '#/pages/setting/user')"><span class="material-symbols-outlined">arrow_back</span></a>
-      <div class="min-w-0 truncate px-1 text-center font-headline text-lg font-bold text-on-surface">安全中心 / 客服</div>
+      <div class="min-w-0 truncate px-1 text-center font-headline text-lg font-bold text-on-surface">{{ localizedText('安全中心 / 客服', 'Security Center / Support') }}</div>
       <a class="flex shrink-0 items-center justify-center rounded-full p-2 text-primary-dim transition-colors hover:bg-primary/10 scale-95 active:duration-150" href="javascript:void(0)" :aria-label="$t('phrases.聯絡專員')" @click="openChatwoot($event)"><span class="material-symbols-outlined">support_agent</span></a>
     </header>
     <main class="pt-20 px-4 max-w-3xl mx-auto pb-10">
       <section class="glass-panel rounded-[24px] p-5">
         <h2 class="font-headline text-2xl">{{ $t('phrases.客服中心') }}</h2>
-        <div class="service-center-tiles" role="navigation" aria-label="客服快捷入口">
+        <div class="service-center-tiles" role="navigation" :aria-label="localizedText('客服快捷入口', 'Support quick links')">
           <a class="service-center-tile" href="#/pages/setting/myTask">
             <div class="service-center-tile__icon service-center-tile__icon--primary"><span class="material-symbols-outlined" aria-hidden="true">receipt_long</span></div>
             <div class="service-center-tile__text">
-              <div class="service-center-tile__title">訂單問題</div>
-              <p class="service-center-tile__desc">付款、放行與申訴</p>
+              <div class="service-center-tile__title">{{ localizedText('訂單問題', 'Order issues') }}</div>
+              <p class="service-center-tile__desc">{{ localizedText('付款、放行與申訴', 'Payment, release and disputes') }}</p>
             </div>
           </a>
           <a class="service-center-tile" href="#/pages/setting/bindinfo">
             <div class="service-center-tile__icon service-center-tile__icon--secondary"><span class="material-symbols-outlined" aria-hidden="true">account_balance</span></div>
             <div class="service-center-tile__text">
-              <div class="service-center-tile__title">銀行綁定</div>
-              <p class="service-center-tile__desc">收付款帳戶綁定</p>
+              <div class="service-center-tile__title">{{ localizedText('銀行綁定', 'Bank linking') }}</div>
+              <p class="service-center-tile__desc">{{ localizedText('收付款帳戶綁定', 'Bind payment and settlement accounts') }}</p>
             </div>
           </a>
           <a class="service-center-tile" href="#/pages/setting/kycVerification">
             <div class="service-center-tile__icon service-center-tile__icon--tertiary"><span class="material-symbols-outlined" aria-hidden="true">verified_user</span></div>
             <div class="service-center-tile__text">
-              <div class="service-center-tile__title">實名驗證</div>
-              <p class="service-center-tile__desc">KYC 與驗證進度</p>
+              <div class="service-center-tile__title">{{ localizedText('實名驗證', 'Identity verification') }}</div>
+              <p class="service-center-tile__desc">{{ localizedText('KYC 與驗證進度', 'KYC and verification status') }}</p>
             </div>
           </a>
           <a class="service-center-tile" href="#/pages/index/tutorial">
             <div class="service-center-tile__icon service-center-tile__icon--primary"><span class="material-symbols-outlined" aria-hidden="true">school</span></div>
             <div class="service-center-tile__text">
-              <div class="service-center-tile__title">新手指南</div>
-              <p class="service-center-tile__desc">操作流程與新手教學</p>
+              <div class="service-center-tile__title">{{ localizedText('新手指南', 'Tutorial') }}</div>
+              <p class="service-center-tile__desc">{{ localizedText('操作流程與新手教學', 'Operation flow and beginners guide') }}</p>
             </div>
           </a>
           <a class="service-center-tile" href="#/pages/common/article">
             <div class="service-center-tile__icon service-center-tile__icon--secondary"><span class="material-symbols-outlined" aria-hidden="true">article</span></div>
             <div class="service-center-tile__text">
-              <div class="service-center-tile__title">公告文章</div>
-              <p class="service-center-tile__desc">查看通知與活動內容</p>
+              <div class="service-center-tile__title">{{ localizedText('公告文章', 'Announcements') }}</div>
+              <p class="service-center-tile__desc">{{ localizedText('查看通知與活動內容', 'View notices and campaign content') }}</p>
             </div>
           </a>
           <a class="service-center-tile" href="#/pages/setting/securityCenter">
             <div class="service-center-tile__icon service-center-tile__icon--tertiary"><span class="material-symbols-outlined" aria-hidden="true">shield_lock</span></div>
             <div class="service-center-tile__text">
-              <div class="service-center-tile__title">安全中心</div>
-              <p class="service-center-tile__desc">密碼、KYC 與綁定設定</p>
+              <div class="service-center-tile__title">{{ localizedText('安全中心', 'Security Center') }}</div>
+              <p class="service-center-tile__desc">{{ localizedText('密碼、KYC 與綁定設定', 'Password, KYC and binding settings') }}</p>
             </div>
           </a>
         </div>

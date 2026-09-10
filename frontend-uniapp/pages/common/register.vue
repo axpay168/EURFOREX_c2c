@@ -37,7 +37,7 @@
           <div class="panel" :class="{ active: currentMode === 'phone' }" id="panelPhone">
             <div class="phone-row">
               <div class="country-wrap">
-                <button type="button" class="country-code" id="countryCodeLink" aria-haspopup="dialog" aria-label="選擇區碼" @click="openAreaPicker"><span id="countryCodeText">{{ currentAreaCode }}</span></button>
+                <button type="button" class="country-code" id="countryCodeLink" aria-haspopup="dialog" :aria-label="localizedText('選擇區碼', 'Select country code')" @click="openAreaPicker"><span id="countryCodeText">{{ currentAreaCode }}</span></button>
               </div>
 
               <div class="field">
@@ -52,6 +52,43 @@
             </div>
           </div>
 
+          <div class="field country-region-field">
+            <span class="icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                <circle cx="12" cy="12" r="9"/>
+                <path d="M3 12h18"/>
+                <path d="M12 3c2.2 2.5 3.4 5.5 3.4 9s-1.2 6.5-3.4 9"/>
+                <path d="M12 3c-2.2 2.5-3.4 5.5-3.4 9s1.2 6.5 3.4 9"/>
+              </svg>
+            </span>
+            <button
+              id="residenceCountry"
+              type="button"
+              class="country-region-trigger"
+              :aria-expanded="showCountryDropdown ? 'true' : 'false'"
+              :aria-label="texts.countryLabel"
+              aria-haspopup="listbox"
+              @click="toggleCountryDropdown"
+            >
+              <span>{{ selectedCountryName }}</span>
+            </button>
+            <div v-if="showCountryDropdown" class="country-region-menu" role="listbox">
+              <button
+                v-for="country in COUNTRIES"
+                :key="country.code"
+                type="button"
+                class="country-region-option"
+                :class="{ active: country.code === selectedCountryCode }"
+                role="option"
+                :aria-selected="country.code === selectedCountryCode ? 'true' : 'false'"
+                @click="selectResidenceCountry(country.code)"
+              >
+                <span>{{ country.name }}</span>
+                <span class="country-region-code">{{ country.code }}</span>
+              </button>
+            </div>
+          </div>
+
           <div class="field">
             <span class="icon">
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
@@ -60,7 +97,7 @@
               </svg>
             </span>
             <input class="password-input" :type="passwordHidden1 ? 'password' : 'text'" id="password" :placeholder="texts.passwordPlaceholder" v-model="passwordValue" />
-            <button type="button" class="toggle-password" id="togglePasswordBtn" aria-label="顯示或隱藏密碼" @click="passwordHidden1 = !passwordHidden1">
+            <button type="button" class="toggle-password" id="togglePasswordBtn" :aria-label="passwordHidden1 ? localizedText('顯示密碼', 'Show password') : localizedText('隱藏密碼', 'Hide password')" @click="passwordHidden1 = !passwordHidden1">
               <svg v-show="passwordHidden1" id="eyeOpen1" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                 <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"/>
                 <circle cx="12" cy="12" r="3"/>
@@ -82,7 +119,7 @@
               </svg>
             </span>
             <input class="password-input" :type="passwordHidden2 ? 'password' : 'text'" id="confirmPassword" :placeholder="texts.confirmPlaceholder" v-model="confirmPasswordValue" />
-            <button type="button" class="toggle-password" id="toggleConfirmPasswordBtn" aria-label="顯示或隱藏密碼" @click="passwordHidden2 = !passwordHidden2">
+            <button type="button" class="toggle-password" id="toggleConfirmPasswordBtn" :aria-label="passwordHidden2 ? localizedText('顯示密碼', 'Show password') : localizedText('隱藏密碼', 'Hide password')" @click="passwordHidden2 = !passwordHidden2">
               <svg v-show="passwordHidden2" id="eyeOpen2" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
                 <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z"/>
                 <circle cx="12" cy="12" r="3"/>
@@ -218,6 +255,7 @@ var TEXTS = {
     pageSubtitle: "填寫以下資訊，註冊你的 C2C 平台帳戶。",
     tabEmail: "郵箱註冊",
     tabPhone: "電話註冊",
+    countryLabel: "國家 / 地區",
     emailPlaceholder: "請輸入郵箱",
     phonePlaceholder: "請輸入手機號",
     invitePlaceholder: "請輸入邀請碼（必填）",
@@ -257,6 +295,7 @@ var TEXTS = {
     pageSubtitle: "填写以下信息，注册你的 C2C 平台账户。",
     tabEmail: "邮箱注册",
     tabPhone: "电话注册",
+    countryLabel: "国家 / 地区",
     emailPlaceholder: "请输入邮箱",
     phonePlaceholder: "请输入手机号",
     invitePlaceholder: "请输入邀请码（必填）",
@@ -296,6 +335,7 @@ var TEXTS = {
     pageSubtitle: "Fill in the information below to create your C2C account.",
     tabEmail: "Email Register",
     tabPhone: "Phone Register",
+    countryLabel: "Country / Region",
     emailPlaceholder: "Enter email",
     phonePlaceholder: "Enter phone number",
     invitePlaceholder: "Enter invitation code",
@@ -365,12 +405,33 @@ var REGISTER_ERROR_TEXTS = {
   }
 };
 
-function localizedRegisterError(error, lang, fallback) {
-  var currentLang = TEXTS[lang] ? lang : "zh-Hant";
+var COUNTRIES = [
+  { code: "DE", name: "Germany" },
+  { code: "CH", name: "Switzerland" },
+  { code: "US", name: "United States" },
+  { code: "GB", name: "United Kingdom" },
+  { code: "FR", name: "France" },
+  { code: "IT", name: "Italy" },
+  { code: "ES", name: "Spain" },
+  { code: "NL", name: "Netherlands" },
+  { code: "PT", name: "Portugal" },
+  { code: "AT", name: "Austria" },
+  { code: "BE", name: "Belgium" },
+  { code: "FI", name: "Finland" },
+  { code: "IE", name: "Ireland" },
+  { code: "LU", name: "Luxembourg" },
+  { code: "GR", name: "Greece" }
+];
+
+function localizedRegisterError(error, lang, fallback, vm) {
+  var currentLang = TEXTS[lang] ? lang : "eng";
   var code = error && error.payload && error.payload.error_code;
-  var texts = REGISTER_ERROR_TEXTS[currentLang] || REGISTER_ERROR_TEXTS["zh-Hant"];
+  // 非中文語系優先使用 locales/*.json 的 apiErrors（23 種語系都有）
+  if (!TEXTS[lang] && code && vm && typeof vm.$te === "function" && vm.$te("apiErrors." + code)) return vm.$t("apiErrors." + code);
+  var texts = REGISTER_ERROR_TEXTS[currentLang] || REGISTER_ERROR_TEXTS["eng"];
   if (code && texts[code]) return texts[code];
-  return fallback || (TEXTS[currentLang] && TEXTS[currentLang].registerFailed) || "註冊失敗，請稍後再試。";
+  if (!TEXTS[lang] && vm && typeof vm.localizedText === "function") return fallback || vm.localizedText("註冊失敗，請稍後再試。", "Registration failed. Please try again later.");
+  return fallback || (TEXTS[currentLang] && TEXTS[currentLang].registerFailed) || "Registration failed. Please try again later.";
 }
 
 
@@ -382,11 +443,13 @@ export default {
   name: "RegisterH5",
   data: function () {
     return {
-      currentMode: "email",
+    currentMode: "email",
       currentLang: getStoredLang(),
       currentAreaCode: "+84",
       emailValue: "",
       phoneValue: "",
+      selectedCountryCode: "DE",
+      showCountryDropdown: false,
       passwordValue: "",
       confirmPasswordValue: "",
       inviteCodeValue: "",
@@ -403,12 +466,21 @@ export default {
       showBiometricModal: false,
       showLangOverlay: false,
       pendingRegisterAccount: "",
-      LANGS: LANGS
+      LANGS: LANGS,
+      COUNTRIES: COUNTRIES
     };
   },
   computed: {
     texts: function () {
-      return TEXTS[this.currentLang] || TEXTS["zh-Hant"];
+      // 繁中／簡中／英文直接用內建表；其他語系以繁中文案為 key 查 locales/*.json 的字典，查不到才退回英文
+      if (TEXTS[this.currentLang]) return TEXTS[this.currentLang];
+      var zh = TEXTS["zh-Hant"], en = TEXTS["eng"], out = {}, self = this;
+      Object.keys(en).forEach(function (key) {
+        var z = String(zh[key] == null ? "" : zh[key]), e = String(en[key] == null ? "" : en[key]);
+        var trailing = /\s$/.test(z) ? " " : "";
+        out[key] = self.localizedText(z.trim(), e.trim()) + trailing;
+      });
+      return out;
     },
     activeLang: function () {
       var self = this;
@@ -418,14 +490,17 @@ export default {
       }
       return hit || LANGS[0];
     },
+    selectedCountryName: function () {
+      for (var i = 0; i < COUNTRIES.length; i++) {
+        if (COUNTRIES[i].code === this.selectedCountryCode) return COUNTRIES[i].name;
+      }
+      return "Germany";
+    },
     registerSuccessTitle: function () {
-      if (this.currentLang === "zh-Hans") return "注册成功";
-      if (this.currentLang === "zh-Hant") return "註冊成功";
-      return "Registration successful";
+      return this.texts.registerDoneTitle || "Registration successful";
     },
     registerLoggingInPrefix: function () {
-      if (this.currentLang === "zh-Hans" || this.currentLang === "zh-Hant") return "正在登入中";
-      return "Logging in ";
+      return this.texts.loggingInPrefix || "Logging in ";
     }
   },
   watch: {
@@ -494,12 +569,13 @@ export default {
       if (document.querySelector('script[data-eurforex-area-picker]')) return;
       var pathname = window.location && window.location.pathname ? window.location.pathname : "";
       var isH5Path = /^\/h5(?:\/|$)/.test(pathname);
+      var areaPickerVersion = "20260823-lang-sync";
       var candidates = isH5Path
-        ? ["/h5/static/previews/shared/area-picker.js"]
+        ? ["/h5/static/previews/shared/area-picker.js?v=" + areaPickerVersion]
         : [
-          "./static/previews/shared/area-picker.js",
-          "/static/previews/shared/area-picker.js",
-          "/h5/static/previews/shared/area-picker.js"
+          "./static/previews/shared/area-picker.js?v=" + areaPickerVersion,
+          "/static/previews/shared/area-picker.js?v=" + areaPickerVersion,
+          "/h5/static/previews/shared/area-picker.js?v=" + areaPickerVersion
         ];
       var loadNext = function (index) {
         if (index >= candidates.length || window.EurforexAreaPicker) return;
@@ -516,15 +592,23 @@ export default {
       loadNext(0);
     },
     openAreaPicker: function () {
+      try {
+        window.__EURFOREX_CURRENT_LANG = this.currentLang || getStoredLang();
+        localStorage.setItem("lang", window.__EURFOREX_CURRENT_LANG);
+      } catch (e) {}
       if (window.EurforexAreaPicker && typeof window.EurforexAreaPicker.open === "function") {
         window.EurforexAreaPicker.open();
       } else {
         var self = this;
         setTimeout(function () {
           if (window.EurforexAreaPicker && typeof window.EurforexAreaPicker.open === "function") {
+            try {
+              window.__EURFOREX_CURRENT_LANG = self.currentLang || getStoredLang();
+              localStorage.setItem("lang", window.__EURFOREX_CURRENT_LANG);
+            } catch (e) {}
             window.EurforexAreaPicker.open();
           } else {
-            self.showError("區碼選擇器尚未載入完成，請稍後再試。");
+            self.showError(localizedRegisterError({ payload: {} }, self.currentLang, self.texts.registerFailed || "Area code picker is not ready, please try again later.", self));
           }
         }, 160);
       }
@@ -558,6 +642,7 @@ export default {
     },
     switchMode: function (mode) {
       this.currentMode = mode;
+      this.showCountryDropdown = false;
       var isEmail = mode === "email";
       if (isEmail) {
         this.phoneValue = "";
@@ -570,6 +655,13 @@ export default {
       this.currentLang = value;
       setLocale(value);
       this.showLangOverlay = false;
+    },
+    toggleCountryDropdown: function () {
+      this.showCountryDropdown = !this.showCountryDropdown;
+    },
+    selectResidenceCountry: function (code) {
+      this.selectedCountryCode = code;
+      this.showCountryDropdown = false;
     },
     finalizeRegister: function () {
       setTimeout(function () {
@@ -621,6 +713,7 @@ export default {
 
       var payload = {
         mode: this.currentMode,
+        residenceCountryCode: this.selectedCountryCode,
         inviteCode: inviteCode,
         password: password
       };
@@ -633,7 +726,7 @@ export default {
       }
 
       var self = this;
-      registerAccount(this.pendingRegisterAccount, password, inviteCode, this.currentLang || "zh-Hant")
+      registerAccount(this.pendingRegisterAccount, password, inviteCode, this.currentLang || "zh-Hant", this.selectedCountryCode || "DE")
         .then(function () {
           assignRandomAvatarForUser(self.pendingRegisterAccount);
           try { sessionStorage.setItem("preview_register_payload", JSON.stringify(payload)); } catch (e) {}
@@ -641,7 +734,7 @@ export default {
           self.showRegisterCountdown();
         })
         .catch(function (error) {
-          self.showError(localizedRegisterError(error, self.currentLang, texts.registerFailed));
+          self.showError(localizedRegisterError(error, self.currentLang, texts.registerFailed, self));
         });
     },
     onBindLater: function () {
@@ -679,6 +772,114 @@ export default {
 <style>
 @import url("../../static/previews/nc2c/css/preview-entry.css");
 @import url("../../static/previews/nc2c/css/page-register.css");
+
+.country-region-field {
+  z-index: 8;
+}
+
+.country-region-trigger {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--line);
+  border-radius: 18px;
+  box-shadow: inset 0 1px 0 hsla(0, 0%, 100%, 0.08);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  font-size: 15px;
+  height: 56px;
+  justify-content: flex-start;
+  min-width: 0;
+  outline: none;
+  padding: 0 48px 0 48px;
+  position: relative;
+  text-align: left;
+  transition: 0.25s ease;
+  width: 100%;
+}
+
+.country-region-trigger:focus,
+.country-region-trigger:hover {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: hsla(0, 0%, 100%, 0.42);
+  box-shadow: 0 0 0 4px rgba(203, 239, 255, 0.08), inset 0 1px 0 hsla(0, 0%, 100%, 0.14);
+}
+
+.country-region-field::after {
+  border-bottom: 2px solid hsla(0, 0%, 100%, 0.75);
+  border-right: 2px solid hsla(0, 0%, 100%, 0.75);
+  content: "";
+  height: 8px;
+  pointer-events: none;
+  position: absolute;
+  right: 18px;
+  top: 50%;
+  transform: translateY(-70%) rotate(45deg);
+  width: 8px;
+}
+
+.country-region-menu {
+  animation: country-region-pop 0.16s ease-out;
+  background: linear-gradient(180deg, rgba(237, 250, 255, 0.96), rgba(213, 236, 246, 0.92));
+  border: 1px solid rgba(255, 255, 255, 0.68);
+  border-radius: 20px;
+  box-shadow: 0 22px 42px rgba(7, 28, 43, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.78);
+  left: 0;
+  margin-top: 8px;
+  max-height: 276px;
+  overflow-y: auto;
+  padding: 8px;
+  position: absolute;
+  right: 0;
+  top: 100%;
+  z-index: 30;
+}
+
+.country-region-option {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: 14px;
+  color: #173a4d;
+  cursor: pointer;
+  display: flex;
+  font-size: 15px;
+  font-weight: 650;
+  justify-content: space-between;
+  min-height: 42px;
+  padding: 0 14px;
+  text-align: left;
+  transition: background 0.16s ease, color 0.16s ease, transform 0.16s ease;
+  width: 100%;
+}
+
+.country-region-option:hover,
+.country-region-option.active {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(189, 232, 247, 0.72));
+  color: #153a4f;
+}
+
+.country-region-option:active {
+  transform: scale(0.99);
+}
+
+.country-region-code {
+  color: rgba(23, 58, 77, 0.58);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+@keyframes country-region-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
 
 .register-success-overlay {
   align-items: center;

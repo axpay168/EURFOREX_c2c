@@ -105,7 +105,10 @@
       rows
         .map(function (row) {
           var value = row && row.raw ? row.value : esc(row && row.value != null && row.value !== "" ? row.value : "—");
-          return "<div><dt>" + esc(row.label || "") + "</dt><dd" + (row.mono ? ' class="mono"' : "") + ">" + value + "</dd></div>";
+          var hover = row && row.title != null && row.title !== ""
+            ? String(row.title)
+            : row && !row.raw && row.value != null && row.value !== "" ? String(row.value) : "";
+          return "<div><dt>" + esc(row.label || "") + "</dt><dd" + (row.mono ? ' class="mono"' : "") + (hover ? ' title="' + esc(hover) + '"' : "") + ">" + value + "</dd></div>";
         })
         .join("") +
       "</dl>"
@@ -4328,20 +4331,26 @@
       var maskedOnly = !fullAccount && maskedAccount.indexOf("*") !== -1;
       var swift = String((it && it.bank_swift) || "").trim();
       var holderAddress = String((it && it.holder_address) || "").trim();
+      var accountHover = fullAccount || (maskedOnly ? "系統只有遮罩值，完整帳號未保存" : account);
       var parts = [
-        holder ? "戶名：" + holder : "",
-        bank ? "銀行：" + bank : "",
-        account ? "帳號：" + account : "",
-        swift ? "BIC/SWIFT：" + swift : "",
-        holderAddress ? "開戶地址：" + holderAddress : ""
+        holder ? ["戶名：" + holder, holder] : null,
+        bank ? ["銀行：" + bank, bank] : null,
+        account ? ["帳號：" + account, accountHover] : null,
+        swift ? ["BIC/SWIFT：" + swift, swift] : null,
+        holderAddress ? ["開戶地址：" + holderAddress, holderAddress] : null
       ].filter(Boolean);
-      if (!parts.length) return "—";
+      if (!parts.length) {
+        var missingId = it && it.payout_method_id != null ? String(it.payout_method_id) : "";
+        return missingId
+          ? '<div class="admin-wd-payout"><div class="admin-wd-payout__line admin-wd-payout__warn" title="此提現原本連結的收款方式已被刪除，系統無收款資料；請客戶重新綁定後重新送出，或由後台駁回退回餘額">原收款方式（ID ' + esc(missingId) + "）已被刪除，無收款資料</div></div>"
+          : "—";
+      }
       var fixHtml = maskedOnly
         ? '<div class="admin-wd-payout__line admin-wd-payout__warn">此帳戶為修正前綁定，系統只有遮罩值</div>' +
           '<button type="button" class="admin-btn admin-btn--warn admin-btn--sm" data-wd-fix-account="' + esc(String((it && it.user_id) || "")) + '">補填完整帳號</button>'
         : "";
-      return '<div class="admin-wd-payout">' + parts.map(function (line) {
-        return '<div class="admin-wd-payout__line">' + esc(line) + "</div>";
+      return '<div class="admin-wd-payout">' + parts.map(function (pair) {
+        return '<div class="admin-wd-payout__line" title="' + esc(pair[1]) + '">' + esc(pair[0]) + "</div>";
       }).join("") + fixHtml + "</div>";
     }
     if (channel === "pix") {
@@ -4711,7 +4720,7 @@
             { label: "用戶", value: renderAdminUserSummaryHtml(user, it.user_id), raw: true },
             { label: "金額", value: withdrawalAmountDisplay(it), mono: true },
             { label: "路徑", value: payoutChannelLabelZh(it.channel_type) },
-            { label: "收款資料", value: ([it.bank_name, it.account_holder, it.account_no || it.account_no_masked, it.bank_swift, it.holder_address, it.usdt_network, it.pix_key].filter(Boolean).join(" / ") || "—") + (!it.account_no && /\*/.test(String(it.account_no_masked || "")) ? "（帳號僅有遮罩，請至「收款方」補填完整帳號）" : "") },
+            { label: "收款資料", value: ([it.bank_name, it.account_holder, it.account_no || it.account_no_masked, it.bank_swift, it.holder_address, it.usdt_network, it.pix_key].filter(Boolean).join(" / ") || (String(it.channel_type || "") === "bank" && it.payout_method_id != null ? "原收款方式（ID " + it.payout_method_id + "）已被刪除，無收款資料" : "—")) + (!it.account_no && /\*/.test(String(it.account_no_masked || "")) ? "（帳號僅有遮罩，請至「收款方」補填完整帳號）" : ""), title: it.account_no ? "完整帳號：" + it.account_no : (/\*/.test(String(it.account_no_masked || "")) ? "系統只有遮罩值，完整帳號未保存" : "") },
             { label: "狀態", value: badge(it.status, withdrawalStatusLabelZh(it.status)), raw: true },
             { label: "備註", value: it.remark || "—" },
             { label: "審核原因", value: it.review_reason || it.reason || "—" },
@@ -6047,7 +6056,9 @@
     ];
     return rows
       .map(function (pair) {
-        return "<div><dt>" + esc(pair[0]) + "</dt><dd>" + esc(pair[1] != null ? String(pair[1]) : "—") + "</dd></div>";
+        var text = pair[1] != null ? String(pair[1]) : "—";
+        var hover = pair[0] === "證件號" ? (String(app.id_number || "").trim() || text) : text;
+        return "<div><dt>" + esc(pair[0]) + '</dt><dd title="' + esc(hover) + '">' + esc(text) + "</dd></div>";
       })
       .join("");
   }
@@ -6504,7 +6515,9 @@
           renderAdminGroupCell(it) +
           "<td>" +
           esc(it.legal_name || "—") +
-          '</td><td class="mono">' +
+          '</td><td class="mono" title="' +
+          esc(String(it.id_number || "").trim() || (/\*/.test(String(it.id_number_masked || "")) ? "修正前提交，系統只有遮罩值，請對照證件照片" : String(it.id_number_masked || ""))) +
+          '">' +
           esc(String(it.id_number || "").trim() || it.id_number_masked || "—") +
           (!String(it.id_number || "").trim() && /\*/.test(String(it.id_number_masked || ""))
             ? ' <span class="admin-muted" title="修正前提交，系統只有遮罩值，請對照證件照片">（僅遮罩）</span>'
@@ -6626,7 +6639,7 @@
           : "";
         var fullAccount = String(it.account_no || "").trim();
         var accountLine = fullAccount || it.account_no_masked
-          ? '<div class="admin-cell-sub mono">帳號：' + esc(fullAccount || it.account_no_masked) + (fullAccount ? "" : "（僅有遮罩，請補填完整帳號）") + "</div>"
+          ? '<div class="admin-cell-sub mono" title="' + esc(fullAccount || "系統只有遮罩值，完整帳號未保存") + '">帳號：' + esc(fullAccount || it.account_no_masked) + (fullAccount ? "" : "（僅有遮罩，請補填完整帳號）") + "</div>"
           : "";
         var addrLine = it.payout_address
           ? '<div class="admin-cell-sub mono">地址：' + esc(it.payout_address) + "</div>"
@@ -6675,7 +6688,10 @@
           esc(userId || it.user_id || "") +
           '" style="margin-top:12px"><div class="admin-filters" style="gap:10px;margin:0">' +
           editFields +
-          '<button type="submit" class="admin-btn admin-btn--primary admin-btn--sm">保存</button></div><p class="admin-footnote" data-pm-save-message style="margin:8px 0 0"></p></form></div>'
+          '<button type="submit" class="admin-btn admin-btn--primary admin-btn--sm">保存</button>' +
+          '<button type="button" class="admin-btn admin-btn--danger admin-btn--sm" data-pm-delete="' +
+          esc(it.id) +
+          '">刪除綁定</button></div><p class="admin-footnote" data-pm-save-message style="margin:8px 0 0"></p></form></div>'
         );
       })
       .join("");
@@ -6718,6 +6734,38 @@
           if (submitBtn) submitBtn.disabled = false;
         });
     });
+    cardsEl.addEventListener("click", function (e) {
+      var btn = e.target && e.target.closest ? e.target.closest("[data-pm-delete]") : null;
+      if (!btn || !cardsEl.contains(btn)) return;
+      e.preventDefault();
+      if (!api()) return;
+      var methodId = btn.getAttribute("data-pm-delete");
+      var form = btn.closest("[data-pm-edit-form]");
+      var userId = form ? form.getAttribute("data-pm-user-id") : "";
+      var msg = form ? form.querySelector("[data-pm-save-message]") : null;
+      if (!methodId) return;
+      if (!window.confirm("確定刪除這個綁定收款方式？刪除後用戶前台將不再看到此銀行/地址。歷史提款記錄不會被刪除。")) return;
+      btn.disabled = true;
+      if (msg) msg.textContent = "刪除中…";
+      api()
+        .requestJson("/api/admin/payout-methods/" + encodeURIComponent(methodId), {
+          method: "DELETE",
+          fallbackMessage: "刪除收款方式失敗"
+        })
+        .then(function () {
+          if (msg) msg.textContent = "已刪除";
+          if (window.adminNotifySuccess) window.adminNotifySuccess("收款方式已刪除。");
+          if (userId) openPayoutUserDetailModal(userId);
+          loadViewPayoutMethods();
+        })
+        .catch(function (err) {
+          if (msg) msg.textContent = (err && err.message) || "刪除失敗";
+          if (window.adminNotifyError) window.adminNotifyError((err && err.message) || "刪除失敗");
+        })
+        .finally(function () {
+          btn.disabled = false;
+        });
+    });
   }
 
   function openPayoutUserDetailModal(userId) {
@@ -6731,7 +6779,7 @@
     if (bodyEl) bodyEl.style.display = "none";
     if (emptyEl) emptyEl.textContent = "載入中…";
     api()
-      .requestJson("/api/admin/payout-methods?page=1&page_size=200&user_id=" + encodeURIComponent(userId), {
+      .requestJson("/api/admin/payout-methods?page=1&page_size=200&exact_user_id=" + encodeURIComponent(userId), {
         fallbackMessage: "載入收款方詳情失敗"
       })
       .then(function (data) {

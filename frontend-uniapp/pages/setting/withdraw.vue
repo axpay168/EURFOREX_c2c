@@ -73,7 +73,7 @@
                 </div>
                 <div class="bank-info-row">
                 <span>{{ localizedText('銀行帳號', 'Bank account') }}</span>
-                  <strong id="fiat-bank-iban" class="font-mono tracking-wide">{{ selectedBank ? selectedBank.iban : '—' }}</strong>
+                  <strong id="fiat-bank-iban" class="font-mono tracking-wide" :title="selectedBank ? selectedBank.iban : ''">{{ selectedBank ? selectedBank.iban : '—' }}</strong>
                 </div>
               </div>
             </div>
@@ -166,7 +166,7 @@
             </div>
             <div class="bank-pick-field">
               <span>{{ localizedText("銀行帳號", "Bank account") }}</span>
-              <strong class="font-mono tracking-wide">{{ b.iban }}</strong>
+              <strong class="font-mono tracking-wide" :title="b.iban">{{ b.iban }}</strong>
             </div>
             <div v-if="b.swift" class="bank-pick-field">
               <span>BIC/SWIFT</span>

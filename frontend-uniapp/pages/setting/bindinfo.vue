@@ -31,7 +31,7 @@
               </div>
               <div class="bound-bank-card__row">
                 <span>{{ localizedText("帳號 / IBAN", "Account number / IBAN") }}</span>
-                <strong class="font-mono tracking-wide">{{ card.accountNo }}</strong>
+                <strong class="font-mono tracking-wide" :title="card.accountNo">{{ card.accountNo }}</strong>
               </div>
               <div v-if="card.swift" class="bound-bank-card__row">
                 <span>BIC/SWIFT</span>

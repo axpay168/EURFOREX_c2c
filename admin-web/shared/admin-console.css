@@ -1325,9 +1325,12 @@
 }
 
 .admin-wd-payout {
-  max-width: 180px;
+  max-width: 200px;
   line-height: 1.45;
   white-space: normal;
+  /* 完整 IBAN 等長字串在欄內換行，不再壓到相鄰欄位 */
+  overflow-wrap: anywhere;
+  min-width: 0;
 }
 
 .admin-wd-payout__label {
@@ -1346,6 +1349,7 @@
 .admin-wd-payout__line {
   color: var(--ac-text-2);
   font-size: 0.76rem;
+  overflow-wrap: anywhere;
 }
 
 .admin-wd-remark {

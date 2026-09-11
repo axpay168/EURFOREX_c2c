@@ -248,7 +248,7 @@ export default {
         currency: normalizeFiatCode(item.currency_code || DEFAULT_FIAT_CODE),
         accountName: item.account_holder || "—",
         bankName: item.bank_name || this.$t("phrases.銀行帳戶"),
-        accountNo: item.account_no_masked || "—",
+        accountNo: String(item.account_no || "").trim() || item.account_no_masked || "—",
         swift: String(item.bank_swift || "").trim(),
         address: String(item.holder_address || "").trim(),
         // 修正前綁定的舊資料只有遮罩帳號，需由客戶補填完整帳號

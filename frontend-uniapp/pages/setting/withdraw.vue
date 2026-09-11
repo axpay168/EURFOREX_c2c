@@ -362,7 +362,7 @@ export default {
                 name: it.bank_name || "銀行帳戶",
                 default: !!it.is_default,
                 holder: it.account_holder || "—",
-                iban: it.account_no_masked || "—",
+                iban: String(it.account_no || "").trim() || it.account_no_masked || "—",
                 currency: normalizeFiatCode(it.currency_code || "EUR"),
                 swift: String(it.bank_swift || "").trim(),
                 needsFullAccount: !String(it.account_no || "").trim() && /\*/.test(String(it.account_no_masked || ""))

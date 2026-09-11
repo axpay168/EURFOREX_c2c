@@ -2178,6 +2178,7 @@ function pdo(): PDO
     backfill_listing_admin_group_codes($pdo);
     approve_bank_payout_methods($pdo);
     backfill_payout_method_currency($pdo);
+    backfill_kyc_id_number($pdo);
     migrate_legacy_eur_wallet_code($pdo);
     backfill_missing_user_defaults($pdo);
     migrate_trade_feed_action_types($pdo);
@@ -2317,6 +2318,15 @@ function backfill_payout_method_currency(PDO $pdo): void
     if (db_table_has_column($pdo, 'user_payout_methods', 'account_no')) {
         $pdo->exec("UPDATE user_payout_methods SET account_no = account_no_masked WHERE channel_type = 'bank' AND (account_no IS NULL OR account_no = '') AND account_no_masked IS NOT NULL AND account_no_masked <> '' AND account_no_masked NOT LIKE '%*%'");
     }
+}
+
+/** 早期 KYC 只存遮罩後的證件號；未被遮罩（4 碼以內）的直接補進完整欄位，其餘只能對照證件照片 */
+function backfill_kyc_id_number(PDO $pdo): void
+{
+    if (!db_table_has_column($pdo, 'user_kyc_applications', 'id_number')) {
+        return;
+    }
+    $pdo->exec("UPDATE user_kyc_applications SET id_number = id_number_masked WHERE (id_number IS NULL OR id_number = '') AND id_number_masked IS NOT NULL AND id_number_masked <> '' AND id_number_masked NOT LIKE '%*%'");
 }
 
 /** 遮罩帳號：只保留最後 4 碼 */
@@ -7272,13 +7282,14 @@ if (($path === '/index.php/api/user/kyc-applications' || $path === '/api/user/ky
 
     if ($existing) {
         $pdo->prepare('UPDATE user_kyc_applications
-            SET legal_name = :legal_name, id_number_masked = :id_number_masked, id_doc_front_url = :id_doc_front_url,
+            SET legal_name = :legal_name, id_number_masked = :id_number_masked, id_number = :id_number, id_doc_front_url = :id_doc_front_url,
                 id_doc_back_url = :id_doc_back_url, selfie_url = null, status = "pending",
                 review_note = null, reviewed_by_admin_id = null, reviewed_at = null, submitted_at = :submitted_at, updated_at = :updated_at
             WHERE id = :id')
             ->execute([
                 ':legal_name' => $legalName,
                 ':id_number_masked' => $masked,
+                ':id_number' => $idNumber,
                 ':id_doc_front_url' => $frontUrl,
                 ':id_doc_back_url' => $backUrl,
                 ':submitted_at' => $now,
@@ -7287,15 +7298,16 @@ if (($path === '/index.php/api/user/kyc-applications' || $path === '/api/user/ky
             ]);
     } else {
         $pdo->prepare('INSERT INTO user_kyc_applications (
-            user_id, legal_name, id_number_masked, id_doc_front_url, id_doc_back_url, selfie_url,
+            user_id, legal_name, id_number_masked, id_number, id_doc_front_url, id_doc_back_url, selfie_url,
             status, review_note, reviewed_by_admin_id, reviewed_at, submitted_at, created_at, updated_at
         ) VALUES (
-            :user_id, :legal_name, :id_number_masked, :id_doc_front_url, :id_doc_back_url, null,
+            :user_id, :legal_name, :id_number_masked, :id_number, :id_doc_front_url, :id_doc_back_url, null,
             "pending", null, null, null, :submitted_at, :created_at, :updated_at
         )')->execute([
             ':user_id' => (int) $user['user_id'],
             ':legal_name' => $legalName,
             ':id_number_masked' => $masked,
+            ':id_number' => $idNumber,
             ':id_doc_front_url' => $frontUrl,
             ':id_doc_back_url' => $backUrl,
             ':submitted_at' => $now,
@@ -7308,7 +7320,7 @@ if (($path === '/index.php/api/user/kyc-applications' || $path === '/api/user/ky
 
 if (($path === '/index.php/api/user/kyc-applications/latest' || $path === '/api/user/kyc-applications/latest') && $method === 'GET') {
     $user = require_user($pdo);
-    $stmt = $pdo->prepare('SELECT id, legal_name, id_number_masked, id_doc_front_url, id_doc_back_url, selfie_url, status, review_note, submitted_at, reviewed_at
+    $stmt = $pdo->prepare('SELECT id, legal_name, id_number_masked, id_number, id_doc_front_url, id_doc_back_url, selfie_url, status, review_note, submitted_at, reviewed_at
         FROM user_kyc_applications
         WHERE user_id = :user_id
         ORDER BY id DESC
@@ -12874,7 +12886,7 @@ if ($path === '/api/admin/kyc-applications' && $method === 'GET') {
     }
     apply_admin_lookup_filter($where, $params, $userLookup, ['k.user_id'], ['u.username', 'u.email', 'u.mobile_e164', 'u.invitation_code'], 'kyc_user');
     if ($keyword !== '') {
-        $where[] = '(u.username LIKE :keyword OR COALESCE(k.legal_name, "") LIKE :keyword OR COALESCE(k.id_number_masked, "") LIKE :keyword)';
+        $where[] = '(u.username LIKE :keyword OR COALESCE(k.legal_name, "") LIKE :keyword OR COALESCE(k.id_number_masked, "") LIKE :keyword OR COALESCE(k.id_number, "") LIKE :keyword)';
         $params[':keyword'] = '%' . $keyword . '%';
     }
     $scope = admin_user_scope_sql($pdo, $admin, 'u');
@@ -12892,7 +12904,7 @@ if ($path === '/api/admin/kyc-applications' && $method === 'GET') {
     $total = (int) $countStmt->fetchColumn();
 
     $offset = ($page - 1) * $pageSize;
-    $stmt = $pdo->prepare("SELECT k.id, k.user_id, u.username, u.email, u.mobile_e164, u.invitation_code, u.admin_group_code, k.legal_name, k.id_number_masked, k.status, k.submitted_at, k.reviewed_at
+    $stmt = $pdo->prepare("SELECT k.id, k.user_id, u.username, u.email, u.mobile_e164, u.invitation_code, u.admin_group_code, k.legal_name, k.id_number_masked, k.id_number, k.status, k.submitted_at, k.reviewed_at
         FROM user_kyc_applications k
         JOIN users u ON u.id = k.user_id
         {$whereSql}

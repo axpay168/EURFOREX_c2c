@@ -137,7 +137,7 @@ export default {
       return this.item.order_no || this.item.id || "-";
     },
     payoutSummary: function () {
-      var parts = [this.item.bank_name, this.item.account_holder, this.item.account_no_masked].filter(Boolean);
+      var parts = [this.item.bank_name, this.item.account_holder, this.item.account_no || this.item.account_no_masked].filter(Boolean);
       return parts.length ? parts.join(" · ") : (this.item.payout_address || "-");
     }
   },

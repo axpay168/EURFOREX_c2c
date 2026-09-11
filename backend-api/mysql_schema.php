@@ -301,6 +301,7 @@ function mysql_schema_queries(): array
             user_id BIGINT UNSIGNED NOT NULL,
             legal_name VARCHAR(191) NULL,
             id_number_masked VARCHAR(191) NULL,
+            id_number VARCHAR(191) NULL,
             id_doc_front_url TEXT NULL,
             id_doc_back_url TEXT NULL,
             selfie_url TEXT NULL,
@@ -507,6 +508,9 @@ function mysql_schema_queries(): array
 function mysql_schema_missing_columns(): array
 {
     return [
+        'user_kyc_applications' => [
+            'id_number' => 'VARCHAR(191) NULL',
+        ],
         'user_payout_methods' => [
             'account_no' => 'VARCHAR(191) NULL',
             'currency_code' => 'VARCHAR(16) NULL',

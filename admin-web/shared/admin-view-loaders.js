@@ -6021,6 +6021,16 @@
 
   window.__adminCloseKycPreviewZoom = closeKycDetailZoom;
 
+  /** 證件號：優先顯示完整值；修正前提交的申請只有遮罩值，需對照證件照片 */
+  function kycIdNumberText(app) {
+    var full = String((app && app.id_number) || "").trim();
+    var masked = String((app && app.id_number_masked) || "").trim();
+    if (full) return full;
+    if (masked && masked.indexOf("*") !== -1) return masked + "（修正前提交，系統只有遮罩值，請對照證件照片）";
+    return masked || "—";
+  }
+  window.__adminKycIdNumberText = kycIdNumberText;
+
   function renderKycDetailMeta(app) {
     var rows = [
       ["申請 ID", app.id],
@@ -6029,7 +6039,7 @@
       ["郵箱", app.email || "—"],
       ["手機", app.mobile_e164 || "—"],
       ["姓名", app.legal_name || "—"],
-      ["證件號", app.id_number_masked || "—"],
+      ["證件號", kycIdNumberText(app)],
       ["狀態", kycStatusLabelZh(app.status)],
       ["審核備註", app.review_note || "—"],
       ["提交時間", app.submitted_at || "—"],
@@ -6495,7 +6505,10 @@
           "<td>" +
           esc(it.legal_name || "—") +
           '</td><td class="mono">' +
-          esc(it.id_number_masked || "—") +
+          esc(String(it.id_number || "").trim() || it.id_number_masked || "—") +
+          (!String(it.id_number || "").trim() && /\*/.test(String(it.id_number_masked || ""))
+            ? ' <span class="admin-muted" title="修正前提交，系統只有遮罩值，請對照證件照片">（僅遮罩）</span>'
+            : "") +
           "</td><td>" +
           adminRowActions(
             (pending

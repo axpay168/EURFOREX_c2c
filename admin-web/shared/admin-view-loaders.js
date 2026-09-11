@@ -4299,8 +4299,11 @@
   }
 
   function withdrawalAmountDisplay(it) {
-    var asset = String((it && it.asset_code) || "EUR").trim().toUpperCase() || "EUR";
-    return formatWithdrawalNumberDisplay(it && it.amount) + " " + asset;
+    var channel = String((it && it.channel_type) || "").trim().toLowerCase();
+    var bankCurrency = String((it && it.currency_code) || "").trim().toUpperCase();
+    var asset = String((it && it.asset_code) || "").trim().toUpperCase();
+    var code = (channel === "bank" && bankCurrency) ? bankCurrency : (asset || "EUR");
+    return formatWithdrawalNumberDisplay(it && it.amount) + " " + code;
   }
 
   function withdrawalPayoutInfoHtml(it) {
@@ -4319,21 +4322,27 @@
     if (channel === "bank") {
       var holder = String((it && it.account_holder) || "").trim();
       var bank = String((it && it.bank_name) || "").trim();
-      var account = String((it && it.account_no_masked) || "").trim();
-      var currency = String((it && it.currency_code) || "").trim().toUpperCase();
+      var fullAccount = String((it && it.account_no) || "").trim();
+      var maskedAccount = String((it && it.account_no_masked) || "").trim();
+      var account = fullAccount || maskedAccount;
+      var maskedOnly = !fullAccount && maskedAccount.indexOf("*") !== -1;
       var swift = String((it && it.bank_swift) || "").trim();
       var holderAddress = String((it && it.holder_address) || "").trim();
       var parts = [
-        currency ? "幣別：" + currency : "",
         holder ? "戶名：" + holder : "",
         bank ? "銀行：" + bank : "",
         account ? "帳號：" + account : "",
         swift ? "BIC/SWIFT：" + swift : "",
         holderAddress ? "開戶地址：" + holderAddress : ""
       ].filter(Boolean);
-      return parts.length ? '<div class="admin-wd-payout">' + parts.map(function (line) {
+      if (!parts.length) return "—";
+      var fixHtml = maskedOnly
+        ? '<div class="admin-wd-payout__line admin-wd-payout__warn">此帳戶為修正前綁定，系統只有遮罩值</div>' +
+          '<button type="button" class="admin-btn admin-btn--warn admin-btn--sm" data-wd-fix-account="' + esc(String((it && it.user_id) || "")) + '">補填完整帳號</button>'
+        : "";
+      return '<div class="admin-wd-payout">' + parts.map(function (line) {
         return '<div class="admin-wd-payout__line">' + esc(line) + "</div>";
-      }).join("") + "</div>" : "—";
+      }).join("") + fixHtml + "</div>";
     }
     if (channel === "pix") {
       var pix = String((it && it.pix_key) || "").trim();
@@ -4595,13 +4604,14 @@
     return loadItems(
       buildAdminWithdrawalsListPath(),
       "view-withdrawals-tbody",
-      12,
+      11,
       function (it) {
         var st = String(it.status != null ? it.status : "").trim().toLowerCase();
         var pending = st === "pending";
         var userCell = renderAdminUserSummaryCell(it, it.user_id);
         var orderNo = String(it.order_no || "—");
         var orderNoShort = orderNo.length > 18 ? orderNo.slice(0, 5) + "...." + orderNo.slice(-10) : orderNo;
+        var createdAt = it.created_at != null && String(it.created_at).trim() !== "" ? String(it.created_at).trim() : "—";
         var cb = pending
           ? '<td><input type="checkbox" class="view-wd-cb" data-wd-id="' +
             esc(it.id) +
@@ -4615,11 +4625,15 @@
           "<td class=\"mono\">" +
           esc(it.id) +
           "</td>" +
-          '<td class="mono" title="' +
+          '<td class="mono admin-wd-order-cell" title="' +
           esc(orderNo) +
           '">' +
           esc(orderNoShort) +
-          "</td>" +
+          '<div class="admin-cell-sub admin-table-date" title="' +
+          esc(createdAt) +
+          '">' +
+          esc(createdAt) +
+          "</div></td>" +
           userCell +
           renderAdminGroupCell(it) +
           '<td class="mono">' +
@@ -4631,7 +4645,6 @@
           '</td><td class="admin-wd-remark-cell">' +
           withdrawalRemarkHtml(it) +
           "</td>" +
-          adminListDateCell(it.created_at) +
           "<td>" +
           badge(it.status, withdrawalStatusLabelZh(it.status)) +
           "</td><td>" +
@@ -4696,9 +4709,9 @@
             { label: "訂單編號", value: it.order_no || "—", mono: true },
             { label: "編號", value: it.id, mono: true },
             { label: "用戶", value: renderAdminUserSummaryHtml(user, it.user_id), raw: true },
-            { label: "金額", value: formatListingPriceDisplay(it.amount) + " " + assetLabelZh(it.asset_code), mono: true },
+            { label: "金額", value: withdrawalAmountDisplay(it), mono: true },
             { label: "路徑", value: payoutChannelLabelZh(it.channel_type) },
-            { label: "收款資料", value: [it.currency_code, it.bank_name, it.account_holder, it.account_no_masked, it.bank_swift, it.holder_address, it.usdt_network, it.pix_key].filter(Boolean).join(" / ") || "—" },
+            { label: "收款資料", value: ([it.bank_name, it.account_holder, it.account_no || it.account_no_masked, it.bank_swift, it.holder_address, it.usdt_network, it.pix_key].filter(Boolean).join(" / ") || "—") + (!it.account_no && /\*/.test(String(it.account_no_masked || "")) ? "（帳號僅有遮罩，請至「收款方」補填完整帳號）" : "") },
             { label: "狀態", value: badge(it.status, withdrawalStatusLabelZh(it.status)), raw: true },
             { label: "備註", value: it.remark || "—" },
             { label: "審核原因", value: it.review_reason || it.reason || "—" },
@@ -6598,8 +6611,9 @@
         var bankLine = it.bank_name
           ? '<div class="admin-cell-sub">銀行：' + esc(it.bank_name) + "</div>"
           : "";
-        var accountLine = it.account_no_masked
-          ? '<div class="admin-cell-sub mono">卡號：' + esc(it.account_no_masked) + "</div>"
+        var fullAccount = String(it.account_no || "").trim();
+        var accountLine = fullAccount || it.account_no_masked
+          ? '<div class="admin-cell-sub mono">帳號：' + esc(fullAccount || it.account_no_masked) + (fullAccount ? "" : "（僅有遮罩，請補填完整帳號）") + "</div>"
           : "";
         var addrLine = it.payout_address
           ? '<div class="admin-cell-sub mono">地址：' + esc(it.payout_address) + "</div>"
@@ -6627,7 +6641,7 @@
             ? payoutMethodEditField("currency_code", "幣別", it.currency_code || "EUR", "EUR / CHF / USD / GBP") +
               payoutMethodEditField("bank_name", "銀行", it.bank_name, "銀行名稱") +
               payoutMethodEditField("account_holder", "戶名", it.account_holder, "收款戶名") +
-              payoutMethodEditField("account_no_masked", "帳號 / IBAN", it.account_no_masked, "銀行帳號或 IBAN") +
+              payoutMethodEditField("account_no", "帳號 / IBAN（完整）", it.account_no || it.account_no_masked, "銀行帳號或 IBAN") +
               payoutMethodEditField("bank_swift", "BIC/SWIFT", it.bank_swift, "選填") +
               payoutMethodEditField("holder_address", "開戶地址", it.holder_address, "選填")
             : ch === "usdt"
@@ -8993,9 +9007,16 @@
         adminNotifyError(unavailable.getAttribute("data-admin-unavailable") || "此功能尚未開放。");
         return;
       }
-      var target = e.target && e.target.closest ? e.target.closest("[data-admin-withdrawal-detail],[data-admin-order-detail],[data-admin-order-approve],[data-admin-order-reject],[data-admin-financial-order-detail],[data-admin-auth-event-detail]") : null;
+      var target = e.target && e.target.closest ? e.target.closest("[data-admin-withdrawal-detail],[data-wd-fix-account],[data-admin-order-detail],[data-admin-order-approve],[data-admin-order-reject],[data-admin-financial-order-detail],[data-admin-auth-event-detail]") : null;
       if (!target) return;
       if (target.hasAttribute("data-admin-withdrawal-detail")) openWithdrawalDetail(target.getAttribute("data-admin-withdrawal-detail"));
+      else if (target.hasAttribute("data-wd-fix-account")) {
+        var fixUserId = Number(target.getAttribute("data-wd-fix-account"));
+        if (fixUserId) {
+          if (window.AdminModals && typeof window.AdminModals.open === "function") window.AdminModals.open("admin-modal-payout-detail");
+          openPayoutUserDetailModal(fixUserId);
+        }
+      }
       else if (target.hasAttribute("data-admin-order-detail")) openOrderDetail(target.getAttribute("data-admin-order-detail"));
       else if (target.hasAttribute("data-admin-order-approve")) {
         runAdminOrderApprove(

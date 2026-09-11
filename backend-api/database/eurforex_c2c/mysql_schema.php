@@ -300,6 +300,7 @@ function mysql_schema_queries(): array
             bank_name VARCHAR(191) NULL,
             account_holder VARCHAR(191) NULL,
             account_no_masked VARCHAR(191) NULL,
+            account_no VARCHAR(191) NULL,
             currency_code VARCHAR(16) NULL,
             bank_swift VARCHAR(64) NULL,
             holder_address VARCHAR(255) NULL,
@@ -468,6 +469,7 @@ function mysql_schema_missing_columns(): array
 {
     return [
         'user_payout_methods' => [
+            'account_no' => 'VARCHAR(191) NULL',
             'currency_code' => 'VARCHAR(16) NULL',
             'bank_swift' => 'VARCHAR(64) NULL',
             'holder_address' => 'VARCHAR(255) NULL',

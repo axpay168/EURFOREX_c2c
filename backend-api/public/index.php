@@ -2307,13 +2307,26 @@ function payout_bank_currency_codes(): array
     return ['EUR', 'CHF', 'USD', 'GBP'];
 }
 
-/** 舊有銀行收款方式沒有幣別欄位，一律視為 EUR */
+/** 舊有銀行收款方式沒有幣別欄位，一律視為 EUR；早期只存遮罩帳號，未被遮罩（4 碼以內）的直接補進完整帳號欄位 */
 function backfill_payout_method_currency(PDO $pdo): void
 {
     if (!db_table_has_column($pdo, 'user_payout_methods', 'currency_code')) {
         return;
     }
     $pdo->exec("UPDATE user_payout_methods SET currency_code = 'EUR' WHERE channel_type = 'bank' AND (currency_code IS NULL OR currency_code = '')");
+    if (db_table_has_column($pdo, 'user_payout_methods', 'account_no')) {
+        $pdo->exec("UPDATE user_payout_methods SET account_no = account_no_masked WHERE channel_type = 'bank' AND (account_no IS NULL OR account_no = '') AND account_no_masked IS NOT NULL AND account_no_masked <> '' AND account_no_masked NOT LIKE '%*%'");
+    }
+}
+
+/** 遮罩帳號：只保留最後 4 碼 */
+function mask_payout_account_no(string $accountNo): string
+{
+    $accountNo = trim($accountNo);
+    if ($accountNo === '') {
+        return '';
+    }
+    return mb_strlen($accountNo) > 4 ? str_repeat('*', max(0, mb_strlen($accountNo) - 4)) . mb_substr($accountNo, -4) : $accountNo;
 }
 
 function approve_bank_payout_methods(PDO $pdo): void
@@ -7221,7 +7234,7 @@ if (preg_match('#^/(?:index\.php/)?api/user/withdrawal-requests/(\d+)$#', $path,
     $requestId = (int) $matches[1];
     $stmt = $pdo->prepare('SELECT w.id, w.order_no, w.user_id, w.amount, w.asset_code, w.channel_type, w.payout_method_id, w.payout_address,
             w.source_wallet_code, w.remark, w.status, w.admin_note, w.reviewed_at, w.created_at, w.updated_at,
-            p.bank_name, p.account_holder, p.account_no_masked, p.usdt_network, p.pix_key, p.currency_code, p.bank_swift, p.holder_address
+            p.bank_name, p.account_holder, p.account_no_masked, p.usdt_network, p.pix_key, p.account_no, p.currency_code, p.bank_swift, p.holder_address
         FROM withdrawal_requests w
         LEFT JOIN user_payout_methods p ON p.id = w.payout_method_id
         WHERE w.id = :id AND w.user_id = :user_id
@@ -7352,15 +7365,15 @@ if (($path === '/index.php/api/user/payout-methods' || $path === '/api/user/payo
         failure('AUTH_INVALID_PARAMS', 'PIX key is required');
     }
 
-    $maskedAccount = $accountNo !== '' && mb_strlen($accountNo) > 4 ? str_repeat('*', max(0, mb_strlen($accountNo) - 4)) . mb_substr($accountNo, -4) : $accountNo;
+    $maskedAccount = mask_payout_account_no($accountNo);
     $now = now_iso();
     $initialStatus = $channelType === 'bank' ? 'approved' : 'pending';
     $reviewedAt = $channelType === 'bank' ? $now : null;
     $pdo->prepare('INSERT INTO user_payout_methods (
-        user_id, channel_type, status, bank_name, account_holder, account_no_masked, currency_code, bank_swift, holder_address, usdt_network,
+        user_id, channel_type, status, bank_name, account_holder, account_no_masked, account_no, currency_code, bank_swift, holder_address, usdt_network,
         payout_address, pix_key, is_default, review_note, reviewed_by_admin_id, reviewed_at, created_at, updated_at
     ) VALUES (
-        :user_id, :channel_type, :status, :bank_name, :account_holder, :account_no_masked, :currency_code, :bank_swift, :holder_address, :usdt_network,
+        :user_id, :channel_type, :status, :bank_name, :account_holder, :account_no_masked, :account_no, :currency_code, :bank_swift, :holder_address, :usdt_network,
         :payout_address, :pix_key, :is_default, null, null, :reviewed_at, :created_at, :updated_at
     )')->execute([
         ':user_id' => (int) $user['user_id'],
@@ -7369,6 +7382,7 @@ if (($path === '/index.php/api/user/payout-methods' || $path === '/api/user/payo
         ':bank_name' => $bankName !== '' ? $bankName : null,
         ':account_holder' => $accountHolder !== '' ? $accountHolder : null,
         ':account_no_masked' => $maskedAccount !== '' ? $maskedAccount : null,
+        ':account_no' => $accountNo !== '' ? $accountNo : null,
         ':currency_code' => $currencyCode !== '' ? $currencyCode : null,
         ':bank_swift' => $bankSwift !== '' ? $bankSwift : null,
         ':holder_address' => $holderAddress !== '' ? $holderAddress : null,
@@ -7385,7 +7399,7 @@ if (($path === '/index.php/api/user/payout-methods' || $path === '/api/user/payo
 
 if (($path === '/index.php/api/user/payout-methods' || $path === '/api/user/payout-methods') && $method === 'GET') {
     $user = require_user($pdo);
-    $stmt = $pdo->prepare('SELECT id, channel_type, status, bank_name, account_holder, account_no_masked, currency_code, bank_swift, holder_address, usdt_network, payout_address, pix_key, is_default, review_note, created_at, reviewed_at
+    $stmt = $pdo->prepare('SELECT id, channel_type, status, bank_name, account_holder, account_no_masked, account_no, currency_code, bank_swift, holder_address, usdt_network, payout_address, pix_key, is_default, review_note, created_at, reviewed_at
         FROM user_payout_methods
         WHERE user_id = :user_id
         ORDER BY id DESC');
@@ -11961,7 +11975,7 @@ if ($path === '/api/admin/withdrawal-requests' && $method === 'GET') {
 
     $offset = ($page - 1) * $pageSize;
     $stmt = $pdo->prepare("SELECT w.id, w.order_no, w.user_id, u.username, u.email, u.mobile_e164, u.invitation_code, u.admin_group_code, w.amount, w.asset_code, w.channel_type, w.payout_method_id, w.payout_address, w.source_wallet_code, w.remark, w.status, w.created_at, w.reviewed_at,
-            p.bank_name, p.account_holder, p.account_no_masked, p.usdt_network, p.pix_key, p.currency_code, p.bank_swift, p.holder_address
+            p.bank_name, p.account_holder, p.account_no_masked, p.usdt_network, p.pix_key, p.account_no, p.currency_code, p.bank_swift, p.holder_address
         FROM withdrawal_requests w
         JOIN users u ON u.id = w.user_id
         LEFT JOIN user_payout_methods p ON p.id = w.payout_method_id
@@ -11998,7 +12012,7 @@ if ($path === '/api/admin/withdrawal-requests' && $method === 'GET') {
 if (preg_match('#^/api/admin/withdrawal-requests/(\d+)$#', $path, $matches) && $method === 'GET') {
     $admin = require_admin($pdo);
     $requestId = (int) $matches[1];
-    $stmt = $pdo->prepare('SELECT w.*, u.username, u.email, u.mobile_e164, p.bank_name, p.account_holder, p.account_no_masked, p.usdt_network, p.pix_key, p.currency_code, p.bank_swift, p.holder_address
+    $stmt = $pdo->prepare('SELECT w.*, u.username, u.email, u.mobile_e164, p.bank_name, p.account_holder, p.account_no_masked, p.usdt_network, p.pix_key, p.account_no, p.currency_code, p.bank_swift, p.holder_address
         FROM withdrawal_requests w
         JOIN users u ON u.id = w.user_id
         LEFT JOIN user_payout_methods p ON p.id = w.payout_method_id
@@ -12978,7 +12992,7 @@ if ($path === '/api/admin/payout-methods' && $method === 'GET') {
     $total = (int) $countStmt->fetchColumn();
 
     $offset = ($page - 1) * $pageSize;
-    $stmt = $pdo->prepare("SELECT p.id, p.user_id, u.username, u.email, u.mobile_e164, u.invitation_code, u.admin_group_code, p.channel_type, p.status, p.bank_name, p.account_holder, p.account_no_masked, p.currency_code, p.bank_swift, p.holder_address, p.usdt_network, p.payout_address, p.pix_key, p.is_default, p.created_at, p.reviewed_at
+    $stmt = $pdo->prepare("SELECT p.id, p.user_id, u.username, u.email, u.mobile_e164, u.invitation_code, u.admin_group_code, p.channel_type, p.status, p.bank_name, p.account_holder, p.account_no_masked, p.account_no, p.currency_code, p.bank_swift, p.holder_address, p.usdt_network, p.payout_address, p.pix_key, p.is_default, p.created_at, p.reviewed_at
         FROM user_payout_methods p
         JOIN users u ON u.id = p.user_id
         {$whereSql}
@@ -13048,7 +13062,17 @@ if (preg_match('#^/api/admin/payout-methods/(\d+)$#', $path, $matches) && $metho
         $channelType = (string) ($methodItem['channel_type'] ?? '');
         $bankName = trim((string) ($input['bank_name'] ?? ($methodItem['bank_name'] ?? '')));
         $accountHolder = trim((string) ($input['account_holder'] ?? ($methodItem['account_holder'] ?? '')));
-        $accountNo = trim((string) ($input['account_no_masked'] ?? ($methodItem['account_no_masked'] ?? '')));
+        $accountNoFull = trim((string) ($input['account_no'] ?? ($methodItem['account_no'] ?? '')));
+        if (array_key_exists('account_no', $input) && $accountNoFull !== '' && strpos($accountNoFull, '*') === false) {
+            // 後台填了完整帳號：同步重算遮罩
+            $accountNo = mask_payout_account_no($accountNoFull);
+        } else {
+            $accountNo = trim((string) ($input['account_no_masked'] ?? ($methodItem['account_no_masked'] ?? '')));
+            if (array_key_exists('account_no', $input) && $accountNoFull !== '' && strpos($accountNoFull, '*') !== false) {
+                $accountNo = $accountNoFull;
+                $accountNoFull = trim((string) ($methodItem['account_no'] ?? ''));
+            }
+        }
         $usdtNetwork = trim((string) ($input['usdt_network'] ?? ($methodItem['usdt_network'] ?? '')));
         $payoutAddress = trim((string) ($input['payout_address'] ?? ($methodItem['payout_address'] ?? '')));
         $pixKey = trim((string) ($input['pix_key'] ?? ($methodItem['pix_key'] ?? '')));
@@ -13082,6 +13106,7 @@ if (preg_match('#^/api/admin/payout-methods/(\d+)$#', $path, $matches) && $metho
             SET bank_name = :bank_name,
                 account_holder = :account_holder,
                 account_no_masked = :account_no_masked,
+                account_no = :account_no,
                 currency_code = :currency_code,
                 bank_swift = :bank_swift,
                 holder_address = :holder_address,
@@ -13094,6 +13119,7 @@ if (preg_match('#^/api/admin/payout-methods/(\d+)$#', $path, $matches) && $metho
                 ':bank_name' => $bankName !== '' ? $bankName : null,
                 ':account_holder' => $accountHolder !== '' ? $accountHolder : null,
                 ':account_no_masked' => $accountNo !== '' ? $accountNo : null,
+                ':account_no' => $channelType === 'bank' && $accountNoFull !== '' ? $accountNoFull : null,
                 ':currency_code' => $channelType === 'bank' && $currencyCode !== '' ? $currencyCode : null,
                 ':bank_swift' => $channelType === 'bank' && $bankSwift !== '' ? $bankSwift : null,
                 ':holder_address' => $channelType === 'bank' && $holderAddress !== '' ? $holderAddress : null,

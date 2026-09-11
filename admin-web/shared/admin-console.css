@@ -1296,6 +1296,34 @@
   max-width: 180px;
 }
 
+/* 提現審核：用戶欄縮窄，帳號 / 信箱可換行 */
+.admin-table .admin-wd-user-head,
+#view-withdrawals-tbody td:nth-child(4) {
+  width: 150px;
+  max-width: 150px;
+}
+
+#view-withdrawals-tbody td:nth-child(4) .admin-cell-sub,
+#view-withdrawals-tbody td:nth-child(4) .mono {
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
+.admin-wd-order-cell .admin-table-date {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.admin-wd-payout__warn {
+  color: #f6b24a;
+  font-weight: 700;
+  margin-top: 4px;
+}
+
+.admin-wd-payout .admin-btn {
+  margin-top: 6px;
+}
+
 .admin-wd-payout {
   max-width: 180px;
   line-height: 1.45;

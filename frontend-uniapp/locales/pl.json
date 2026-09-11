@@ -930,6 +930,13 @@
     "瑞士法郎帳戶": "Konto we frankach szwajcarskich",
     "英鎊帳戶": "Konto w funtach",
     "請選擇貨幣並填寫銀行名稱、帳號 / IBAN、BIC/SWIFT 與開戶人資料，提交後會直接綁定。": "Wybierz walutę i podaj nazwę banku, numer konta / IBAN, BIC/SWIFT oraz dane właściciela konta. Po wysłaniu konto zostanie od razu powiązane.",
-    "此貨幣尚未綁定銀行帳戶，請先新增。": "Dla tej waluty nie powiązano jeszcze konta bankowego. Najpierw dodaj konto."
+    "此貨幣尚未綁定銀行帳戶，請先新增。": "Dla tej waluty nie powiązano jeszcze konta bankowego. Najpierw dodaj konto.",
+    "此銀行帳戶尚未有完整帳號，請補填後才能用於提領。": "To konto bankowe nie ma jeszcze pełnego numeru konta. Uzupełnij go przed wypłatą.",
+    "補填完整帳號": "Uzupełnij numer konta",
+    "請輸入完整帳號 / IBAN": "Wprowadź pełny numer konta / IBAN",
+    "末四碼須與原帳號相同": "Ostatnie 4 znaki muszą być zgodne z istniejącym kontem",
+    "帳號末四碼與原資料不符": "Ostatnie 4 znaki nie są zgodne z istniejącym kontem",
+    "完整帳號已補填": "Numer konta uzupełniony",
+    "需補填完整帳號": "Wymagany pełny numer konta"
   }
 }

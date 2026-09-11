@@ -930,6 +930,13 @@
     "瑞士法郎帳戶": "Sveitsin frangin tili",
     "英鎊帳戶": "Puntatili",
     "請選擇貨幣並填寫銀行名稱、帳號 / IBAN、BIC/SWIFT 與開戶人資料，提交後會直接綁定。": "Valitse valuutta ja täytä pankin nimi, tilinumero / IBAN, BIC/SWIFT ja tilinomistajan tiedot. Tili liitetään heti lähetyksen jälkeen.",
-    "此貨幣尚未綁定銀行帳戶，請先新增。": "Tälle valuutalle ei ole vielä liitetty pankkitiliä. Lisää ensin tili."
+    "此貨幣尚未綁定銀行帳戶，請先新增。": "Tälle valuutalle ei ole vielä liitetty pankkitiliä. Lisää ensin tili.",
+    "此銀行帳戶尚未有完整帳號，請補填後才能用於提領。": "Tältä pankkitililtä puuttuu vielä täydellinen tilinumero. Täydennä se ennen nostoa.",
+    "補填完整帳號": "Täydennä tilinumero",
+    "請輸入完整帳號 / IBAN": "Syötä täydellinen tilinumero / IBAN",
+    "末四碼須與原帳號相同": "Neljän viimeisen merkin on vastattava nykyistä tiliä",
+    "帳號末四碼與原資料不符": "Neljä viimeistä merkkiä eivät vastaa nykyistä tiliä",
+    "完整帳號已補填": "Tilinumero täydennetty",
+    "需補填完整帳號": "Täydellinen tilinumero vaaditaan"
   }
 }

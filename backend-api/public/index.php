@@ -7397,6 +7397,41 @@ if (($path === '/index.php/api/user/payout-methods' || $path === '/api/user/payo
     success('AUTH_PAYOUT_METHOD_SUBMITTED', 'Payout method submitted', []);
 }
 
+if (preg_match('#^/(?:index\.php/)?api/user/payout-methods/(\d+)/account-no$#', $path, $matches) && $method === 'POST') {
+    $user = require_user($pdo);
+    $methodId = (int) $matches[1];
+    $accountNo = strtoupper((string) preg_replace('/\s+/', '', (string) ($input['account_no'] ?? '')));
+    if ($accountNo === '' || mb_strlen($accountNo) < 5 || mb_strlen($accountNo) > 64 || !preg_match('/^[A-Z0-9]+$/', $accountNo)) {
+        failure('AUTH_INVALID_PARAMS', 'Invalid account number');
+    }
+    $stmt = $pdo->prepare('SELECT id, channel_type, account_no, account_no_masked FROM user_payout_methods WHERE id = :id AND user_id = :user_id LIMIT 1');
+    $stmt->execute([':id' => $methodId, ':user_id' => (int) $user['user_id']]);
+    $methodRow = $stmt->fetch();
+    if (!$methodRow || (string) $methodRow['channel_type'] !== 'bank') {
+        failure('AUTH_NOT_FOUND', 'Payout method not found', 404);
+    }
+    if (trim((string) ($methodRow['account_no'] ?? '')) !== '') {
+        failure('AUTH_INVALID_PARAMS', 'Account number already completed');
+    }
+    // 只允許補齊同一個帳戶：可見的尾碼必須一致（早期遮罩保留最後 4 個字元，可能含空白）
+    $visibleTail = ltrim((string) preg_replace('/\s+/', '', (string) ($methodRow['account_no_masked'] ?? '')), '*');
+    $visibleTail = strtoupper($visibleTail);
+    if ($visibleTail !== '' && !str_ends_with($accountNo, $visibleTail)) {
+        failure('AUTH_PAYOUT_ACCOUNT_SUFFIX_MISMATCH', 'Account number suffix mismatch');
+    }
+    $now = now_iso();
+    $pdo->prepare('UPDATE user_payout_methods SET account_no = :account_no, account_no_masked = :account_no_masked, updated_at = :updated_at WHERE id = :id AND user_id = :user_id')
+        ->execute([
+            ':account_no' => $accountNo,
+            ':account_no_masked' => mask_payout_account_no($accountNo),
+            ':updated_at' => $now,
+            ':id' => $methodId,
+            ':user_id' => (int) $user['user_id'],
+        ]);
+    audit($pdo, 'user', 'payout_method_account_completed', 'user', (int) $user['user_id'], 'payout_method', $methodId, '', ['account_no_masked' => $methodRow['account_no_masked']], ['account_no_masked' => mask_payout_account_no($accountNo)]);
+    success('AUTH_PAYOUT_METHOD_UPDATED', 'Account number completed', []);
+}
+
 if (($path === '/index.php/api/user/payout-methods' || $path === '/api/user/payout-methods') && $method === 'GET') {
     $user = require_user($pdo);
     $stmt = $pdo->prepare('SELECT id, channel_type, status, bank_name, account_holder, account_no_masked, account_no, currency_code, bank_swift, holder_address, usdt_network, payout_address, pix_key, is_default, review_note, created_at, reviewed_at

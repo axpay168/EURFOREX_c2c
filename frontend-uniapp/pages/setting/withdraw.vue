@@ -77,6 +77,7 @@
                 </div>
               </div>
             </div>
+            <p v-if="selectedBank && selectedBank.needsFullAccount" class="mt-3 rounded-xl border border-amber-300/70 bg-amber-50 px-3 py-2 text-xs font-bold leading-relaxed text-amber-800">{{ localizedText("此銀行帳戶尚未有完整帳號，請補填後才能用於提領。", "This bank account has no full account number yet. Please complete it before withdrawing.") }} <a class="underline" href="#/pages/setting/bindinfo">{{ localizedText("補填完整帳號", "Complete account number") }}</a></p>
             <button type="button" id="open-bank-picker-change" class="mt-3 w-full rounded-xl border border-outline-variant/30 bg-white py-2.5 text-sm font-bold text-primary-dim transition-colors hover:bg-surface-container-low" @click="showModal">{{ localizedText('選擇其他銀行', 'Choose another bank') }}</button>
           </div>
         </div>
@@ -150,6 +151,7 @@
               <span class="bank-pick-title">{{ localizedText("銀行收款帳戶", "Bank account") }}</span>
               <span v-if="b.default" class="bank-pick-badge">{{ localizedText("預設", "Default") }}</span>
               <span class="bank-pick-badge">{{ b.currency }}</span>
+              <span v-if="b.needsFullAccount" class="bank-pick-badge bank-pick-badge--warn">{{ localizedText("需補填完整帳號", "Full account number required") }}</span>
             </div>
             <span class="bank-pick-radio" aria-hidden="true"></span>
           </div>
@@ -362,7 +364,8 @@ export default {
                 holder: it.account_holder || "—",
                 iban: it.account_no_masked || "—",
                 currency: normalizeFiatCode(it.currency_code || "EUR"),
-                swift: String(it.bank_swift || "").trim()
+                swift: String(it.bank_swift || "").trim(),
+                needsFullAccount: !String(it.account_no || "").trim() && /\*/.test(String(it.account_no_masked || ""))
               };
             });
           self.syncSelectedBankWithFiat();
@@ -410,6 +413,10 @@ export default {
     },
     goWithdrawDetailFiat: function () {
       var n = parseFloat(String(this.amount || "").replace(/,/g, "").trim());
+      if (this.selectedBank && this.selectedBank.needsFullAccount) {
+        this.showNotice(this.localizedText("此銀行帳戶尚未有完整帳號，請補填後才能用於提領。", "This bank account has no full account number yet. Please complete it before withdrawing."));
+        return;
+      }
       if (!this.selectedBank) {
         this.showNotice(
           this.localizedText("請先選擇本次提現要使用的收款銀行。", "Please select a beneficiary bank first."),
@@ -593,6 +600,11 @@ export default {
   font-weight: 900;
   margin-left: 8px;
   padding: 2px 8px;
+}
+.bank-pick-badge--warn {
+  background: rgba(245, 158, 11, 0.16);
+  border-color: rgba(245, 158, 11, 0.5);
+  color: #b45309;
 }
 .bank-pick-radio {
   border: 2px solid rgba(100, 116, 139, 0.36);

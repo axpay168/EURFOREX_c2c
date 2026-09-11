@@ -930,6 +930,13 @@
     "瑞士法郎帳戶": "Svájci frank számla",
     "英鎊帳戶": "Font számla",
     "請選擇貨幣並填寫銀行名稱、帳號 / IBAN、BIC/SWIFT 與開戶人資料，提交後會直接綁定。": "Válassza ki a pénznemet, és adja meg a bank nevét, a számlaszámot / IBAN-t, a BIC/SWIFT kódot és a számlatulajdonos adatait. Beküldés után azonnal összekapcsolásra kerül.",
-    "此貨幣尚未綁定銀行帳戶，請先新增。": "Ehhez a pénznemhez még nincs összekapcsolt bankszámla. Először adjon hozzá egyet."
+    "此貨幣尚未綁定銀行帳戶，請先新增。": "Ehhez a pénznemhez még nincs összekapcsolt bankszámla. Először adjon hozzá egyet.",
+    "此銀行帳戶尚未有完整帳號，請補填後才能用於提領。": "Ehhez a bankszámlához még hiányzik a teljes számlaszám. Kifizetés előtt kérjük, pótolja.",
+    "補填完整帳號": "Számlaszám pótlása",
+    "請輸入完整帳號 / IBAN": "Adja meg a teljes számlaszámot / IBAN-t",
+    "末四碼須與原帳號相同": "Az utolsó 4 karakternek egyeznie kell a meglévő számlával",
+    "帳號末四碼與原資料不符": "Az utolsó 4 karakter nem egyezik a meglévő számlával",
+    "完整帳號已補填": "Számlaszám pótolva",
+    "需補填完整帳號": "Teljes számlaszám szükséges"
   }
 }

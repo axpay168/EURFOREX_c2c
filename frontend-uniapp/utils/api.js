@@ -328,6 +328,7 @@ export const userApi = {
   submitKyc: body => apiRequest('/api/user/kyc-applications', { method: 'POST', body }),
   payoutMethods: () => apiRequest('/api/user/payout-methods'),
   createPayoutMethod: body => apiRequest('/api/user/payout-methods', { method: 'POST', body }),
+  completePayoutMethodAccount: (id, body) => apiRequest('/api/user/payout-methods/' + encodeURIComponent(id) + '/account-no', { method: 'POST', body }),
   inviteTeam: () => apiRequest('/api/user/invite-team'),
   tradeFeed: query => apiRequest('/api/user/trade-feed-events' + (query || '')),
   /** CoinDesk 最新加密新聞，依目前語言取對應站點（後端快取約 6 小時，無需登入） */

@@ -930,6 +930,13 @@
     "瑞士法郎帳戶": "Schweizerfranckonto",
     "英鎊帳戶": "Pundkonto",
     "請選擇貨幣並填寫銀行名稱、帳號 / IBAN、BIC/SWIFT 與開戶人資料，提交後會直接綁定。": "Välj valuta och fyll i banknamn, kontonummer / IBAN, BIC/SWIFT och kontoinnehavarens uppgifter. Kontot kopplas direkt efter inskickning.",
-    "此貨幣尚未綁定銀行帳戶，請先新增。": "Inget bankkonto är kopplat för den här valutan ännu. Lägg till ett först."
+    "此貨幣尚未綁定銀行帳戶，請先新增。": "Inget bankkonto är kopplat för den här valutan ännu. Lägg till ett först.",
+    "此銀行帳戶尚未有完整帳號，請補填後才能用於提領。": "Det här bankkontot saknar fortfarande fullständigt kontonummer. Fyll i det innan du tar ut.",
+    "補填完整帳號": "Fyll i kontonummer",
+    "請輸入完整帳號 / IBAN": "Ange fullständigt kontonummer / IBAN",
+    "末四碼須與原帳號相同": "De sista 4 siffrorna måste matcha det befintliga kontot",
+    "帳號末四碼與原資料不符": "De sista 4 siffrorna matchar inte det befintliga kontot",
+    "完整帳號已補填": "Kontonummer ifyllt",
+    "需補填完整帳號": "Fullständigt kontonummer krävs"
   }
 }

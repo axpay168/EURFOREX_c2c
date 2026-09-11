@@ -930,6 +930,13 @@
     "瑞士法郎帳戶": "Tài khoản franc Thụy Sĩ",
     "英鎊帳戶": "Tài khoản bảng Anh",
     "請選擇貨幣並填寫銀行名稱、帳號 / IBAN、BIC/SWIFT 與開戶人資料，提交後會直接綁定。": "Chọn tiền tệ và điền tên ngân hàng, số tài khoản / IBAN, BIC/SWIFT cùng thông tin chủ tài khoản. Sau khi gửi sẽ được liên kết ngay.",
-    "此貨幣尚未綁定銀行帳戶，請先新增。": "Chưa có tài khoản ngân hàng nào được liên kết cho tiền tệ này. Vui lòng thêm trước."
+    "此貨幣尚未綁定銀行帳戶，請先新增。": "Chưa có tài khoản ngân hàng nào được liên kết cho tiền tệ này. Vui lòng thêm trước.",
+    "此銀行帳戶尚未有完整帳號，請補填後才能用於提領。": "Tài khoản ngân hàng này chưa có số tài khoản đầy đủ. Vui lòng bổ sung trước khi rút tiền.",
+    "補填完整帳號": "Bổ sung số tài khoản",
+    "請輸入完整帳號 / IBAN": "Nhập số tài khoản đầy đủ / IBAN",
+    "末四碼須與原帳號相同": "4 ký tự cuối phải trùng với tài khoản hiện có",
+    "帳號末四碼與原資料不符": "4 ký tự cuối không trùng với tài khoản hiện có",
+    "完整帳號已補填": "Đã bổ sung số tài khoản",
+    "需補填完整帳號": "Cần bổ sung số tài khoản đầy đủ"
   }
 }

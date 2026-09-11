@@ -8,6 +8,7 @@
     <main class="pt-20 pb-16 px-4 max-w-3xl mx-auto">
       <section class="rounded-[24px] border border-outline-variant/10 bg-white/80 p-5 shadow-[0_18px_36px_rgba(40,88,142,0.08)]">
         <div id="bank-list" class="space-y-3">
+          <p v-if="accountCompletedNotice" class="bound-bank-card__done" role="status">{{ accountCompletedNotice }}</p>
           <LoadingInlineSpinner v-if="loading" :aria-label="localizedText('銀行資料載入', 'Loading bank info')" />
           <p v-else-if="loadError" class="rounded-2xl bg-error/5 px-4 py-4 text-center text-sm text-error">{{ loadError }}</p>
           <p v-else-if="!bankList.length" class="rounded-2xl bg-surface-container-low px-4 py-4 text-center text-sm text-on-surface-variant">{{ $t('phrases.尚未綁定銀行帳戶。') }}</p>
@@ -40,6 +41,15 @@
                 <span>{{ localizedText("開戶地址", "Account holder address") }}</span>
                 <strong>{{ card.address }}</strong>
               </div>
+            </div>
+            <div v-if="card.needsFullAccount" class="bound-bank-card__fix">
+              <p class="bound-bank-card__fix-text">{{ localizedText("此銀行帳戶尚未有完整帳號，請補填後才能用於提領。", "This bank account has no full account number yet. Please complete it before withdrawing.") }}</p>
+              <form class="bound-bank-card__fix-form" @submit.prevent="submitFullAccount(card)">
+                <input type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" :data-fix-account="card.id" v-model="card.fullAccountInput" :placeholder="localizedText('請輸入完整帳號 / IBAN', 'Enter the full account number / IBAN')" :aria-label="localizedText('請輸入完整帳號 / IBAN', 'Enter the full account number / IBAN')" />
+                <button type="submit" :disabled="card.fixing || !card.fullAccountInput">{{ card.fixing ? $t('phrases.submitInProgress') : localizedText("補填完整帳號", "Complete account number") }}</button>
+              </form>
+              <p class="bound-bank-card__fix-hint">{{ localizedText("末四碼須與原帳號相同", "The last 4 digits must match the existing account") }}（{{ card.accountNo }}）</p>
+              <p v-if="card.fixMessage" class="bound-bank-card__fix-msg" :class="card.fixError ? 'text-error' : 'text-primary-dim'">{{ card.fixMessage }}</p>
             </div>
           </article>
         </div>
@@ -158,6 +168,7 @@ export default {
       submitMessage: "",
       submitError: false,
       bankList: [],
+      accountCompletedNotice: "",
       currencyPickerOpen: false,
       currencies: FIAT_CURRENCIES,
       form: { currency: DEFAULT_FIAT_CODE, bankName: "", bankAccount: "", bankSwift: "", accountName: "", holderAddress: "" }
@@ -239,7 +250,13 @@ export default {
         bankName: item.bank_name || this.$t("phrases.銀行帳戶"),
         accountNo: item.account_no_masked || "—",
         swift: String(item.bank_swift || "").trim(),
-        address: String(item.holder_address || "").trim()
+        address: String(item.holder_address || "").trim(),
+        // 修正前綁定的舊資料只有遮罩帳號，需由客戶補填完整帳號
+        needsFullAccount: !String(item.account_no || "").trim() && /\*/.test(String(item.account_no_masked || "")),
+        fullAccountInput: "",
+        fixing: false,
+        fixMessage: "",
+        fixError: false
       };
     },
     fetchBankList: function () {
@@ -260,6 +277,34 @@ export default {
         .finally(function () {
           self.loading = false;
         });
+    },
+    submitFullAccount: function (card) {
+      var value = String(card.fullAccountInput || "").replace(/\s+/g, "").toUpperCase();
+      card.fixMessage = "";
+      card.fixError = false;
+      if (!value) return;
+      var visibleTail = String(card.accountNo || "").replace(/\s+/g, "").replace(/^\*+/, "").toUpperCase();
+      if (visibleTail && value.slice(-visibleTail.length) !== visibleTail) {
+        card.fixError = true;
+        card.fixMessage = this.localizedText("帳號末四碼與原資料不符", "The last 4 digits do not match the existing account");
+        return;
+      }
+      var self = this;
+      card.fixing = true;
+      userApi.completePayoutMethodAccount(card.id, { account_no: value }).then(function () {
+        self.accountCompletedNotice = self.localizedText("完整帳號已補填", "Account number completed");
+        return self.fetchBankList();
+      }).catch(function (error) {
+        var code = error && error.payload && error.payload.error_code;
+        card.fixError = true;
+        if (code === "AUTH_PAYOUT_ACCOUNT_SUFFIX_MISMATCH") {
+          card.fixMessage = self.localizedText("帳號末四碼與原資料不符", "The last 4 digits do not match the existing account");
+        } else {
+          card.fixMessage = (error && error.message) || self.localizedText("提交失敗，請稍後再試", "Submission failed, please try again later.");
+        }
+      }).finally(function () {
+        card.fixing = false;
+      });
     },
     handleSubmit: function () {
       var currency = normalizeFiatCode(this.form.currency);
@@ -569,5 +614,75 @@ export default {
 }
 .add-bank-dialog {
   flex: 0 0 auto;
+}
+.bound-bank-card__fix {
+  background: linear-gradient(135deg, rgba(255, 247, 230, 0.96), rgba(255, 255, 255, 0.9));
+  border: 1.5px solid rgba(245, 158, 11, 0.38);
+  border-radius: 16px;
+  margin-top: 12px;
+  padding: 12px;
+}
+.bound-bank-card__fix-text {
+  color: #9a3412;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 1.5;
+  margin: 0 0 10px;
+}
+.bound-bank-card__fix-form {
+  display: flex;
+  gap: 8px;
+}
+.bound-bank-card__fix-form input {
+  background: #ffffff;
+  border: 1.5px solid rgba(245, 158, 11, 0.45);
+  border-radius: 12px;
+  color: #0f172a;
+  flex: 1 1 auto;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  font-weight: 700;
+  min-width: 0;
+  outline: none;
+  padding: 10px 12px;
+}
+.bound-bank-card__fix-form input:focus {
+  border-color: rgba(217, 119, 6, 0.8);
+  box-shadow: 0 0 0 3px rgba(245, 158, 11, 0.16);
+}
+.bound-bank-card__fix-form button {
+  background: linear-gradient(135deg, #f59e0b, #d97706);
+  border: 0;
+  border-radius: 12px;
+  color: #ffffff;
+  flex: 0 0 auto;
+  font-size: 12px;
+  font-weight: 900;
+  padding: 0 12px;
+  white-space: nowrap;
+}
+.bound-bank-card__fix-form button:disabled {
+  opacity: 0.55;
+}
+.bound-bank-card__fix-hint {
+  color: #92400e;
+  font-size: 11px;
+  font-weight: 700;
+  margin: 8px 0 0;
+}
+.bound-bank-card__done {
+  background: rgba(22, 163, 74, 0.1);
+  border: 1.5px solid rgba(22, 163, 74, 0.35);
+  border-radius: 14px;
+  color: #15803d;
+  font-size: 13px;
+  font-weight: 800;
+  margin: 0;
+  padding: 10px 14px;
+}
+.bound-bank-card__fix-msg {
+  font-size: 12px;
+  font-weight: 800;
+  margin: 6px 0 0;
 }
 </style>

@@ -930,6 +930,13 @@
     "瑞士法郎帳戶": "Swiss franc account",
     "英鎊帳戶": "Pound sterling account",
     "請選擇貨幣並填寫銀行名稱、帳號 / IBAN、BIC/SWIFT 與開戶人資料，提交後會直接綁定。": "Select the currency and fill in the bank name, account number / IBAN, BIC/SWIFT and account holder details. It will be bound immediately after submission.",
-    "此貨幣尚未綁定銀行帳戶，請先新增。": "No bank account is bound for this currency yet. Please add one first."
+    "此貨幣尚未綁定銀行帳戶，請先新增。": "No bank account is bound for this currency yet. Please add one first.",
+    "此銀行帳戶尚未有完整帳號，請補填後才能用於提領。": "This bank account has no full account number yet. Please complete it before withdrawing.",
+    "補填完整帳號": "Complete account number",
+    "請輸入完整帳號 / IBAN": "Enter the full account number / IBAN",
+    "末四碼須與原帳號相同": "The last 4 digits must match the existing account",
+    "帳號末四碼與原資料不符": "The last 4 digits do not match the existing account",
+    "完整帳號已補填": "Account number completed",
+    "需補填完整帳號": "Full account number required"
   }
 }

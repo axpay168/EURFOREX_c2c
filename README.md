@@ -148,6 +148,10 @@ node --check admin-web/shared/admin-modals.js
 
 每次 Agent 改完專案，都要在這裡新增一條，讓下一位 Agent 不用猜上下文。
 
+### 2026-09-12
+
+- H5 底部導覽等圖示顯示成 `swap_horizontal_circle`、`receipt_long`、`person` 文字：圖示不是 PNG，而是 Material Symbols 圖示字型的 ligature（字型把這些字串畫成圖示）。字型本來就是自架（`static/previews/shared/fonts/google-cdn-mirror/`），但檔案 925 KB 且要等 CSS 載完才開始下載，慢速網路或 App 內建瀏覽器超過 `font-display: block` 的 3 秒後就會露出文字。處理：改用只含專案實際用到的 60 個圖示的子集字型（約 8 KB，`scripts/subset-icon-font.mjs` 向 Google Fonts 產生，清單在 `scripts/icon-font-names.json`），`template.h5.html` 先行 `preload` 該字型，並在字型可用前用 `html.ms-pending` 隱藏圖示文字（12 秒後無論如何顯示）。`npm run build:h5` 前會自動執行 `scripts/check-icon-font.mjs`，原始碼若用了不在子集裡的圖示會中止建置並提示執行 `npm run icons:subset`。完整字型移到 `scripts/fonts-src/`，不再隨 H5 發佈。
+
 ### 2026-09-11
 
 - 後台看不到客戶完整銀行帳號：原本新增銀行時只存遮罩後的 `account_no_masked`，完整帳號從未入庫。`user_payout_methods` 新增 `account_no`（完整帳號），使用者新增時同時寫入完整與遮罩；使用者列表、提現查詢、後台收款方式／提現審核 API 一併回傳；後台「提款信息」、提現詳情、收款方詳情卡片改顯示完整帳號，編輯欄位改為「帳號 / IBAN（完整）」，後台存檔會同步重算遮罩。早期未遮罩的短帳號已回填；已遮罩的舊資料（含 2026-09-11 前綁定的）無法還原，卡片會標示「僅有遮罩，請補填完整帳號」，需由後台補填或請客戶重新綁定。後台提現審核的幣別改為直接跟金額一起顯示（銀行提現以收款帳戶幣別為準，如 `129 EUR`、`100 USD`），提款信息與提現詳情不再另列「幣別」；提現詳情金額改用幣別代碼；提現審核列表的「訂單編號」與「日期」合併為同一欄（日期顯示在訂單編號下方，欄數 12 → 11）。提現審核的用戶欄縮窄為 150px（信箱可換行）；只有遮罩的舊帳號會在提款信息標示「此帳戶為修正前綁定，系統只有遮罩值」並提供「補填完整帳號」按鈕，直接開啟該用戶的收款方編輯。`admin-view-loaders.js` 與 `admin-console.css` 的載入版本號已更新（舊版被瀏覽器快取時會看不到新欄位）。

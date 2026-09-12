@@ -17,10 +17,14 @@
 @font-face {
   font-family: 'Material Symbols Outlined';
   font-style: normal;
-  font-weight: 100 700;
+  font-weight: 400;
   /* swap 會在字型未就緒時用回退字體畫出 "home" 等 ligature 字串；切頁載入 chunk 時特別明顯 */
   font-display: block;
-  src: url('./fonts/google-cdn-mirror/MaterialSymbolsOutlined-v328-FILL1.woff2') format('woff2');
+  /*
+   * 只含專案實際用到的圖示（scripts/icon-font-names.json，約 8 KB；完整字型 925 KB 在慢速網路上載不完就會露出
+   * "swap_horizontal_circle" 這類文字）。固定路徑，template.h5.html 會 preload；新增圖示後執行 npm run icons:subset。
+   */
+  src: url('/h5/static/previews/shared/fonts/google-cdn-mirror/MaterialSymbolsOutlined-subset.woff2') format('woff2');
 }
 
 .material-symbols-outlined {

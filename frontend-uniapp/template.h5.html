@@ -5,6 +5,31 @@
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
     <title><%= htmlWebpackPlugin.options.title %></title>
+    <!-- 圖示字型子集（約 8 KB）先行載入；字型可用前隱藏圖示的 ligature 文字，避免露出 "person" 等字串 -->
+    <link rel="preload" href="<%= BASE_URL %>static/previews/shared/fonts/google-cdn-mirror/MaterialSymbolsOutlined-subset.woff2" as="font" type="font/woff2" crossorigin>
+    <style>html.ms-pending .material-symbols-outlined{visibility:hidden}</style>
+    <script>
+      (function () {
+        var root = document.documentElement;
+        var done = false;
+        root.className += " ms-pending";
+        function ready() {
+          if (done) return;
+          done = true;
+          root.className = root.className.replace(/\bms-pending\b/, "").replace(/\s+/g, " ").trim() + " ms-ready";
+        }
+        if (!(document.fonts && document.fonts.load)) { ready(); return; }
+        function attempt() {
+          if (done) return;
+          document.fonts.load('24px "Material Symbols Outlined"').then(function (faces) {
+            if (faces && faces.length) ready(); else setTimeout(attempt, 250);
+          }, function () { setTimeout(attempt, 500); });
+        }
+        attempt();
+        document.addEventListener("DOMContentLoaded", attempt);
+        setTimeout(ready, 12000);
+      })();
+    </script>
   </head>
   <body>
     <noscript>

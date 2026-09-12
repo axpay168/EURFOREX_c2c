@@ -6,7 +6,10 @@
   "scripts": {
     "postinstall": "patch-package",
     "audit:prod": "node scripts/audit-production.mjs",
+    "prebuild:h5": "node scripts/check-icon-font.mjs",
     "build:h5": "node scripts/build-h5.mjs",
+    "icons:check": "node scripts/check-icon-font.mjs",
+    "icons:subset": "node scripts/subset-icon-font.mjs",
     "preview:h5": "npm run build:h5 && npm run serve:dist",
     "serve:dist": "node scripts/ensure-h5-dist.mjs && node -e \"console.log('\\n  H5 預覽: http://127.0.0.1:8094/ → 自動進入 /h5/\\n  請勿關閉此終端機；若瀏覽器顯示 ERR_CONNECTION_REFUSED 表示本伺服器未在執行。\\n')\" && serve -l 8094 dist/build -n",
     "smoke:main-nav": "node scripts/smoke-main-nav.mjs",

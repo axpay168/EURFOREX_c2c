@@ -292,8 +292,14 @@
         '<td><span class="admin-badge ' + statusBadgeClass(item.status) + '">' + statusLabel(item.status) + '</span></td>',
         '<td><div class="mono">' + escapeHtml(item.invitation_code || "-") + '</div><div class="admin-cell-sub">' + invitationStatusLabel(item.invitation_status) + '</div></td>',
         '<td class="mono">' + escapeHtml(item.invite_count || 0) + '</td>',
-        '<td class="mono">' + money(item.usdt_balance) + '</td>',
-        '<td class="mono">' + money(item.eur_balance) + '</td>',
+        (typeof window.renderAdminTotalValueCell === "function"
+          ? window.renderAdminTotalValueCell(item)
+          : '<td class="mono">' + money(item.total_usdt_value != null ? item.total_usdt_value : item.usdt_balance) + '</td>'),
+        '<td>' +
+          (typeof window.renderAdminAssetChips === "function"
+            ? window.renderAdminAssetChips(item, { limit: 3 })
+            : money(item.usdt_balance) + " USDT / " + money(item.eur_balance) + " EUR") +
+          '</td>',
         '<td>' +
           (typeof window.renderAdminRowActions === "function" && typeof window.renderAdminBtn === "function"
             ? window.renderAdminRowActions(

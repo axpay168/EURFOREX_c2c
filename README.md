@@ -148,6 +148,11 @@ node --check admin-web/shared/admin-modals.js
 
 每次 Agent 改完專案，都要在這裡新增一條，讓下一位 Agent 不用猜上下文。
 
+### 2026-09-13
+
+- 後台「資金錢包」與「使用者管理」改為多幣種彙總（參考交易所後台的用戶資產頁）：原本只有 USDT／EUR 兩組可用／凍結欄位，其他幣別（如 USDC 158 萬）一律顯示成「—」或 0，看不出用戶到底持有什麼。現在 `GET /api/admin/users` 每位用戶多回傳 `wallets`（只含非零錢包，依估值排序，每筆含可用／凍結／`usdt_value`）、`total_usdt_value`（總資產估值，含凍結）與 `unvalued_assets`（暫無匯率的幣別），並支援 `holding=錢包代碼` 只列持有該資產的用戶；`GET /api/admin/users/:id/wallets` 每筆多回傳 `usdt_rate`／`usdt_value` 與總估值。估值匯率 `asset_usdt_rates()`：USDT／USDC／USD 視為 1，BTC／ETH／TRX／XRP 取既有市場快照，BNB 另向 Binance 取價（快取 5 分鐘），EUR／GBP／CHF／CNY 取 ECB（frankfurter.dev，快取 6 小時，EUR 取不到時退回後台 `usdt_to_eur_rate` 設定）；取不到匯率的資產標示「未計價」而不是算成 0。
+- 資金錢包頁欄位改為「ID／用戶／組別／總資產估值 (USDT)／持有資產／更新時間／操作」：持有資產以 chips 顯示（幣別＋合計，凍結另標，最多 4 個，其餘「+N」可展開），滑鼠指著看可用／凍結／估值；「明細」在列下方展開全部 12 種錢包（0 餘額預設收合，可切換顯示），每列可直接調帳；資產下拉列出全部加密與法幣錢包，選擇後只顯示持有者並把該資產排在最前高亮；填用戶 ID 會直接展開該用戶明細。調帳視窗的錢包改為下拉，所有錢包皆可調整；調帳紀錄的資產篩選改以錢包代碼過濾。使用者管理頁把「USDT 餘額／歐元餘額」兩欄改為「總資產 (USDT)／持倉」（chips 最多 3 個）；該頁「餘額」按鈕原本開啟調帳視窗時不會帶入用戶，現已帶入。深色玻璃主題另補 chips 配色。後台資產版本號 `20260913-wallets1`。
+
 ### 2026-09-12
 
 - H5 底部導覽等圖示顯示成 `swap_horizontal_circle`、`receipt_long`、`person` 文字：圖示不是 PNG，而是 Material Symbols 圖示字型的 ligature（字型把這些字串畫成圖示）。字型本來就是自架（`static/previews/shared/fonts/google-cdn-mirror/`），但檔案 925 KB 且要等 CSS 載完才開始下載，慢速網路或 App 內建瀏覽器超過 `font-display: block` 的 3 秒後就會露出文字。處理：改用只含專案實際用到的 60 個圖示的子集字型（約 8 KB，`scripts/subset-icon-font.mjs` 向 Google Fonts 產生，清單在 `scripts/icon-font-names.json`），`template.h5.html` 先行 `preload` 該字型，並在字型可用前用 `html.ms-pending` 隱藏圖示文字（12 秒後無論如何顯示）。`npm run build:h5` 前會自動執行 `scripts/check-icon-font.mjs`，原始碼若用了不在子集裡的圖示會中止建置並提示執行 `npm run icons:subset`。完整字型移到 `scripts/fonts-src/`，不再隨 H5 發佈。

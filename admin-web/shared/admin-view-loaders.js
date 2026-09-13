@@ -2889,62 +2889,29 @@
     return Promise.resolve();
   }
 
-  /** 錢包列彙總：USDT / EUR / 其他（依 currency_code，缺省則由 wallet_code 推斷） */
-  function walletBalanceCurrencyGroup(w) {
-    var c = String(w.currency_code || "").trim().toUpperCase();
-    if (c === "USDT") return "USDT";
-    if (c === "EUR") return "EUR";
-    var k = String(w.wallet_code || "").toLowerCase();
-    if (k.indexOf("usdt") !== -1 || k === "cash_usdt" || k === "spot_usdt") return "USDT";
-    if (k === "eur" || k.indexOf("eur") !== -1) return "EUR";
-    return "OTHER";
-  }
+  /** 後台支援的錢包清單（與後端 default_user_wallets() 一致） */
+  var ADMIN_WALLET_CATALOG = [
+    { code: "cash_usdt", currency: "USDT", label: "USDT", kind: "crypto" },
+    { code: "spot_usdc", currency: "USDC", label: "USDC", kind: "crypto" },
+    { code: "spot_btc", currency: "BTC", label: "BTC 比特幣", kind: "crypto" },
+    { code: "spot_eth", currency: "ETH", label: "ETH 以太幣", kind: "crypto" },
+    { code: "spot_trx", currency: "TRX", label: "TRX", kind: "crypto" },
+    { code: "spot_bnb", currency: "BNB", label: "BNB", kind: "crypto" },
+    { code: "eur", currency: "EUR", label: "EUR 歐元", kind: "fiat" },
+    { code: "usd", currency: "USD", label: "USD 美元", kind: "fiat" },
+    { code: "gbp", currency: "GBP", label: "GBP 英鎊", kind: "fiat" },
+    { code: "chf", currency: "CHF", label: "CHF 瑞士法郎", kind: "fiat" },
+    { code: "cny", currency: "CNY", label: "CNY 人民幣", kind: "fiat" },
+    { code: "eur_reserved", currency: "EUR", label: "EUR 舊保留錢包", kind: "fiat" }
+  ];
+  var ADMIN_ASSET_DECIMALS = { BTC: 6, ETH: 6, BNB: 4, TRX: 2, XRP: 2 };
 
-  function aggregateUserWalletBalances(items, assetFilter) {
-    var f = String(assetFilter || "").trim().toUpperCase();
-    var rows = items || [];
-    if (f === "USDT") rows = rows.filter(function (w) { return walletBalanceCurrencyGroup(w) === "USDT"; });
-    else if (f === "EUR") rows = rows.filter(function (w) { return walletBalanceCurrencyGroup(w) === "EUR"; });
-    var usdtAv = 0;
-    var usdtRs = 0;
-    var eurAv = 0;
-    var eurRs = 0;
-    var othAv = 0;
-    var othRs = 0;
-    var maxUpd = "";
-    rows.forEach(function (w) {
-      var g = walletBalanceCurrencyGroup(w);
-      var av = Number(String(w.available_balance != null ? w.available_balance : "").replace(/,/g, ""));
-      var rs = Number(String(w.reserved_balance != null ? w.reserved_balance : "").replace(/,/g, ""));
-      if (!isFinite(av)) av = 0;
-      if (!isFinite(rs)) rs = 0;
-      if (g === "USDT") {
-        usdtAv += av;
-        usdtRs += rs;
-      } else if (g === "EUR") {
-        eurAv += av;
-        eurRs += rs;
-      } else {
-        othAv += av;
-        othRs += rs;
-      }
-      var u = w.updated_at || w.created_at || "";
-      if (u && (!maxUpd || String(u) > String(maxUpd))) maxUpd = String(u);
-    });
-    var hasOtherWallet = (items || []).some(function (w) {
-      return walletBalanceCurrencyGroup(w) === "OTHER";
-    });
-    return {
-      usdtAv: usdtAv,
-      usdtRs: usdtRs,
-      eurAv: eurAv,
-      eurRs: eurRs,
-      othAv: othAv,
-      othRs: othRs,
-      maxUpd: maxUpd || "—",
-      hasOtherWallet: hasOtherWallet,
-      assetFilter: f
-    };
+  function walletCatalogEntry(code) {
+    var k = String(code || "").toLowerCase();
+    for (var i = 0; i < ADMIN_WALLET_CATALOG.length; i++) {
+      if (ADMIN_WALLET_CATALOG[i].code === k) return ADMIN_WALLET_CATALOG[i];
+    }
+    return { code: k, currency: k.replace(/^(cash|spot)_/, "").toUpperCase(), label: k.toUpperCase(), kind: "other" };
   }
 
   function parseWalletBalanceField(v) {
@@ -2952,77 +2919,206 @@
     return isFinite(n) ? n : 0;
   }
 
-  /** 成員列表 API 一列之 USDT/EUR 可用、凍結彙總（無「其他」資產明細） */
-  function aggregateWalletBalancesFromUserListItem(it, assetFilter) {
-    var f = String(assetFilter || "").trim().toUpperCase();
-    return {
-      usdtAv: parseWalletBalanceField(it.usdt_available_balance),
-      usdtRs: parseWalletBalanceField(it.usdt_reserved_balance),
-      eurAv: parseWalletBalanceField(it.eur_available_balance),
-      eurRs: parseWalletBalanceField(it.eur_reserved_balance),
-      othAv: 0,
-      othRs: 0,
-      maxUpd: it.wallets_max_updated_at || "—",
-      hasOtherWallet: false,
-      assetFilter: f
-    };
+  /** 依幣別顯示金額：加密幣去尾零（BTC/ETH 至多 6 位），穩定幣與法幣固定 2 位 */
+  function formatAssetAmount(currency, value) {
+    var c = String(currency || "").toUpperCase();
+    var n = parseWalletBalanceField(value);
+    var max = ADMIN_ASSET_DECIMALS[c] != null ? ADMIN_ASSET_DECIMALS[c] : 2;
+    var min = ADMIN_ASSET_DECIMALS[c] != null ? 0 : 2;
+    return n.toLocaleString("en-US", { minimumFractionDigits: min, maximumFractionDigits: max });
   }
 
-  function renderWalletSummaryTableRow(userIdLabel, user, internalUid, agg) {
-    var f = agg.assetFilter || "";
-    var dash = "—";
-    var userCell = renderAdminUserSummaryCell(user, internalUid);
-    var cellPair = function (skip, av, rs) {
-      if (f === skip) return { a: dash, b: dash };
-      return { a: formatListingPriceDisplay(av), b: formatListingPriceDisplay(rs) };
-    };
-    var usdtCells = cellPair("EUR", agg.usdtAv, agg.usdtRs);
-    var eurCells = cellPair("USDT", agg.eurAv, agg.eurRs);
-    var otherCell;
-    if (f === "USDT" || f === "EUR") {
-      otherCell = dash;
-    } else if (!agg.hasOtherWallet && agg.othAv === 0 && agg.othRs === 0) {
-      otherCell = dash;
-    } else {
-      otherCell = formatListingPriceDisplay(agg.othAv) + " / " + formatListingPriceDisplay(agg.othRs);
-    }
+  function formatUsdtValue(value) {
+    return parseWalletBalanceField(value).toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  }
+
+  function walletChipCode(w) {
+    var entry = walletCatalogEntry(w.wallet_code);
+    var currency = String(w.currency_code || entry.currency || "").toUpperCase();
+    return w.wallet_code === "eur_reserved" ? currency + "·舊" : currency;
+  }
+
+  function walletSummaryText(w) {
+    var entry = walletCatalogEntry(w.wallet_code);
+    var currency = String(w.currency_code || entry.currency || "").toUpperCase();
+    var avail = parseWalletBalanceField(w.available_balance);
+    var frozen = parseWalletBalanceField(w.reserved_balance);
     return (
-      '<tr data-admin-wallet-user-id="' +
-      esc(String(internalUid || "")) +
-      '"><td class="mono">' +
-      esc(String(userIdLabel)) +
-      "</td>" +
-      userCell +
-      renderAdminGroupCell(user) +
-      '<td class="mono">' +
-      esc(usdtCells.a) +
-      '</td><td class="mono">' +
-      esc(usdtCells.b) +
-      '</td><td class="mono">' +
-      esc(eurCells.a) +
-      '</td><td class="mono">' +
-      esc(eurCells.b) +
-      '</td><td class="mono">' +
-      esc(otherCell) +
-      '</td><td class="mono">' +
-      esc(agg.maxUpd) +
-      "</td><td>" +
+      entry.label +
+      "：可用 " + formatAssetAmount(currency, avail) +
+      "，凍結 " + formatAssetAmount(currency, frozen) +
+      (w.usdt_value != null ? "，≈ " + formatUsdtValue(w.usdt_value) + " USDT" : "，暫無匯率未計價")
+    );
+  }
+
+  function renderAssetChip(w, active) {
+    var entry = walletCatalogEntry(w.wallet_code);
+    var currency = String(w.currency_code || entry.currency || "").toUpperCase();
+    var avail = parseWalletBalanceField(w.available_balance);
+    var frozen = parseWalletBalanceField(w.reserved_balance);
+    return (
+      '<span class="admin-asset-chip' + (active ? " admin-asset-chip--active" : "") + '" title="' + esc(walletSummaryText(w)) + '">' +
+      '<span class="admin-asset-chip__code">' + esc(walletChipCode(w)) + "</span>" +
+      '<span class="admin-asset-chip__amt">' + esc(formatAssetAmount(currency, avail + frozen)) + "</span>" +
+      (frozen > 0 ? '<span class="admin-asset-chip__frozen">凍結 ' + esc(formatAssetAmount(currency, frozen)) + "</span>" : "") +
+      "</span>"
+    );
+  }
+
+  /**
+   * 非零持倉 chips：依估值排序（後端已排），highlight 的資產排最前並高亮；超過 limit 的以「+N」收合，
+   * 有 expandId 時「+N」可展開該用戶錢包明細，否則 hover 顯示其餘資產。
+   */
+  function renderAssetChips(item, opts) {
+    opts = opts || {};
+    var wallets = ((item && item.wallets) || []).slice();
+    if (!wallets.length) return '<span class="admin-muted">無餘額</span>';
+    var limit = opts.limit || 4;
+    var highlight = String(opts.highlight || "").toLowerCase();
+    if (highlight) {
+      wallets.sort(function (a, b) {
+        return (b.wallet_code === highlight ? 1 : 0) - (a.wallet_code === highlight ? 1 : 0);
+      });
+    }
+    var shown = wallets.slice(0, limit);
+    var rest = wallets.slice(limit);
+    var chips = shown.map(function (w) {
+      return renderAssetChip(w, highlight && w.wallet_code === highlight);
+    });
+    if (rest.length) {
+      var restTitle = esc(rest.map(walletSummaryText).join("\n"));
+      var restLabel = "其餘 " + rest.length + " 項資產";
+      chips.push(
+        opts.expandId != null
+          ? '<button type="button" class="admin-asset-chip admin-asset-chip--more" data-wallet-expand="' + esc(String(opts.expandId)) + '" title="' + restTitle + '" aria-label="展開' + esc(restLabel) + '">+' + rest.length + "</button>"
+          : '<span class="admin-asset-chip admin-asset-chip--more" title="' + restTitle + '" aria-label="' + esc(restLabel) + '" tabindex="0">+' + rest.length + "</span>"
+      );
+    }
+    return '<div class="admin-asset-chips">' + chips.join("") + "</div>";
+  }
+
+  /** 總資產估值（USDT）；暫無匯率的資產另標示，避免把 0 誤讀成沒有餘額 */
+  function renderTotalValueCell(item) {
+    var wallets = (item && item.wallets) || [];
+    var unvalued = (item && item.unvalued_assets) || [];
+    var html = '<td class="mono admin-total-cell"><span class="admin-total-value">' + esc(wallets.length ? formatUsdtValue(item.total_usdt_value) : "0.00") + "</span>";
+    if (unvalued.length) {
+      html += '<span class="admin-cell-sub admin-cell-sub--warn" title="以下資產暫無匯率，未計入估值">未計價：' + esc(unvalued.join("、")) + "</span>";
+    }
+    return html + "</td>";
+  }
+  window.renderAdminAssetChips = renderAssetChips;
+  window.renderAdminTotalValueCell = renderTotalValueCell;
+
+  function renderWalletSummaryTableRow(item, opts) {
+    opts = opts || {};
+    var internalUid = item.id;
+    return (
+      '<tr data-admin-wallet-user-id="' + esc(String(internalUid)) + '"><td class="mono">' + esc(String(userOrdinalId(item, internalUid))) + "</td>" +
+      renderAdminUserSummaryCell(item, internalUid) +
+      renderAdminGroupCell(item) +
+      renderTotalValueCell(item) +
+      "<td>" + renderAssetChips(item, { limit: 4, highlight: opts.highlight, expandId: internalUid }) + "</td>" +
+      '<td class="mono">' + esc(item.wallets_max_updated_at || "—") + "</td><td>" +
       adminRowActions(
         adminBtn({
           variant: "accent",
           sm: true,
-          attrs: 'data-admin-modal-open="admin-modal-wallet-adjust" data-admin-wallet-adjust="' + esc(String(internalUid || "")) + '"',
+          attrs: 'data-admin-modal-open="admin-modal-wallet-adjust" data-admin-wallet-adjust="' + esc(String(internalUid)) + '"',
           label: "調帳"
         }) +
         adminBtn({
           variant: "info",
           sm: true,
-          attrs: 'data-admin-wallet-ledger="' + esc(String(internalUid || "")) + '"',
+          attrs: 'data-admin-wallet-ledger="' + esc(String(internalUid)) + '"',
           label: "流水"
+        }) +
+        adminBtn({
+          variant: "ghost",
+          sm: true,
+          attrs: 'data-wallet-expand="' + esc(String(internalUid)) + '" aria-expanded="false"',
+          label: "明細"
         })
       ) +
       "</td></tr>"
     );
+  }
+
+  function renderWalletDetailPanel(data) {
+    var items = (data && data.items) || [];
+    var zeroCount = 0;
+    var rows = items
+      .map(function (w) {
+        var entry = walletCatalogEntry(w.wallet_code);
+        var currency = String(w.currency_code || entry.currency || "").toUpperCase();
+        var avail = parseWalletBalanceField(w.available_balance);
+        var frozen = parseWalletBalanceField(w.reserved_balance);
+        var isZero = avail === 0 && frozen === 0;
+        if (isZero) zeroCount++;
+        return (
+          '<tr class="' + (isZero ? "admin-wallet-detail__zero" : "") + '"><td><strong>' + esc(currency) + "</strong> <span class=\"admin-muted\">" + esc(entry.label.replace(new RegExp("^" + currency + "\\s*"), "")) + "</span></td>" +
+          '<td class="mono">' + esc(formatAssetAmount(currency, avail)) + "</td>" +
+          '<td class="mono">' + esc(formatAssetAmount(currency, frozen)) + "</td>" +
+          '<td class="mono">' + esc(formatAssetAmount(currency, avail + frozen)) + "</td>" +
+          '<td class="mono">' + (w.usdt_value != null ? esc(formatUsdtValue(w.usdt_value)) : (isZero ? "0.00" : '<span class="admin-cell-sub--warn">未計價</span>')) + "</td>" +
+          '<td class="mono admin-muted">' + esc(w.updated_at || "—") + "</td>" +
+          "<td>" +
+          adminBtn({
+            variant: "ghost",
+            sm: true,
+            attrs: 'data-admin-modal-open="admin-modal-wallet-adjust" data-admin-wallet-adjust="' + esc(String(data.__userId)) + '" data-wallet-code="' + esc(w.wallet_code) + '"',
+            label: "調帳"
+          }) +
+          "</td></tr>"
+        );
+      })
+      .join("");
+    var unvalued = (data && data.unvalued_assets) || [];
+    return (
+      '<div class="admin-wallet-detail"><div class="admin-wallet-detail__head"><strong>錢包明細</strong>' +
+      '<span class="admin-muted">總資產估值 ≈ <span class="mono">' + esc(formatUsdtValue(data && data.total_usdt_value)) + "</span> USDT" +
+      (unvalued.length ? "，未計價：" + esc(unvalued.join("、")) : "") + "</span>" +
+      (zeroCount
+        ? '<button type="button" class="admin-btn admin-btn--ghost admin-btn--sm" data-wallet-toggle-zero="1" data-zero-count="' + zeroCount + '">顯示 0 餘額錢包（' + zeroCount + "）</button>"
+        : "") +
+      '</div><div class="admin-table-wrap"><table class="admin-table admin-table--compact"><thead><tr><th>資產</th><th>可用</th><th>凍結</th><th>合計</th><th>估值 (USDT)</th><th>更新時間</th><th>操作</th></tr></thead><tbody>' +
+      (rows || '<tr><td colspan="7" class="admin-muted">尚無錢包。</td></tr>') +
+      "</tbody></table></div></div>"
+    );
+  }
+
+  /** 展開／收合某用戶的錢包明細列（全部錢包，含 0 餘額可切換顯示） */
+  function toggleWalletDetailRow(userId, forceOpen) {
+    var tb = document.getElementById("view-wallets-tbody");
+    if (!tb) return;
+    var row = tb.querySelector('tr[data-admin-wallet-user-id="' + String(userId) + '"]');
+    if (!row) return;
+    var trigger = row.querySelector('[data-wallet-expand][aria-expanded]');
+    var existing = row.nextElementSibling;
+    if (existing && existing.classList.contains("admin-wallet-detail-row")) {
+      if (forceOpen) return;
+      existing.remove();
+      row.classList.remove("is-expanded");
+      if (trigger) trigger.setAttribute("aria-expanded", "false");
+      return;
+    }
+    var detail = document.createElement("tr");
+    detail.className = "admin-wallet-detail-row";
+    detail.innerHTML = '<td colspan="7"><div class="admin-wallet-detail admin-muted">載入錢包明細…</div></td>';
+    row.parentNode.insertBefore(detail, row.nextSibling);
+    row.classList.add("is-expanded");
+    if (trigger) trigger.setAttribute("aria-expanded", "true");
+    api()
+      .requestJson("/api/admin/users/" + encodeURIComponent(userId) + "/wallets", { fallbackMessage: "載入錢包明細失敗" })
+      .then(function (data) {
+        data = data || {};
+        data.__userId = userId;
+        detail.firstElementChild.innerHTML = renderWalletDetailPanel(data);
+      })
+      .catch(function (e) {
+        if (e && e.adminSessionHandled) return;
+        detail.firstElementChild.innerHTML = '<div class="admin-wallet-detail admin-muted">' + esc((e && e.message) || "載入錢包明細失敗") + "</div>";
+      });
   }
 
   function walletLedgerTypeLabel(type) {
@@ -3054,12 +3150,11 @@
     if (target) target.textContent = "用戶 ID：" + userOrdinalId({ id: normalizedId }, normalizedId) + "（後端 ID " + normalizedId + "）";
     setTbodyLoading("view-wallet-ledger-tbody", 8);
     var assetEl = document.getElementById("view-wallets-asset");
-    var asset = assetEl && assetEl.value ? String(assetEl.value).trim().toUpperCase() : "";
+    var asset = assetEl && assetEl.value ? String(assetEl.value).trim().toLowerCase() : "";
     var qs = new URLSearchParams();
     qs.set("page", "1");
     qs.set("page_size", "50");
-    if (asset === "USDT") qs.set("wallet_code", "cash_usdt");
-    if (asset === "EUR") qs.set("wallet_code", "eur");
+    if (asset) qs.set("wallet_code", asset);
     api()
       .requestJson("/api/admin/users/" + encodeURIComponent(normalizedId) + "/wallets/ledger?" + qs.toString(), {
         fallbackMessage: "載入調帳紀錄失敗"
@@ -3105,23 +3200,24 @@
   }
 
   function walletCodeLabel(walletCode) {
-    return walletCode === "eur" ? "EUR" : "USDT";
+    return walletCatalogEntry(walletCode).label;
   }
 
+  /** 調帳視窗的錢包下拉：所有加密與法幣錢包 */
   function setWalletAdjustAsset(walletCode) {
-    var normalized = walletCode === "eur" ? "eur" : "cash_usdt";
-    var hidden = document.getElementById("view-wallet-adjust-wallet-code");
-    if (hidden) hidden.value = normalized;
-    document.querySelectorAll("[data-wallet-adjust-asset]").forEach(function (btn) {
-      var active = btn.getAttribute("data-wallet-adjust-asset") === normalized;
-      btn.classList.toggle("admin-btn--primary", active);
-      btn.classList.toggle("admin-btn--ghost", !active);
-      btn.textContent = walletCodeLabel(btn.getAttribute("data-wallet-adjust-asset")) + (active ? "（已選）" : "");
-      btn.setAttribute("aria-pressed", active ? "true" : "false");
-    });
+    var select = document.getElementById("view-wallet-adjust-wallet-code");
+    if (!select) return;
+    if (select.tagName === "SELECT" && !select.options.length) {
+      select.innerHTML = ADMIN_WALLET_CATALOG.map(function (entry) {
+        return '<option value="' + esc(entry.code) + '">' + esc(entry.label) + "</option>";
+      }).join("");
+    }
+    var normalized = walletCatalogEntry(walletCode).code;
+    var known = ADMIN_WALLET_CATALOG.some(function (entry) { return entry.code === normalized; });
+    select.value = known ? normalized : "cash_usdt";
   }
 
-  function openWalletAdjustForUser(userId) {
+  function openWalletAdjustForUser(userId, walletCode) {
     var normalizedId = String(userId || "").trim();
     if (!normalizedId) {
       var input = document.getElementById("view-wallets-user-id");
@@ -3136,7 +3232,8 @@
     if (amount) amount.value = "";
     if (reason) reason.value = "";
     if (msg) msg.textContent = "";
-    setWalletAdjustAsset("cash_usdt");
+    var filterAsset = document.getElementById("view-wallets-asset");
+    setWalletAdjustAsset(walletCode || (filterAsset && filterAsset.value) || "cash_usdt");
     if (target) {
       target.textContent = normalizedId
         ? "目前調整用戶 ID：" + userOrdinalId({ id: normalizedId }, normalizedId) + "（後端 ID " + normalizedId + "）"
@@ -3197,71 +3294,48 @@
     var uidEl = document.getElementById("view-wallets-user-id");
     var uid = uidEl && uidEl.value.trim() ? uidEl.value.trim() : "";
     var assetEl = document.getElementById("view-wallets-asset");
-    var assetF = assetEl && assetEl.value ? String(assetEl.value).trim() : "";
+    var holding = assetEl && assetEl.value ? String(assetEl.value).trim().toLowerCase() : "";
     var kwEl = document.getElementById("view-wallets-keyword");
     var keyword = kwEl && kwEl.value.trim() ? kwEl.value.trim() : "";
-    setTbodyLoading("view-wallets-tbody", 10);
-
-    if (!uid) {
-      var qs = new URLSearchParams();
-      var pager = adminPagerGet("view-wallets-tbody");
-      qs.set("page", String(pager.page || 1));
-      qs.set("page_size", String(pager.pageSize || ADMIN_PAGE_SIZE_DEFAULT));
-      if (keyword) qs.set("keyword", keyword);
-      return api()
-        .requestJson("/api/admin/users?" + qs.toString(), { fallbackMessage: "載入成員錢包彙總失敗" })
-        .then(function (data) {
-          var items = (data && data.items) || [];
-          var tb = document.getElementById("view-wallets-tbody");
-          if (!tb) return;
-          if (!items.length) {
-            tb.innerHTML =
-              '<tr><td colspan="10" class="admin-muted">目前沒有成員，或關鍵字篩選結果為空。</td></tr>';
-            adminPagerRender("view-wallets-tbody", (data && data.pagination) || { page: pager.page, page_size: pager.pageSize, total: 0 }, loadViewWallets);
-            return;
-          }
-          tb.innerHTML = items
-            .map(function (it, idx) {
-              var agg = aggregateWalletBalancesFromUserListItem(it, assetF);
-              var internalUid = it.id != null ? it.id : idx;
-              return renderWalletSummaryTableRow(userOrdinalId(it, internalUid), it, internalUid, agg);
-            })
-            .join("");
-          adminPagerRender("view-wallets-tbody", data && data.pagination, loadViewWallets);
-        })
-        .catch(function (e) {
-          if (e && e.adminSessionHandled) return;
-          setTbodyError("view-wallets-tbody", e.message, 10);
-        });
+    if (uid && !/^\d+$/.test(uid)) {
+      adminNotifyError("用戶 ID 只能是數字（使用者建立順序，例如 09 或 10）。");
+      return Promise.resolve();
     }
-
-    var path = "/api/admin/users/" + encodeURIComponent(uid) + "/wallets";
-    var userPath = "/api/admin/users/" + encodeURIComponent(uid);
+    setTbodyLoading("view-wallets-tbody", 7);
+    var qs = new URLSearchParams();
+    var pager = adminPagerGet("view-wallets-tbody");
+    qs.set("page", String(pager.page || 1));
+    qs.set("page_size", String(pager.pageSize || ADMIN_PAGE_SIZE_DEFAULT));
+    if (uid) qs.set("user_id", String(parseInt(uid, 10)));
+    if (keyword) qs.set("keyword", keyword);
+    if (holding) qs.set("holding", holding);
     return api()
-      .requestJson(path, { fallbackMessage: "載入錢包失敗" })
+      .requestJson("/api/admin/users?" + qs.toString(), { fallbackMessage: "載入成員錢包彙總失敗" })
       .then(function (data) {
-        var wallets = (data && data.items) || [];
-        return api()
-          .requestJson(userPath, { fallbackMessage: "" })
-          .then(function (ud) {
-            return { wallets: wallets, user: ud && ud.user ? ud.user : null };
-          })
-          .catch(function () {
-            return { wallets: wallets, user: null };
-          });
-      })
-      .then(function (pack) {
-        var wallets = pack.wallets;
-        var user = pack.user;
+        var items = (data && data.items) || [];
         var tb = document.getElementById("view-wallets-tbody");
         if (!tb) return;
-        var agg = aggregateUserWalletBalances(wallets, assetF);
-        var internalUid = user && user.id != null ? user.id : uid;
-        tb.innerHTML = renderWalletSummaryTableRow(userOrdinalId(user, internalUid), user, internalUid, agg);
+        if (!items.length) {
+          var emptyText = uid
+            ? "找不到用戶 ID " + esc(uid) + "。"
+            : holding
+              ? "目前沒有用戶持有 " + esc(walletCodeLabel(holding)) + "。"
+              : "目前沒有成員，或關鍵字篩選結果為空。";
+          tb.innerHTML = '<tr><td colspan="7" class="admin-muted">' + emptyText + "</td></tr>";
+          adminPagerRender("view-wallets-tbody", (data && data.pagination) || { page: pager.page, page_size: pager.pageSize, total: 0 }, loadViewWallets);
+          return;
+        }
+        tb.innerHTML = items
+          .map(function (it) {
+            return renderWalletSummaryTableRow(it, { highlight: holding });
+          })
+          .join("");
+        adminPagerRender("view-wallets-tbody", data && data.pagination, loadViewWallets);
+        if (uid && items.length === 1) toggleWalletDetailRow(items[0].id, true);
       })
       .catch(function (e) {
         if (e && e.adminSessionHandled) return;
-        setTbodyError("view-wallets-tbody", e.message, 10);
+        setTbodyError("view-wallets-tbody", e.message, 7);
       });
   }
 
@@ -8781,9 +8855,24 @@
     if (root && !root._adminWalletAdjustClickBound) {
       root._adminWalletAdjustClickBound = true;
       root.addEventListener("click", function (e) {
+        var expandBtn = e.target.closest("[data-wallet-expand]");
+        if (expandBtn) {
+          e.preventDefault();
+          toggleWalletDetailRow(expandBtn.getAttribute("data-wallet-expand"));
+          return;
+        }
+        var zeroBtn = e.target.closest("[data-wallet-toggle-zero]");
+        if (zeroBtn) {
+          var panel = zeroBtn.closest(".admin-wallet-detail");
+          if (panel) {
+            var showing = panel.classList.toggle("is-showing-zero");
+            zeroBtn.textContent = (showing ? "隱藏 0 餘額錢包（" : "顯示 0 餘額錢包（") + zeroBtn.getAttribute("data-zero-count") + "）";
+          }
+          return;
+        }
         var rowBtn = e.target.closest("[data-admin-wallet-adjust]");
         if (rowBtn) {
-          openWalletAdjustForUser(rowBtn.getAttribute("data-admin-wallet-adjust"));
+          openWalletAdjustForUser(rowBtn.getAttribute("data-admin-wallet-adjust"), rowBtn.getAttribute("data-wallet-code") || "");
           return;
         }
         var ledgerRowBtn = e.target.closest("[data-admin-wallet-ledger]");
@@ -9062,6 +9151,13 @@
 
   function boot() {
     document.addEventListener("click", function (e) {
+      var adjustBtn = e.target && e.target.closest ? e.target.closest("[data-admin-wallet-adjust]") : null;
+      if (adjustBtn) {
+        var walletsRoot = document.getElementById("view-wallets");
+        if (!walletsRoot || !walletsRoot.contains(adjustBtn)) {
+          openWalletAdjustForUser(adjustBtn.getAttribute("data-admin-wallet-adjust"), adjustBtn.getAttribute("data-wallet-code") || "");
+        }
+      }
       var unavailable = e.target && e.target.closest ? e.target.closest("[data-admin-unavailable]") : null;
       if (unavailable) {
         e.preventDefault();

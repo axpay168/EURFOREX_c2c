@@ -4,8 +4,8 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>EURFOREX 後台</title>
-<link rel="stylesheet" href="./shared/admin-console.css?v=20260911-bank7"/>
-<link rel="stylesheet" href="./shared/admin-glass-theme.css?v=20260714-0303"/>
+<link rel="stylesheet" href="./shared/admin-console.css?v=20260913-wallets1"/>
+<link rel="stylesheet" href="./shared/admin-glass-theme.css?v=20260913-wallets1"/>
 </head>
 <body class="admin-auth-pending">
 <section class="admin-login-screen" id="admin-login-screen" aria-labelledby="admin-login-title">
@@ -196,7 +196,7 @@
 <button type="button" class="admin-btn admin-btn--warning" id="admin-users-batch-risk">批次標記風控</button>
 </div>
 <div class="admin-table-wrap"><table class="admin-table">
-<thead><tr><th scope="col" style="width:44px"><input type="checkbox" id="admin-users-select-all" title="全選本頁使用者" aria-label="全選使用者"/></th><th>ID</th><th>UID / 帳號</th><th>組別</th><th>上級</th><th>類型</th><th>等級</th><th>狀態</th><th>邀請碼</th><th>邀請人數</th><th>USDT 餘額</th><th>歐元餘額</th><th>操作</th></tr></thead>
+<thead><tr><th scope="col" style="width:44px"><input type="checkbox" id="admin-users-select-all" title="全選本頁使用者" aria-label="全選使用者"/></th><th>ID</th><th>UID / 帳號</th><th>組別</th><th>上級</th><th>類型</th><th>等級</th><th>狀態</th><th>邀請碼</th><th>邀請人數</th><th>總資產 (USDT)</th><th>持倉</th><th>操作</th></tr></thead>
 <tbody id="admin-users-tbody">
 <tr><td colspan="13" class="admin-muted">正在載入真實使用者資料…</td></tr>
 </tbody></table></div>
@@ -215,22 +215,22 @@
 
 <!-- wallets -->
 <section id="view-wallets" class="admin-view" aria-hidden="true" role="region" aria-labelledby="head-wallets">
-<div class="admin-page-head"><h1 id="head-wallets">資金錢包</h1><p>預設載入本分頁成員（預設每頁 25 筆），一用戶一列彙總 USDT／EUR 可用與凍結；填寫用戶 ID 則改為該用戶錢包明細（含「其他」資產）。ID 是使用者建立順序（如 01、09、10），UID 是使用者名稱（如 ENxxxxxx）。關鍵字搭配 <code>GET /api/admin/users</code> 篩選列表；資產篩選僅影響顯示欄位。</p></div>
+<div class="admin-page-head"><h1 id="head-wallets">資金錢包</h1><p>每位用戶一列：總資產以 USDT 估值（含凍結），「持有資產」只列非零餘額並依估值排序；選擇資產可只看持有該資產的用戶，「明細」展開全部錢包的可用／凍結與估值。</p></div>
 <div class="admin-filters">
 <div class="admin-field"><label>關鍵字</label><input class="admin-input" id="view-wallets-keyword" placeholder="ID / UID / Email / 手機（列表模式）"/></div>
 <div class="admin-field"><label>用戶 ID</label><input class="admin-input mono" id="view-wallets-user-id" placeholder="留空＝全部；例如 09 或 10"/></div>
-<div class="admin-field"><label>資產</label><select class="admin-select" id="view-wallets-asset"><option value="">全部</option><option value="USDT">USDT</option><option value="EUR">歐元</option></select></div>
+<div class="admin-field"><label>資產</label><select class="admin-select" id="view-wallets-asset"><option value="">全部資產</option><optgroup label="加密貨幣"><option value="cash_usdt">USDT</option><option value="spot_usdc">USDC</option><option value="spot_btc">BTC 比特幣</option><option value="spot_eth">ETH 以太幣</option><option value="spot_trx">TRX</option><option value="spot_bnb">BNB</option></optgroup><optgroup label="法幣"><option value="eur">EUR 歐元</option><option value="usd">USD 美元</option><option value="gbp">GBP 英鎊</option><option value="chf">CHF 瑞士法郎</option><option value="cny">CNY 人民幣</option></optgroup></select></div>
 <span data-admin-filter-actions="reset#view-wallets-reset|load#view-wallets-load|refresh#view-wallets-refresh"></span>
 </div>
 <div class="admin-card admin-card--flush">
 <div class="admin-toolbar"><button type="button" class="admin-btn admin-btn--accent" data-admin-modal-open="admin-modal-wallet-adjust" data-admin-wallet-adjust-toolbar="1">調整餘額</button><button type="button" class="admin-btn admin-btn--info" id="view-wallets-ledger" title="先填用戶 ID，或點列表列內「流水」">查看調帳紀錄</button></div>
 <div class="admin-table-wrap"><table class="admin-table">
-<thead><tr><th>ID</th><th>UID / 帳號</th><th>組別</th><th>可用USDT</th><th>凍結USDT</th><th>可用EUR</th><th>凍結EUR</th><th>其他</th><th>更新時間</th><th>操作</th></tr></thead>
+<thead><tr><th>ID</th><th>UID / 帳號</th><th>組別</th><th>總資產估值 (USDT)</th><th>持有資產</th><th>更新時間</th><th>操作</th></tr></thead>
 <tbody id="view-wallets-tbody">
-<tr><td colspan="10" class="admin-muted">進入本頁或按「載入」以取得成員錢包彙總；填 ID 可查單一用戶明細。</td></tr>
+<tr><td colspan="7" class="admin-muted">進入本頁或按「載入」以取得成員錢包彙總；填 ID 可直接展開該用戶錢包明細。</td></tr>
 </tbody></table></div>
 </div>
-<p class="admin-footnote">API 參考：列表彙總 <code>GET /api/admin/users</code>（ID 留空）；單用戶明細 <code>GET /api/admin/users/:id/wallets</code></p>
+<p class="admin-footnote">估值匯率：USDT／USDC／USD 視為 1，BTC、ETH、TRX、BNB 取 Binance 市價，法幣取 ECB 匯率（每 6 小時更新）；暫無匯率的資產會標示「未計價」。API：<code>GET /api/admin/users</code>（可加 <code>holding=錢包代碼</code>）、<code>GET /api/admin/users/:id/wallets</code></p>
 </section>
 
 <!-- tiers：New_C2C 單用戶等級 + EURFOREX 全站等級模板（只增不減） -->
@@ -1412,15 +1412,11 @@
 <h2 class="admin-modal__title" id="amt-wa-title">調整錢包</h2>
 <button type="button" class="admin-btn admin-btn--ghost admin-btn--sm" data-admin-modal-close>關閉</button>
 </div>
-<p class="admin-modal__callout">選擇錢包記錄後調整 USDT/EUR 可用或凍結餘額；操作類型、金額、原因；對齊 <code>walletAdjustModal</code>。</p>
+<p class="admin-modal__callout">選擇錢包後調整可用或凍結餘額；所有加密貨幣與法幣錢包皆可調整，每次調整都會寫入資金流水。</p>
 <p class="admin-modal__empty-note" id="view-wallet-adjust-target">請從資金錢包列表點擊某列「調帳」，或先填寫用戶 ID 後再點「調整餘額」。</p>
 <form class="admin-modal__form" id="view-wallet-adjust-form">
 <input type="hidden" id="view-wallet-adjust-user-id" value=""/>
-<input type="hidden" id="view-wallet-adjust-wallet-code" value="cash_usdt"/>
-<div class="admin-modal__btnrow" role="group" aria-label="選擇調整資產">
-<button type="button" class="admin-btn admin-btn--primary admin-btn--sm" data-wallet-adjust-asset="cash_usdt">USDT（已選）</button>
-<button type="button" class="admin-btn admin-btn--ghost admin-btn--sm" data-wallet-adjust-asset="eur">EUR</button>
-</div>
+<label class="admin-modal__field"><span class="admin-modal__label">錢包</span><select class="admin-select" id="view-wallet-adjust-wallet-code" aria-label="選擇調整的錢包"></select></label>
 <label class="admin-modal__field"><span class="admin-modal__label">操作類型</span><select class="admin-select" id="view-wallet-adjust-operation"><option value="increase_available">增加可用餘額</option><option value="decrease_available">扣減可用餘額</option><option value="increase_reserved">增加凍結餘額</option><option value="decrease_reserved">扣減凍結餘額</option></select></label>
 <label class="admin-modal__field"><span class="admin-modal__label">金額</span><input class="admin-input mono" id="view-wallet-adjust-amount" type="number" step="any" min="0" placeholder="10.00000000" required/></label>
 <label class="admin-modal__field"><span class="admin-modal__label">原因（可選）</span><input class="admin-input" id="view-wallet-adjust-reason" placeholder="可留空"/></label>
@@ -1958,8 +1954,8 @@
 <script src="./runtime-config.js?v=20260714-0301"></script>
 <script src="./shared/admin-console.js?v=20260714-0301"></script>
 <script src="./shared/admin-api-fetch.js?v=20260714-0301"></script>
-<script src="./shared/admin-modals.js?v=20260714-0305"></script>
-<script src="./shared/admin-view-loaders.js?v=20260911-bank7"></script>
+<script src="./shared/admin-modals.js?v=20260913-wallets1"></script>
+<script src="./shared/admin-view-loaders.js?v=20260913-wallets1"></script>
 <script src="./shared/admin-api-client.js?v=20260714-0301"></script>
 <script src="./shared/admin-tabs.js?v=20260714-0301"></script>
 </body>

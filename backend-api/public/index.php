@@ -5667,6 +5667,138 @@ function default_user_wallets(): array
     ];
 }
 
+/** 錢包代碼 → 幣別（後台彙總、篩選驗證用） */
+function wallet_code_currency_map(): array
+{
+    $map = [];
+    foreach (default_user_wallets() as $wallet) {
+        $map[$wallet['wallet_code']] = $wallet['currency_code'];
+    }
+    return $map;
+}
+
+/**
+ * 各幣別對 USDT 的估值匯率（後台總資產估值用）。
+ * USDT / USDC / USD 視為 1；BTC、ETH、TRX、XRP 取市場快照；BNB 另向 Binance 取價；
+ * EUR / GBP / CHF / CNY 取 ECB（frankfurter）匯率並快取 6 小時，EUR 取不到時退回後台「USDT 兌 EUR」設定。
+ * 取不到匯率的幣別不會出現在回傳陣列中，呼叫端應標示「未計價」。
+ */
+function asset_usdt_rates(PDO $pdo): array
+{
+    static $memo = null;
+    if ($memo !== null) {
+        return $memo;
+    }
+    $rates = ['USDT' => 1.0, 'USDC' => 1.0, 'USD' => 1.0];
+    foreach (fetch_market_snapshot() as $row) {
+        $code = strtoupper(trim((string) ($row['code'] ?? '')));
+        $price = (float) str_replace(',', '', (string) ($row['price'] ?? ''));
+        if ($code !== '' && $price > 0) {
+            $rates[$code] = $price;
+        }
+    }
+
+    $bnb = read_cache_json('asset-rates-bnb', 300);
+    if (!is_array($bnb) || (float) ($bnb['price'] ?? 0) <= 0) {
+        $payload = http_get_json('https://api.binance.com/api/v3/ticker/price?symbol=BNBUSDT', 2);
+        if (is_array($payload) && (float) ($payload['price'] ?? 0) > 0) {
+            $bnb = ['price' => (string) $payload['price']];
+            write_cache_json('asset-rates-bnb', $bnb);
+        } else {
+            $bnb = read_cache_json_any_age('asset-rates-bnb');
+        }
+    }
+    if (is_array($bnb) && (float) ($bnb['price'] ?? 0) > 0) {
+        $rates['BNB'] = (float) $bnb['price'];
+    }
+
+    $fiat = read_cache_json('asset-rates-fiat', 21600);
+    if (!is_array($fiat) || !isset($fiat['rates'])) {
+        $payload = http_get_json('https://api.frankfurter.dev/v1/latest?base=USD&symbols=EUR,GBP,CHF,CNY', 3);
+        if (is_array($payload) && isset($payload['rates']) && is_array($payload['rates'])) {
+            $fiat = ['rates' => $payload['rates'], 'date' => (string) ($payload['date'] ?? '')];
+            write_cache_json('asset-rates-fiat', $fiat);
+        } else {
+            $fiat = read_cache_json_any_age('asset-rates-fiat');
+        }
+    }
+    foreach (['EUR', 'GBP', 'CHF', 'CNY'] as $code) {
+        $perUsd = is_array($fiat) ? (float) ($fiat['rates'][$code] ?? 0) : 0.0;
+        if ($perUsd > 0) {
+            $rates[$code] = 1 / $perUsd;
+        }
+    }
+    if (!isset($rates['EUR'])) {
+        $usdtToEur = (float) get_system_config($pdo, 'finance', 'usdt_to_eur_rate', '0.96000000');
+        if ($usdtToEur > 0) {
+            $rates['EUR'] = 1 / $usdtToEur;
+        }
+    }
+    $memo = $rates;
+    return $memo;
+}
+
+/** 單一錢包列的 USDT 估值（可用 + 凍結）；無匯率回傳 null */
+function wallet_usdt_value(array $wallet, array $rates): ?float
+{
+    $currency = strtoupper(trim((string) ($wallet['currency_code'] ?? '')));
+    if (!isset($rates[$currency])) {
+        return null;
+    }
+    $total = (float) ($wallet['available_balance'] ?? 0) + (float) ($wallet['reserved_balance'] ?? 0);
+    return $total * (float) $rates[$currency];
+}
+
+/**
+ * 後台成員列表：一次撈取本頁用戶所有「非零」錢包，附上每筆估值、依估值排序，
+ * 並加總為 total_usdt_value；取不到匯率的幣別列入 unvalued_assets。
+ */
+function attach_user_wallet_summaries(PDO $pdo, array &$items): void
+{
+    if ($items === []) {
+        return;
+    }
+    $ids = array_values(array_unique(array_map(static fn (array $item): int => (int) $item['id'], $items)));
+    $placeholders = implode(',', array_fill(0, count($ids), '?'));
+    $stmt = $pdo->prepare("SELECT user_id, wallet_code, currency_code, available_balance, reserved_balance, updated_at
+        FROM user_wallet_balances
+        WHERE user_id IN ({$placeholders})
+          AND (CAST(available_balance AS DECIMAL(24,8)) > 0 OR CAST(reserved_balance AS DECIMAL(24,8)) > 0)");
+    $stmt->execute($ids);
+    $rates = asset_usdt_rates($pdo);
+    $byUser = [];
+    foreach ($stmt->fetchAll() as $row) {
+        $value = wallet_usdt_value($row, $rates);
+        $byUser[(int) $row['user_id']][] = [
+            'wallet_code' => (string) $row['wallet_code'],
+            'currency_code' => strtoupper((string) $row['currency_code']),
+            'available_balance' => (string) $row['available_balance'],
+            'reserved_balance' => (string) $row['reserved_balance'],
+            'usdt_value' => $value === null ? null : number_format($value, 2, '.', ''),
+            'updated_at' => $row['updated_at'],
+        ];
+    }
+    foreach ($items as &$item) {
+        $wallets = $byUser[(int) $item['id']] ?? [];
+        usort($wallets, static function (array $a, array $b): int {
+            return (float) ($b['usdt_value'] ?? -1) <=> (float) ($a['usdt_value'] ?? -1);
+        });
+        $total = 0.0;
+        $unvalued = [];
+        foreach ($wallets as $wallet) {
+            if ($wallet['usdt_value'] === null) {
+                $unvalued[] = $wallet['currency_code'];
+            } else {
+                $total += (float) $wallet['usdt_value'];
+            }
+        }
+        $item['wallets'] = $wallets;
+        $item['total_usdt_value'] = number_format($total, 2, '.', '');
+        $item['unvalued_assets'] = array_values(array_unique($unvalued));
+    }
+    unset($item);
+}
+
 function initialize_user_defaults(PDO $pdo, int $userId): void
 {
     if ($userId <= 0) {
@@ -9944,12 +10076,20 @@ if ($path === '/api/admin/users' && $method === 'GET') {
     $status = trim((string) ($_GET['status'] ?? ''));
     $filterUserId = (int) ($_GET['user_id'] ?? 0);
     $registeredFrom = trim((string) ($_GET['registered_from'] ?? ''));
+    $holding = trim((string) ($_GET['holding'] ?? ''));
 
     $where = [];
     $params = [];
     if ($filterUserId > 0) {
         $where[] = 'u.id = :filter_user_id';
         $params[':filter_user_id'] = $filterUserId;
+    }
+    if ($holding !== '') {
+        if (!isset(wallet_code_currency_map()[$holding])) {
+            failure('ADMIN_INVALID_PARAMS', 'Invalid wallet code');
+        }
+        $where[] = 'EXISTS (SELECT 1 FROM user_wallet_balances hw WHERE hw.user_id = u.id AND hw.wallet_code = :holding AND (CAST(hw.available_balance AS DECIMAL(24,8)) > 0 OR CAST(hw.reserved_balance AS DECIMAL(24,8)) > 0))';
+        $params[':holding'] = $holding;
     }
     if ($keyword !== '') {
         if (preg_match('/^\d+$/', $keyword)) {
@@ -10061,6 +10201,7 @@ if ($path === '/api/admin/users' && $method === 'GET') {
     $stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
     $stmt->execute();
     $items = $stmt->fetchAll();
+    attach_user_wallet_summaries($pdo, $items);
 
     success('ADMIN_USERS_LIST_SUCCESS', 'ok', [
         'items' => array_map(static function (array $item): array {
@@ -11411,8 +11552,29 @@ if (preg_match('#^/api/admin/users/(\d+)/wallets$#', $path, $matches) && $method
         WHERE user_id = :user_id
         ORDER BY wallet_code ASC');
     $stmt->execute([':user_id' => $userId]);
+    $rates = asset_usdt_rates($pdo);
+    $total = 0.0;
+    $unvalued = [];
+    $items = array_map(static function (array $wallet) use ($rates, &$total, &$unvalued): array {
+        $wallet['currency_code'] = strtoupper((string) ($wallet['currency_code'] ?? ''));
+        $value = wallet_usdt_value($wallet, $rates);
+        $wallet['usdt_rate'] = isset($rates[$wallet['currency_code']]) ? (string) $rates[$wallet['currency_code']] : null;
+        $wallet['usdt_value'] = $value === null ? null : number_format($value, 2, '.', '');
+        $nonZero = (float) $wallet['available_balance'] > 0 || (float) $wallet['reserved_balance'] > 0;
+        if ($value === null && $nonZero) {
+            $unvalued[] = $wallet['currency_code'];
+        } elseif ($value !== null) {
+            $total += $value;
+        }
+        return $wallet;
+    }, $stmt->fetchAll());
+    usort($items, static function (array $a, array $b): int {
+        return (float) ($b['usdt_value'] ?? -1) <=> (float) ($a['usdt_value'] ?? -1);
+    });
     success('ADMIN_USER_WALLETS_SUCCESS', 'ok', [
-        'items' => $stmt->fetchAll(),
+        'items' => $items,
+        'total_usdt_value' => number_format($total, 2, '.', ''),
+        'unvalued_assets' => array_values(array_unique($unvalued)),
     ]);
 }
 

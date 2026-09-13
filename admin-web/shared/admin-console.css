@@ -2818,3 +2818,112 @@ body.admin-modal--open {
     justify-content: flex-start;
   }
 }
+
+/* ---- 資金錢包／使用者列表：多幣種持倉 chips 與估值 ---- */
+.admin-total-cell {
+  white-space: nowrap;
+}
+.admin-total-value {
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  color: var(--ac-text);
+}
+.admin-cell-sub--warn {
+  color: var(--ac-warning-text, #a66a00);
+}
+.admin-asset-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  max-width: 380px;
+}
+.admin-asset-chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 5px;
+  padding: 2px 7px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: var(--ac-subtle);
+  font-size: 0.72rem;
+  line-height: 1.5;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.admin-asset-chip__code {
+  font-weight: 800;
+  color: var(--ac-text-2);
+  letter-spacing: 0.01em;
+}
+.admin-asset-chip__amt {
+  font-family: var(--ac-font-mono);
+  font-weight: 600;
+  color: var(--ac-text);
+}
+.admin-asset-chip__frozen {
+  font-family: var(--ac-font-mono);
+  color: var(--ac-warning-text, #a66a00);
+}
+.admin-asset-chip__frozen::before {
+  content: "·";
+  margin-right: 4px;
+  color: var(--ac-text-3);
+}
+.admin-asset-chip--active {
+  background: rgba(45, 121, 212, 0.14);
+  border-color: rgba(45, 121, 212, 0.28);
+}
+.admin-asset-chip--active .admin-asset-chip__code {
+  color: var(--ac-info);
+}
+.admin-asset-chip--more {
+  background: transparent;
+  border: 1px dashed var(--ac-border-mid);
+  color: var(--ac-text-2);
+  font-weight: 700;
+  font-family: inherit;
+}
+button.admin-asset-chip--more {
+  cursor: pointer;
+}
+button.admin-asset-chip--more:hover,
+button.admin-asset-chip--more:focus-visible {
+  background: var(--ac-subtle);
+  border-style: solid;
+  outline: none;
+}
+.admin-table tr.is-expanded > td {
+  border-bottom-color: transparent;
+}
+.admin-wallet-detail-row > td {
+  background: var(--ac-surface-2);
+  padding: 8px 14px 14px;
+}
+.admin-wallet-detail {
+  display: grid;
+  gap: 8px;
+}
+.admin-wallet-detail__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.8rem;
+}
+.admin-wallet-detail__head strong {
+  font-size: 0.82rem;
+}
+.admin-wallet-detail .admin-table--compact {
+  font-size: 0.78rem;
+}
+.admin-wallet-detail .admin-table--compact th,
+.admin-wallet-detail .admin-table--compact td {
+  padding: 6px 10px;
+}
+.admin-wallet-detail__zero {
+  display: none;
+  color: var(--ac-text-3);
+}
+.admin-wallet-detail.is-showing-zero .admin-wallet-detail__zero {
+  display: table-row;
+}

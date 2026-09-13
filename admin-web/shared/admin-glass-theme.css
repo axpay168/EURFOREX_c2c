@@ -798,3 +798,38 @@ body::after {
     inset 0 1px 0 rgba(255,255,255,0.14),
     0 12px 24px rgba(2, 18, 28, 0.24) !important;
 }
+
+/* 多幣種持倉 chips／錢包明細（深色玻璃主題配色） */
+.admin-asset-chip {
+  background: rgba(255, 255, 255, 0.1) !important;
+  border-color: rgba(255, 255, 255, 0.08) !important;
+}
+.admin-asset-chip__code {
+  color: #d4e7f0 !important;
+}
+.admin-asset-chip__amt {
+  color: #f8fcff !important;
+}
+.admin-asset-chip__frozen,
+.admin-cell-sub--warn {
+  color: #ffe3a8 !important;
+}
+.admin-asset-chip--active {
+  background: rgba(42, 143, 190, 0.3) !important;
+  border-color: rgba(159, 232, 255, 0.45) !important;
+}
+.admin-asset-chip--active .admin-asset-chip__code {
+  color: #baeaff !important;
+}
+.admin-asset-chip--more {
+  background: transparent !important;
+  border-color: rgba(218, 246, 255, 0.34) !important;
+  color: #d4e7f0 !important;
+}
+button.admin-asset-chip--more:hover,
+button.admin-asset-chip--more:focus-visible {
+  background: rgba(255, 255, 255, 0.12) !important;
+}
+.admin-wallet-detail-row > td {
+  background: rgba(6, 32, 46, 0.55) !important;
+}

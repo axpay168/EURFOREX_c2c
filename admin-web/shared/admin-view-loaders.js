@@ -117,7 +117,13 @@
 
   function showModalById(id) {
     var modal = document.getElementById(id);
-    if (modal && window.AdminModals && typeof window.AdminModals.open === "function") window.AdminModals.open(modal);
+    if (!modal) return false;
+    if (window.AdminModals && typeof window.AdminModals.open === "function") {
+      window.AdminModals.open(id);
+    } else {
+      modal.hidden = false;
+    }
+    return true;
   }
 
   function renderJsonBlock(value) {
@@ -3814,6 +3820,418 @@
     return n.toFixed(8);
   }
 
+  function fundCategoryLabel(category) {
+    var c = String(category || "").trim().toLowerCase();
+    if (c === "customer") return "客戶";
+    if (c === "test") return "測試";
+    return "—";
+  }
+
+  function fundCategoryBadgeHtml(item) {
+    var category = String((item && item.fund_category) || "test").trim().toLowerCase();
+    var reason = String((item && item.fund_category_reason) || "").trim();
+    var anomaly = Number(item && item.fund_category_is_anomaly) === 1;
+    var cls = anomaly ? "admin-badge admin-badge--danger" : category === "customer" ? "admin-badge admin-badge--success" : "admin-badge admin-badge--neutral";
+    var title = anomaly && reason ? ' title="' + esc(reason) + '"' : "";
+    return '<span class="' + cls + '"' + title + ">" + esc(fundCategoryLabel(category)) + "</span>";
+  }
+
+  function ensureFundReviewModal() {
+    var modal = document.getElementById("admin-modal-fund-review");
+    if (modal) return modal;
+    var wrap = document.createElement("div");
+    wrap.className = "admin-modal admin-modal--generic";
+    wrap.id = "admin-modal-fund-review";
+    wrap.setAttribute("role", "dialog");
+    wrap.setAttribute("aria-modal", "true");
+    wrap.setAttribute("aria-labelledby", "admin-fund-review-title");
+    wrap.setAttribute("data-admin-modal", "");
+    wrap.hidden = true;
+    wrap.innerHTML =
+      '<div class="admin-modal__backdrop" data-admin-fund-review-cancel tabindex="-1"></div>' +
+      '<div class="admin-modal__dialog admin-modal__dialog--narrow">' +
+      '<div class="admin-modal__head"><h2 class="admin-modal__title" id="admin-fund-review-title">確認分類</h2><button type="button" class="admin-btn admin-btn--ghost admin-btn--sm" data-admin-fund-review-cancel>關閉</button></div>' +
+      '<p class="admin-modal__callout" id="admin-fund-review-message"></p>' +
+      '<label class="admin-modal__field admin-modal__field--full" id="admin-fund-review-amount-wrap"><span class="admin-modal__label" id="admin-fund-review-amount-label">入帳金額</span><input id="admin-fund-review-amount" class="admin-input mono" type="number" inputmode="decimal" step="0.00000001" min="0.00000001"/></label>' +
+      '<label class="admin-modal__field admin-modal__field--full"><span class="admin-modal__label">分類</span><select id="admin-fund-review-category" class="admin-select"><option value="">請選擇</option><option value="customer">客戶</option><option value="test">測試</option></select></label>' +
+      '<label class="admin-modal__field admin-modal__field--full"><span class="admin-modal__label">測試原因（客戶改測試時必填）</span><textarea id="admin-fund-review-reason" class="admin-textarea" rows="3" placeholder="若該客戶已被標記為客戶，這筆改選測試必須填原因"></textarea></label>' +
+      '<p class="admin-modal__message-slot admin-create-user-message--error" id="admin-fund-review-error" style="display:none" role="alert"></p>' +
+      '<div class="admin-modal__form-actions"><button type="button" class="admin-btn admin-btn--ghost" data-admin-fund-review-cancel>取消</button><button type="button" class="admin-btn admin-btn--primary" id="admin-fund-review-ok">確定</button></div>' +
+      "</div>";
+    document.body.appendChild(wrap);
+    return wrap;
+  }
+
+  function promptFundReview(opts) {
+    opts = opts || {};
+    return new Promise(function (resolve) {
+      var modal = ensureFundReviewModal();
+      var title = document.getElementById("admin-fund-review-title");
+      var msg = document.getElementById("admin-fund-review-message");
+      var amountWrap = document.getElementById("admin-fund-review-amount-wrap");
+      var amountLabel = document.getElementById("admin-fund-review-amount-label");
+      var amountInput = document.getElementById("admin-fund-review-amount");
+      var category = document.getElementById("admin-fund-review-category");
+      var reason = document.getElementById("admin-fund-review-reason");
+      var err = document.getElementById("admin-fund-review-error");
+      var okBtn = document.getElementById("admin-fund-review-ok");
+      var hasAmount = opts.amount != null;
+      var submitted = Number(String(opts.amount || "").replace(/,/g, ""));
+      var asset = String(opts.asset_code || "USDT").trim().toUpperCase();
+      var userClass = String(opts.user_fund_classification || "test").trim().toLowerCase();
+      if (title) title.textContent = opts.title || "確認分類";
+      if (msg) msg.textContent = opts.message || "";
+      if (amountWrap) amountWrap.hidden = !hasAmount;
+      if (amountLabel) amountLabel.textContent = "入帳金額（" + asset + "）";
+      if (amountInput) amountInput.value = hasAmount ? formatDepositReviewAmount(submitted) : "";
+      if (category) category.value = "";
+      if (reason) reason.value = "";
+      if (err) {
+        err.style.display = "none";
+        err.textContent = "";
+      }
+      function cleanup(value) {
+        modal.querySelectorAll("[data-admin-fund-review-cancel]").forEach(function (btn) {
+          btn.removeEventListener("click", onCancel);
+        });
+        if (okBtn) okBtn.removeEventListener("click", onOk);
+        if (window.AdminModals && window.AdminModals.close) window.AdminModals.close(modal);
+        else modal.hidden = true;
+        resolve(value);
+      }
+      function fail(text) {
+        if (err) {
+          err.textContent = text;
+          err.style.display = "";
+        } else {
+          adminNotifyError(text);
+        }
+      }
+      function onCancel() {
+        cleanup(null);
+      }
+      function onOk() {
+        var c = category ? String(category.value || "").trim() : "";
+        var r = reason ? String(reason.value || "").trim() : "";
+        if (!c) {
+          fail("請選擇分類。");
+          return;
+        }
+        if (userClass === "customer" && c === "test" && !r) {
+          fail("客戶分類改為測試時必須填寫原因。");
+          return;
+        }
+        var out = { fund_category: c, fund_category_reason: r };
+        if (hasAmount) {
+          var amount = Number(String((amountInput && amountInput.value) || "").replace(/,/g, ""));
+          if (!isFinite(amount) || amount <= 0) {
+            fail("入帳金額必須大於 0。");
+            return;
+          }
+          out.approved_amount = formatDepositReviewAmount(amount);
+        }
+        cleanup(out);
+      }
+      modal.querySelectorAll("[data-admin-fund-review-cancel]").forEach(function (btn) {
+        btn.addEventListener("click", onCancel);
+      });
+      if (okBtn) okBtn.addEventListener("click", onOk);
+      if (window.AdminModals && window.AdminModals.open) window.AdminModals.open("admin-modal-fund-review");
+      else modal.hidden = false;
+      window.setTimeout(function () {
+        if (hasAmount && amountInput) amountInput.focus();
+        else if (category) category.focus();
+      }, 80);
+    });
+  }
+
+  var manualMoneyOrderState = {
+    mode: "deposit",
+    searchTimer: null,
+    userItems: []
+  };
+
+  function ensureManualMoneyOrderModal() {
+    var modal = document.getElementById("admin-modal-manual-money-order");
+    if (modal) return modal;
+    var wrap = document.createElement("div");
+    wrap.className = "admin-modal admin-modal--generic";
+    wrap.id = "admin-modal-manual-money-order";
+    wrap.setAttribute("role", "dialog");
+    wrap.setAttribute("aria-modal", "true");
+    wrap.setAttribute("aria-labelledby", "admin-manual-order-title");
+    wrap.setAttribute("data-admin-modal", "");
+    wrap.hidden = true;
+    wrap.innerHTML =
+      '<div class="admin-modal__backdrop" data-admin-manual-order-cancel tabindex="-1"></div>' +
+      '<div class="admin-modal__dialog admin-modal__dialog--narrow">' +
+      '<div class="admin-modal__head"><h2 class="admin-modal__title" id="admin-manual-order-title">新增訂單</h2><button type="button" class="admin-btn admin-btn--ghost admin-btn--sm" data-admin-manual-order-cancel>關閉</button></div>' +
+      '<p class="admin-modal__callout" id="admin-manual-order-message">後台代用戶建立待審核訂單，後續仍需在審核列表通過或駁回。</p>' +
+      '<label class="admin-modal__field admin-modal__field--full"><span class="admin-modal__label">用戶搜尋</span><input id="admin-manual-order-user-search" class="admin-input" type="search" placeholder="輸入 EN 編號 / ID / 郵箱 / 手機 / 邀請碼"/></label>' +
+      '<label class="admin-modal__field admin-modal__field--full"><span class="admin-modal__label">選擇用戶</span><select id="admin-manual-order-user-select" class="admin-select"><option value="">請先搜尋用戶</option></select></label>' +
+      '<div class="admin-modal__grid">' +
+      '<label class="admin-modal__field"><span class="admin-modal__label">幣種</span><select id="admin-manual-order-asset" class="admin-select"><option value="USDT">USDT</option><option value="USDC">USDC</option><option value="BTC">BTC</option><option value="ETH">ETH</option><option value="TRX">TRX</option><option value="EUR">EUR</option><option value="CHF">CHF</option><option value="USD">USD</option><option value="GBP">GBP</option></select></label>' +
+      '<label class="admin-modal__field"><span class="admin-modal__label">金額</span><input id="admin-manual-order-amount" class="admin-input mono" type="number" inputmode="decimal" step="0.00000001" min="0.00000001" placeholder="0.00"/></label>' +
+      "</div>" +
+      '<p class="admin-modal__message-slot admin-create-user-message--error" id="admin-manual-order-error" style="display:none" role="alert"></p>' +
+      '<div class="admin-modal__form-actions"><button type="button" class="admin-btn admin-btn--ghost" data-admin-manual-order-cancel>取消</button><button type="button" class="admin-btn admin-btn--primary" id="admin-manual-order-submit">確認</button></div>' +
+      "</div>";
+    document.body.appendChild(wrap);
+    bindManualMoneyOrderModal(wrap);
+    return wrap;
+  }
+
+  function manualMoneyOrderUserLabel(user) {
+    var code = adminUserDisplayCode(user, user && user.id);
+    var account = adminUserAccountText(user, code);
+    return code + (account && account !== "—" ? " / " + account : "");
+  }
+
+  function setManualMoneyOrderError(text) {
+    var err = document.getElementById("admin-manual-order-error");
+    if (!err) return;
+    err.textContent = text || "";
+    err.style.display = text ? "" : "none";
+  }
+
+  function loadManualMoneyOrderUsers(keyword) {
+    var select = document.getElementById("admin-manual-order-user-select");
+    if (!select || !api()) return Promise.resolve();
+    select.innerHTML = '<option value="">搜尋中…</option>';
+    var q = new URLSearchParams();
+    q.set("page", "1");
+    q.set("page_size", "12");
+    if (keyword) q.set("keyword", keyword);
+    return api()
+      .requestJson("/api/admin/users?" + q.toString(), { fallbackMessage: "搜尋用戶失敗" })
+      .then(function (data) {
+        manualMoneyOrderState.userItems = (data && data.items) || [];
+        if (!manualMoneyOrderState.userItems.length) {
+          select.innerHTML = '<option value="">找不到用戶</option>';
+          return;
+        }
+        select.innerHTML =
+          '<option value="">請選擇用戶</option>' +
+          manualMoneyOrderState.userItems
+            .map(function (user) {
+              return '<option value="' + esc(user.id) + '">' + esc(manualMoneyOrderUserLabel(user)) + "</option>";
+            })
+            .join("");
+      })
+      .catch(function (err) {
+        if (err && err.adminSessionHandled) return;
+        select.innerHTML = '<option value="">搜尋失敗</option>';
+        setManualMoneyOrderError(err.message || "搜尋用戶失敗");
+      });
+  }
+
+  function bindManualMoneyOrderModal(modal) {
+    var search = modal.querySelector("#admin-manual-order-user-search");
+    var submit = modal.querySelector("#admin-manual-order-submit");
+    modal.querySelectorAll("[data-admin-manual-order-cancel]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        if (window.AdminModals && window.AdminModals.close) window.AdminModals.close(modal);
+        else modal.hidden = true;
+      });
+    });
+    if (search) {
+      search.addEventListener("input", function () {
+        window.clearTimeout(manualMoneyOrderState.searchTimer);
+        manualMoneyOrderState.searchTimer = window.setTimeout(function () {
+          loadManualMoneyOrderUsers(String(search.value || "").trim());
+        }, 260);
+      });
+    }
+    if (submit) {
+      submit.addEventListener("click", function () {
+        if (!api()) return;
+        var mode = manualMoneyOrderState.mode === "withdrawal" ? "withdrawal" : "deposit";
+        var select = document.getElementById("admin-manual-order-user-select");
+        var assetEl = document.getElementById("admin-manual-order-asset");
+        var amountEl = document.getElementById("admin-manual-order-amount");
+        var userId = Number(select && select.value ? select.value : 0);
+        var amount = Number(String((amountEl && amountEl.value) || "").replace(/,/g, ""));
+        var assetCode = String((assetEl && assetEl.value) || "USDT").trim().toUpperCase();
+        if (!userId) {
+          setManualMoneyOrderError("請選擇用戶。");
+          return;
+        }
+        if (!isFinite(amount) || amount <= 0) {
+          setManualMoneyOrderError("金額必須大於 0。");
+          return;
+        }
+        setManualMoneyOrderError("");
+        setActionLoading(submit, true, "建立中...");
+        api()
+          .requestJson(mode === "withdrawal" ? "/api/admin/withdrawal-requests" : "/api/admin/deposit-requests", {
+            method: "POST",
+            body: {
+              user_id: userId,
+              asset_code: assetCode,
+              amount: amount.toFixed(8)
+            },
+            fallbackMessage: mode === "withdrawal" ? "新增提款訂單失敗" : "新增充值訂單失敗"
+          })
+          .then(function () {
+            adminNotifySuccess(mode === "withdrawal" ? "提款訂單已建立。" : "充值訂單已建立。");
+            if (window.AdminModals && window.AdminModals.close) window.AdminModals.close(modal);
+            else modal.hidden = true;
+            return mode === "withdrawal" ? loadViewWithdrawals() : loadViewDeposits();
+          })
+          .catch(function (err) {
+            if (err && err.adminSessionHandled) return;
+            setManualMoneyOrderError(err.message || "建立訂單失敗");
+          })
+          .then(function () {
+            setActionLoading(submit, false);
+          });
+      });
+    }
+  }
+
+  function openManualMoneyOrderModal(mode) {
+    manualMoneyOrderState.mode = mode === "withdrawal" ? "withdrawal" : "deposit";
+    var modal = ensureManualMoneyOrderModal();
+    var title = document.getElementById("admin-manual-order-title");
+    var msg = document.getElementById("admin-manual-order-message");
+    var search = document.getElementById("admin-manual-order-user-search");
+    var amount = document.getElementById("admin-manual-order-amount");
+    var asset = document.getElementById("admin-manual-order-asset");
+    var select = document.getElementById("admin-manual-order-user-select");
+    if (title) title.textContent = manualMoneyOrderState.mode === "withdrawal" ? "新增提款訂單" : "新增充值訂單";
+    if (msg) msg.textContent = manualMoneyOrderState.mode === "withdrawal" ? "後台代用戶建立待審核提款訂單，會先將提款金額從可用餘額轉入凍結。" : "後台代用戶建立待審核充值訂單，不會直接增加用戶餘額。";
+    if (search) search.value = "";
+    if (amount) amount.value = "";
+    if (asset) asset.value = "USDT";
+    if (select) select.innerHTML = '<option value="">載入中…</option>';
+    setManualMoneyOrderError("");
+    if (window.AdminModals && window.AdminModals.open) window.AdminModals.open("admin-modal-manual-money-order");
+    else modal.hidden = false;
+    loadManualMoneyOrderUsers("").then(function () {
+      window.setTimeout(function () {
+        if (search) search.focus();
+      }, 80);
+    });
+  }
+
+  var moneyOrderEditState = { mode: "deposit", id: 0 };
+
+  function ensureMoneyOrderEditModal() {
+    var modal = document.getElementById("admin-modal-money-order-edit");
+    if (modal) return modal;
+    var wrap = document.createElement("div");
+    wrap.className = "admin-modal admin-modal--generic";
+    wrap.id = "admin-modal-money-order-edit";
+    wrap.setAttribute("role", "dialog");
+    wrap.setAttribute("aria-modal", "true");
+    wrap.setAttribute("aria-labelledby", "admin-money-order-edit-title");
+    wrap.setAttribute("data-admin-modal", "");
+    wrap.hidden = true;
+    wrap.innerHTML =
+      '<div class="admin-modal__backdrop" data-money-order-edit-close tabindex="-1"></div>' +
+      '<div class="admin-modal__dialog admin-modal__dialog--narrow">' +
+      '<div class="admin-modal__head"><h2 class="admin-modal__title" id="admin-money-order-edit-title">編輯訂單</h2><button type="button" class="admin-btn admin-btn--ghost admin-btn--sm" data-money-order-edit-close>關閉</button></div>' +
+      '<p class="admin-modal__callout">僅大老板可編輯。已通過訂單修改金額時，系統會同步調整用戶錢包。</p>' +
+      '<div class="admin-modal__grid">' +
+      '<label class="admin-modal__field"><span class="admin-modal__label">金額</span><input id="admin-money-order-edit-amount" class="admin-input mono" type="number" inputmode="decimal" step="0.00000001" min="0.00000001"/></label>' +
+      '<label class="admin-modal__field"><span class="admin-modal__label">幣種</span><select id="admin-money-order-edit-asset" class="admin-select"><option>USDT</option><option>USDC</option><option>BTC</option><option>ETH</option><option>TRX</option><option>EUR</option><option>CHF</option><option>USD</option><option>GBP</option></select></label>' +
+      '<label class="admin-modal__field"><span class="admin-modal__label">分類</span><select id="admin-money-order-edit-category" class="admin-select"><option value="customer">客戶（計入佣金）</option><option value="test">測試（不計佣金）</option></select></label>' +
+      '<label class="admin-modal__field" id="admin-money-order-edit-network-wrap"><span class="admin-modal__label" id="admin-money-order-edit-network-label">網路</span><input id="admin-money-order-edit-network" class="admin-input mono" type="text"/></label>' +
+      '</div>' +
+      '<label class="admin-modal__field admin-modal__field--full" id="admin-money-order-edit-address-wrap"><span class="admin-modal__label">提款地址</span><input id="admin-money-order-edit-address" class="admin-input mono" type="text"/></label>' +
+      '<label class="admin-modal__field admin-modal__field--full"><span class="admin-modal__label" id="admin-money-order-edit-reference-label">參考 / 備註</span><textarea id="admin-money-order-edit-reference" class="admin-textarea" rows="3"></textarea></label>' +
+      '<label class="admin-modal__field admin-modal__field--full"><span class="admin-modal__label">管理備註</span><textarea id="admin-money-order-edit-note" class="admin-textarea" rows="3"></textarea></label>' +
+      '<p class="admin-modal__message-slot admin-create-user-message--error" id="admin-money-order-edit-error" style="display:none" role="alert"></p>' +
+      '<div class="admin-modal__form-actions"><button type="button" class="admin-btn admin-btn--ghost" data-money-order-edit-close>取消</button><button type="button" class="admin-btn admin-btn--primary" id="admin-money-order-edit-submit">儲存</button></div>' +
+      '</div>';
+    document.body.appendChild(wrap);
+    wrap.querySelectorAll("[data-money-order-edit-close]").forEach(function (btn) {
+      btn.addEventListener("click", function () {
+        if (window.AdminModals && window.AdminModals.close) window.AdminModals.close(wrap);
+        else wrap.hidden = true;
+      });
+    });
+    wrap.querySelector("#admin-money-order-edit-submit").addEventListener("click", function () {
+      var submit = this;
+      var amount = Number(String(document.getElementById("admin-money-order-edit-amount").value || "").replace(/,/g, ""));
+      var error = document.getElementById("admin-money-order-edit-error");
+      if (!isFinite(amount) || amount <= 0) {
+        error.textContent = "金額必須大於 0。";
+        error.style.display = "";
+        return;
+      }
+      error.style.display = "none";
+      var mode = moneyOrderEditState.mode;
+      var body = {
+        action: "edit",
+        amount: amount.toFixed(8),
+        asset_code: document.getElementById("admin-money-order-edit-asset").value,
+        fund_category: document.getElementById("admin-money-order-edit-category").value,
+        admin_note: document.getElementById("admin-money-order-edit-note").value
+      };
+      var network = document.getElementById("admin-money-order-edit-network").value;
+      var reference = document.getElementById("admin-money-order-edit-reference").value;
+      if (mode === "deposit") {
+        body.network = network;
+        body.reference_text = reference;
+      } else {
+        body.payout_usdt_network = network;
+        body.payout_address = document.getElementById("admin-money-order-edit-address").value;
+        body.remark = reference;
+      }
+      setActionLoading(submit, true, "儲存中...");
+      api().requestJson("/api/admin/" + (mode === "deposit" ? "deposit" : "withdrawal") + "-requests/" + moneyOrderEditState.id, {
+        method: "PATCH",
+        body: body,
+        fallbackMessage: "訂單更新失敗"
+      }).then(function () {
+        adminNotifySuccess("訂單 #" + moneyOrderEditState.id + " 已更新。");
+        if (window.AdminModals && window.AdminModals.close) window.AdminModals.close(wrap);
+        else wrap.hidden = true;
+        return mode === "deposit" ? loadViewDeposits() : loadViewWithdrawals();
+      }).catch(function (err) {
+        if (err && err.adminSessionHandled) return;
+        error.textContent = err.message || "訂單更新失敗";
+        error.style.display = "";
+      }).then(function () { setActionLoading(submit, false); });
+    });
+    return wrap;
+  }
+
+  function openMoneyOrderEditModal(mode, id) {
+    if (!currentAdminIsRoot() || !api()) return;
+    moneyOrderEditState.mode = mode === "withdrawal" ? "withdrawal" : "deposit";
+    moneyOrderEditState.id = Number(id || 0);
+    var modal = ensureMoneyOrderEditModal();
+    var title = document.getElementById("admin-money-order-edit-title");
+    var addressWrap = document.getElementById("admin-money-order-edit-address-wrap");
+    var networkLabel = document.getElementById("admin-money-order-edit-network-label");
+    var referenceLabel = document.getElementById("admin-money-order-edit-reference-label");
+    var error = document.getElementById("admin-money-order-edit-error");
+    title.textContent = (moneyOrderEditState.mode === "deposit" ? "編輯充值訂單 #" : "編輯提款訂單 #") + moneyOrderEditState.id;
+    addressWrap.hidden = moneyOrderEditState.mode === "deposit";
+    networkLabel.textContent = moneyOrderEditState.mode === "deposit" ? "充值網路" : "提款網路";
+    referenceLabel.textContent = moneyOrderEditState.mode === "deposit" ? "參考 / 備註" : "提款備註";
+    error.style.display = "none";
+    if (window.AdminModals && window.AdminModals.open) window.AdminModals.open("admin-modal-money-order-edit");
+    else modal.hidden = false;
+    api().requestJson("/api/admin/" + (moneyOrderEditState.mode === "deposit" ? "deposit" : "withdrawal") + "-requests/" + moneyOrderEditState.id, { fallbackMessage: "載入訂單失敗" })
+      .then(function (data) {
+        var item = data && data.request ? data.request : {};
+        document.getElementById("admin-money-order-edit-amount").value = item.amount || "";
+        document.getElementById("admin-money-order-edit-asset").value = String(item.asset_code || "USDT").toUpperCase();
+        document.getElementById("admin-money-order-edit-category").value = String(item.fund_category || "test").toLowerCase();
+        document.getElementById("admin-money-order-edit-network").value = moneyOrderEditState.mode === "deposit" ? (item.network || "") : (item.payout_usdt_network || item.usdt_network || "");
+        document.getElementById("admin-money-order-edit-address").value = item.payout_address || "";
+        document.getElementById("admin-money-order-edit-reference").value = moneyOrderEditState.mode === "deposit" ? (item.reference_text || "") : (item.remark || "");
+        document.getElementById("admin-money-order-edit-note").value = item.admin_note || "";
+      }).catch(function (err) {
+        if (err && err.adminSessionHandled) return;
+        error.textContent = err.message || "載入訂單失敗";
+        error.style.display = "";
+      });
+  }
+
   function promptDepositApproveAmount(item) {
     item = item || {};
     var id = Number(item.id || 0);
@@ -4043,6 +4461,11 @@
       });
     }
     root.addEventListener("click", function (e) {
+      var edit = e.target && e.target.closest ? e.target.closest("[data-dp-row-edit]") : null;
+      if (edit && root.contains(edit)) {
+        openMoneyOrderEditModal("deposit", edit.getAttribute("data-dp-row-edit"));
+        return;
+      }
       var det = e.target && e.target.closest ? e.target.closest("[data-dp-open-detail]") : null;
       if (det && root.contains(det)) {
         e.preventDefault();
@@ -4058,17 +4481,26 @@
       var id = Number(approveId || rejectId || "0");
       if (!id) return;
       if (approveId != null) {
-        promptDepositApproveAmount({
+        promptFundReview({
+          title: "確認入帳與分類",
+          message: "請確認充值 #" + id + " 的入帳金額並選擇分類。",
           id: id,
           amount: btn.getAttribute("data-dp-row-amount"),
-          asset_code: btn.getAttribute("data-dp-row-asset")
-        }).then(function (approvedAmount) {
-          if (approvedAmount == null) return;
+          asset_code: btn.getAttribute("data-dp-row-asset"),
+          user_fund_classification: btn.getAttribute("data-dp-user-fund-class")
+        }).then(function (reviewData) {
+          if (reviewData == null) return;
           setActionLoading(btn, true, "處理中...");
           api()
             .requestJson("/api/admin/deposit-requests/" + id, {
               method: "PATCH",
-              body: { action: "approve", reason: "", approved_amount: approvedAmount },
+              body: {
+                action: "approve",
+                reason: "",
+                approved_amount: reviewData.approved_amount,
+                fund_category: reviewData.fund_category,
+                fund_category_reason: reviewData.fund_category_reason
+              },
               fallbackMessage: "審核失敗"
             })
             .then(function () {
@@ -4141,20 +4573,8 @@
         var orderNoShort = orderNo.length > 18 ? orderNo.slice(0, 5) + "...." + orderNo.slice(-10) : orderNo;
         var depositAmount = String(it.amount != null ? it.amount : "");
         var depositAsset = String(it.asset_code != null ? it.asset_code : "");
-        var cb = pending
-          ? '<td><input type="checkbox" class="view-dp-cb" data-dp-id="' +
-            esc(it.id) +
-            '" data-dp-amount="' +
-            esc(depositAmount) +
-            '" data-dp-asset="' +
-            esc(depositAsset) +
-            '" aria-label="選取充值 #' +
-            esc(it.id) +
-            '"/></td>'
-          : '<td class="mono admin-muted" title="僅「待審核」可批次勾選">—</td>';
         return (
           "<tr>" +
-          cb +
           "<td class=\"mono\">" +
           esc(it.id) +
           "</td>" +
@@ -4165,6 +4585,9 @@
           "</td>" +
           userCell +
           renderAdminGroupCell(it) +
+          "<td>" +
+          fundCategoryBadgeHtml(it) +
+          "</td>" +
           '<td class="mono">' +
           esc(it.amount) +
           "</td><td>" +
@@ -4188,6 +4611,8 @@
                     esc(depositAmount) +
                     '" data-dp-row-asset="' +
                     esc(depositAsset) +
+                    '" data-dp-user-fund-class="' +
+                    esc(it.user_fund_classification || "test") +
                     '"',
                   label: "通過"
                 }) +
@@ -4198,6 +4623,9 @@
                   label: "駁回"
                 })
               : "") +
+              (currentAdminIsRoot()
+                ? adminBtn({ variant: "warning", sm: true, attrs: 'data-dp-row-edit="' + esc(String(it.id)) + '"', label: "編輯" })
+                : "") +
               adminBtn({
                 variant: "info",
                 sm: true,
@@ -4606,6 +5034,11 @@
       });
     }
     root.addEventListener("click", function (e) {
+      var edit = e.target && e.target.closest ? e.target.closest("[data-wd-row-edit]") : null;
+      if (edit && root.contains(edit)) {
+        openMoneyOrderEditModal("withdrawal", edit.getAttribute("data-wd-row-edit"));
+        return;
+      }
       var btn = e.target && e.target.closest ? e.target.closest("[data-wd-row-approve], [data-wd-row-reject]") : null;
       if (!btn || !root.contains(btn)) return;
       if (!api()) return;
@@ -4614,17 +5047,22 @@
       var id = Number(approveId || rejectId || "0");
       if (!id) return;
       if (approveId != null) {
-        adminConfirm({
-          title: "放行提現",
-          message: "確定通過提現 #" + id + "（放行放款）？",
-          confirmLabel: "確定放行"
-        }).then(function (ok) {
-          if (!ok) return;
+        promptFundReview({
+          title: "確認提現分類",
+          message: "請選擇提現 #" + id + " 的分類。分類會用於客戶佣金統計。",
+          user_fund_classification: btn.getAttribute("data-wd-user-fund-class")
+        }).then(function (reviewData) {
+          if (reviewData == null) return;
           setActionLoading(btn, true, "處理中...");
           api()
             .requestJson("/api/admin/withdrawal-requests/" + id, {
               method: "PATCH",
-              body: { action: "approve", reason: "" },
+              body: {
+                action: "approve",
+                reason: "",
+                fund_category: reviewData.fund_category,
+                fund_category_reason: reviewData.fund_category_reason
+              },
               fallbackMessage: "審核失敗"
             })
             .then(function () {
@@ -4695,16 +5133,8 @@
         var orderNo = String(it.order_no || "—");
         var orderNoShort = orderNo.length > 18 ? orderNo.slice(0, 5) + "...." + orderNo.slice(-10) : orderNo;
         var createdAt = it.created_at != null && String(it.created_at).trim() !== "" ? String(it.created_at).trim() : "—";
-        var cb = pending
-          ? '<td><input type="checkbox" class="view-wd-cb" data-wd-id="' +
-            esc(it.id) +
-            '" aria-label="選取提現 #' +
-            esc(it.id) +
-            '"/></td>'
-          : '<td class="mono admin-muted" title="僅「待審核」可批次勾選">—</td>';
         return (
           "<tr>" +
-          cb +
           "<td class=\"mono\">" +
           esc(it.id) +
           "</td>" +
@@ -4719,6 +5149,9 @@
           "</div></td>" +
           userCell +
           renderAdminGroupCell(it) +
+          "<td>" +
+          fundCategoryBadgeHtml(it) +
+          "</td>" +
           '<td class="mono">' +
           esc(withdrawalAmountDisplay(it)) +
           '</td><td class="admin-wd-payout-cell">' +
@@ -4736,7 +5169,12 @@
               ? adminBtn({
                   variant: "success",
                   sm: true,
-                  attrs: 'data-wd-row-approve="' + esc(String(it.id)) + '"',
+                  attrs:
+                    'data-wd-row-approve="' +
+                    esc(String(it.id)) +
+                    '" data-wd-user-fund-class="' +
+                    esc(it.user_fund_classification || "test") +
+                    '"',
                   label: "通過"
                 }) +
                 adminBtn({
@@ -4746,6 +5184,9 @@
                   label: "駁回"
                 })
               : "") +
+              (currentAdminIsRoot()
+                ? adminBtn({ variant: "warning", sm: true, attrs: 'data-wd-row-edit="' + esc(String(it.id)) + '"', label: "編輯" })
+                : "") +
               adminBtn({
                 variant: "info",
                 sm: true,
@@ -4768,6 +5209,174 @@
     ).then(function (result) {
       notifyPendingNavBadgesRefresh();
       return result;
+    });
+  }
+
+  function formatCommissionUsdt(value) {
+    var n = Number(value);
+    if (!isFinite(n)) n = 0;
+    return n.toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 8
+    });
+  }
+
+  function formatCommissionPaymentInput(value) {
+    var n = Number(String(value || "").replace(/,/g, ""));
+    if (!isFinite(n) || n <= 0) return "";
+    return n.toFixed(8).replace(/\.0+$/, "").replace(/(\.\d*?)0+$/, "$1");
+  }
+
+  function commissionCurrentPeriodPayload() {
+    return {
+      date_from: queryValue("view-commission-date-from"),
+      date_to: queryValue("view-commission-date-to")
+    };
+  }
+
+  function buildCommissionSummaryPath() {
+    var q = new URLSearchParams();
+    var dateFrom = queryValue("view-commission-date-from");
+    var dateTo = queryValue("view-commission-date-to");
+    if (dateFrom) q.set("date_from", dateFrom);
+    if (dateTo) q.set("date_to", dateTo);
+    var qs = q.toString();
+    return "/api/admin/commission-summary" + (qs ? "?" + qs : "");
+  }
+
+  function loadViewCommissions() {
+    return loadItems(
+      buildCommissionSummaryPath(),
+      "view-commissions-tbody",
+      7,
+      function (it) {
+        var groupCode = String(it.group_code || "").trim();
+        var owedNumber = Number(String(it.owed_usdt || "").replace(/,/g, ""));
+        var owedClass = owedNumber > 0 ? "admin-negative" : "admin-positive";
+        return (
+          "<tr>" +
+          "<td>" +
+          esc(it.group_name || it.group_code || "—") +
+          "</td>" +
+          '<td class="mono">' +
+          esc(formatCommissionUsdt(it.deposit_usdt)) +
+          "</td>" +
+          '<td class="mono">' +
+          esc(formatCommissionUsdt(it.withdrawal_usdt)) +
+          "</td>" +
+          '<td class="mono admin-positive">' +
+          esc(formatCommissionUsdt(it.payable_usdt)) +
+          "</td>" +
+          '<td class="mono admin-positive">' +
+          esc(formatCommissionUsdt(it.paid_usdt)) +
+          "</td>" +
+          '<td class="mono ' +
+          owedClass +
+          '">' +
+          esc(formatCommissionUsdt(it.owed_usdt)) +
+          "</td>" +
+          "<td>" +
+          (groupCode
+            ? '<button type="button" class="admin-btn admin-btn--primary admin-btn--sm" data-commission-pay="' +
+              esc(groupCode) +
+              '" data-commission-group-name="' +
+              esc(it.group_name || groupCode) +
+              '" data-commission-owed="' +
+              esc(it.owed_usdt || "0") +
+              '">繳納</button>'
+            : "—") +
+          "</td>" +
+          "</tr>"
+        );
+      },
+      "尚無客戶分類資金紀錄",
+      null,
+      { useSkeleton: true }
+    );
+  }
+
+  function submitCommissionPayment(groupCode, groupName, owedAmount) {
+    if (!api()) return;
+    adminPrompt({
+      title: "繳納佣金",
+      message: "請輸入「" + (groupName || groupCode) + "」本期已繳金額。金額會加入已繳欄位。",
+      fieldLabel: "繳納金額（USDT）",
+      defaultValue: formatCommissionPaymentInput(owedAmount),
+      inputType: "number",
+      inputMode: "decimal",
+      step: "0.00000001",
+      min: "0.00000001",
+      required: true,
+      requiredMessage: "請輸入繳納金額。"
+    })
+      .then(function (value) {
+        if (value == null) return null;
+        var amountText = formatCommissionPaymentInput(value);
+        if (!amountText) {
+          adminNotifyError("繳納金額必須大於 0。");
+          return null;
+        }
+        return adminConfirm({
+          title: "確認繳納",
+          message:
+            "第一次確認：將為「" +
+            (groupName || groupCode) +
+            "」新增已繳 " +
+            amountText +
+            " USDT，是否繼續？",
+          confirmLabel: "繼續"
+        }).then(function (ok) {
+          if (!ok) return null;
+          return adminConfirm({
+            title: "二次確認",
+            message:
+              "第二次確認：此操作會寫入佣金已繳紀錄，不會修改充值/提款原始資料。確認新增 " +
+              amountText +
+              " USDT？",
+            danger: true,
+            confirmLabel: "確認繳納"
+          }).then(function (ok2) {
+            return ok2 ? amountText : null;
+          });
+        });
+      })
+      .then(function (amountText) {
+        if (!amountText) return null;
+        var period = commissionCurrentPeriodPayload();
+        return api()
+          .requestJson("/api/admin/commission-payments", {
+            method: "POST",
+            body: {
+              group_code: groupCode,
+              amount_usdt: amountText,
+              date_from: period.date_from,
+              date_to: period.date_to
+            },
+            fallbackMessage: "新增繳納紀錄失敗"
+          })
+          .then(function () {
+            adminNotifySuccess("已新增繳納紀錄。");
+            return loadViewCommissions();
+          });
+      })
+      .catch(function (err) {
+        if (err && err.adminSessionHandled) return;
+        adminNotifyError(err && err.message ? err.message : "新增繳納紀錄失敗");
+      });
+  }
+
+  function bindViewCommissionsPage() {
+    var root = document.getElementById("view-commissions");
+    if (!root || root.dataset.commissionsBound === "1") return;
+    root.dataset.commissionsBound = "1";
+    root.addEventListener("click", function (event) {
+      var btn = event.target && event.target.closest ? event.target.closest("[data-commission-pay]") : null;
+      if (!btn || !root.contains(btn)) return;
+      submitCommissionPayment(
+        String(btn.getAttribute("data-commission-pay") || "").trim(),
+        String(btn.getAttribute("data-commission-group-name") || "").trim(),
+        String(btn.getAttribute("data-commission-owed") || "0").trim()
+      );
     });
   }
 
@@ -6650,7 +7259,7 @@
     var c = String(it.channel_type || "").toLowerCase();
     if (c === "bank") return "銀行卡";
     if (c === "pix") return "PIX";
-    if (c === "usdt") return "鏈上地址";
+    if (c === "usdt") return String(it.asset_code || "USDT").toUpperCase() + " 鏈上地址";
     return "其他方式";
   }
 
@@ -6721,6 +7330,9 @@
         var netLine = it.usdt_network
           ? '<div class="admin-cell-sub">網路：' + esc(chainNetworkLabelZh(it.usdt_network)) + "</div>"
           : "";
+        var assetLine = ch === "usdt"
+          ? '<div class="admin-cell-sub">資產：' + esc(String(it.asset_code || "USDT").toUpperCase()) + "</div>"
+          : "";
         var holderLine = it.account_holder
           ? '<div class="admin-cell-sub">戶名：' + esc(it.account_holder) + "</div>"
           : "";
@@ -6745,7 +7357,8 @@
               payoutMethodEditField("bank_swift", "BIC/SWIFT", it.bank_swift, "選填") +
               payoutMethodEditField("holder_address", "開戶地址", it.holder_address, "選填")
             : ch === "usdt"
-              ? payoutMethodEditField("usdt_network", "網路", it.usdt_network, "TRC20 / ERC20") +
+              ? payoutMethodEditField("asset_code", "資產", it.asset_code || "USDT", "USDT / USDC / BTC / ETH / TRX") +
+                payoutMethodEditField("usdt_network", "網路", it.usdt_network, "TRC20 / ERC20 / BEP20 / BTC") +
                 payoutMethodEditField("payout_address", "地址", it.payout_address, "鏈上地址")
               : payoutMethodEditField("pix_key", "PIX", it.pix_key, "PIX key");
         return (
@@ -6753,7 +7366,7 @@
           "<div><div><strong>" +
           esc(payoutMethodCardTitle(it)) +
           "</strong></div>" +
-          (ch === "bank" ? currencyLine + bankLine + holderLine + accountLine + swiftLine + holderAddressLine : ch === "usdt" ? addrLine + netLine : pixLine) +
+          (ch === "bank" ? currencyLine + bankLine + holderLine + accountLine + swiftLine + holderAddressLine : ch === "usdt" ? assetLine + addrLine + netLine : pixLine) +
           '<div class="admin-cell-sub mono">方式 ID：' +
           esc(it.id) +
           '</div></div><form data-pm-edit-form data-pm-id="' +
@@ -7081,12 +7694,60 @@
       });
   }
 
+  var SYSTEM_C2C_FIAT_CODES = ["EUR", "CHF", "USD", "GBP"];
+
+  function normalizeSystemC2cFiatCodes(value) {
+    var items = Array.isArray(value) ? value : [];
+    if (!Array.isArray(value) && value != null) {
+      try {
+        var parsed = JSON.parse(String(value));
+        if (Array.isArray(parsed)) items = parsed;
+      } catch (e) {}
+    }
+    var normalized = items.map(function (item) {
+      return String(item || "").toUpperCase();
+    });
+    return SYSTEM_C2C_FIAT_CODES.filter(function (code) {
+      return normalized.indexOf(code) !== -1;
+    });
+  }
+
+  function renderSystemC2cFiatCodes(codes) {
+    var selected = normalizeSystemC2cFiatCodes(codes);
+    if (!selected.length) selected = SYSTEM_C2C_FIAT_CODES.slice();
+    Array.prototype.forEach.call(document.querySelectorAll("[data-sc-c2c-fiat]"), function (input) {
+      input.checked = selected.indexOf(String(input.value || "").toUpperCase()) !== -1;
+    });
+  }
+
+  function loadSystemC2cFiatCodes() {
+    if (!api()) return Promise.resolve();
+    return api()
+      .requestJson("/api/admin/system/configs?group=trade", { fallbackMessage: "載入 C2C 法幣顯示設定失敗" })
+      .then(function (data) {
+        var items = (data && data.items) || [];
+        var config = null;
+        for (var i = 0; i < items.length; i += 1) {
+          if (String(items[i] && items[i].key ? items[i].key : "") === "c2c_enabled_fiat_codes") {
+            config = items[i];
+            break;
+          }
+        }
+        renderSystemC2cFiatCodes(config ? config.value : SYSTEM_C2C_FIAT_CODES);
+      })
+      .catch(function (err) {
+        if (err && err.adminSessionHandled) return;
+        var msg = document.getElementById("view-sc-c2c-fiat-msg");
+        if (msg) msg.textContent = err.message || "載入 C2C 法幣顯示設定失敗";
+      });
+  }
+
   function loadViewSystemConfig() {
     var q = new URLSearchParams();
     var group = queryValue("view-sc-group");
     if (group) q.set("group", group);
     var path = "/api/admin/system/configs" + (q.toString() ? "?" + q.toString() : "");
-    return loadItems(
+    var tablePromise = loadItems(
       path,
       "view-system-config-tbody",
       4,
@@ -7134,6 +7795,7 @@
       },
       "尚無系統配置"
     );
+    return Promise.all([tablePromise, loadSystemC2cFiatCodes()]);
   }
 
   function bindSystemConfigPage() {
@@ -7143,6 +7805,51 @@
       reset: "view-sc-reset",
       inputs: ["view-sc-group"]
     }, loadViewSystemConfig);
+    var fiatForm = document.getElementById("view-sc-c2c-fiat-form");
+    if (fiatForm && !fiatForm._adminScC2cFiatBound) {
+      fiatForm._adminScC2cFiatBound = true;
+      fiatForm.addEventListener("submit", function (e) {
+        e.preventDefault();
+        var selected = Array.prototype.map.call(
+          fiatForm.querySelectorAll("[data-sc-c2c-fiat]:checked"),
+          function (input) {
+            return String(input.value || "").toUpperCase();
+          }
+        );
+        var reason = queryValue("view-sc-c2c-fiat-reason");
+        var msg = document.getElementById("view-sc-c2c-fiat-msg");
+        var save = document.getElementById("view-sc-c2c-fiat-save");
+        if (!selected.length) {
+          if (msg) msg.textContent = "至少保留一個法幣。";
+          return;
+        }
+        if (!reason) {
+          if (msg) msg.textContent = "請填寫異動原因。";
+          return;
+        }
+        if (msg) msg.textContent = "儲存中…";
+        if (save) save.disabled = true;
+        api()
+          .requestJson("/api/admin/system/configs/trade/c2c_enabled_fiat_codes", {
+            method: "PATCH",
+            body: { value: selected, reason: reason },
+            fallbackMessage: "儲存 C2C 法幣顯示設定失敗"
+          })
+          .then(function () {
+            var reasonInput = document.getElementById("view-sc-c2c-fiat-reason");
+            if (reasonInput) reasonInput.value = "";
+            if (msg) msg.textContent = "已儲存，前端重新進入交易大廳後生效。";
+            return loadViewSystemConfig();
+          })
+          .catch(function (err) {
+            if (err && err.adminSessionHandled) return;
+            if (msg) msg.textContent = err.message || "儲存失敗";
+          })
+          .finally(function () {
+            if (save) save.disabled = false;
+          });
+      });
+    }
     var root = document.getElementById("view-system-config");
     if (root && !root._adminScEditBound) {
       root._adminScEditBound = true;
@@ -7224,6 +7931,7 @@
     deposits: "充值審核",
     "deposit-addresses": "充值地址管理",
     withdrawals: "提現審核",
+    commissions: "佣金計算",
     orders: "訂單中心",
     "financial-products": "理財配置",
     "financial-orders": "理財訂單",
@@ -9050,6 +9758,20 @@
       bindViewWithdrawalsPage();
       return loadViewWithdrawals();
     },
+    commissions: function () {
+      bindViewCommissionsPage();
+      bindSimpleFilterControls(
+        "view-commissions",
+        {
+          query: "view-commission-query",
+          refresh: "view-commission-refresh",
+          reset: "view-commission-reset",
+          inputs: ["view-commission-date-from", "view-commission-date-to"]
+        },
+        loadViewCommissions
+      );
+      return loadViewCommissions();
+    },
     "eur-swap-withdraw-config": function () {
       bindViewEurSwapPage();
       return loadViewEurSwap();
@@ -9151,6 +9873,18 @@
 
   function boot() {
     document.addEventListener("click", function (e) {
+      var createDepositBtn = e.target && e.target.closest ? e.target.closest("#view-dp-create") : null;
+      if (createDepositBtn) {
+        e.preventDefault();
+        openManualMoneyOrderModal("deposit");
+        return;
+      }
+      var createWithdrawalBtn = e.target && e.target.closest ? e.target.closest("#view-wd-create") : null;
+      if (createWithdrawalBtn) {
+        e.preventDefault();
+        openManualMoneyOrderModal("withdrawal");
+        return;
+      }
       var adjustBtn = e.target && e.target.closest ? e.target.closest("[data-admin-wallet-adjust]") : null;
       if (adjustBtn) {
         var walletsRoot = document.getElementById("view-wallets");

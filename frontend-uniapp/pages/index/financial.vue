@@ -176,6 +176,7 @@
 <script>
 import { scheduleTranslate } from '@/common/domTranslator'
 import { userApi } from '@/utils/api'
+import { formatTruncatedAmount } from '@/utils/amountFormat'
 
 var BODY_CLASSES = [
   "nc2c-page",
@@ -346,10 +347,7 @@ export default {
       return this.localizedText(n + " 天後", n + " day" + (n === 1 ? "" : "s") + " later");
     },
     formatAmount: function (value, digits) {
-      return Number(value || 0).toLocaleString("en-GB", {
-        minimumFractionDigits: digits,
-        maximumFractionDigits: digits
-      });
+      return formatTruncatedAmount(value, digits);
     },
     formatPercent: function (value) {
       var n = Number(value || 0);

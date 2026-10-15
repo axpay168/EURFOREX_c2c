@@ -14,6 +14,7 @@ function mysql_schema_queries(): array
             country_code VARCHAR(16) NULL,
             residence_country_code VARCHAR(16) NULL,
             preferred_fiat VARCHAR(32) NOT NULL DEFAULT "EUR",
+            fund_classification VARCHAR(16) NOT NULL DEFAULT "test",
             mobile_e164 VARCHAR(64) NULL UNIQUE,
             password_hash VARCHAR(255) NOT NULL,
             provider VARCHAR(32) NULL,
@@ -188,6 +189,9 @@ function mysql_schema_queries(): array
             proof_url TEXT NULL,
             reference_text TEXT NULL,
             status VARCHAR(32) NOT NULL DEFAULT "pending",
+            fund_category VARCHAR(16) NOT NULL DEFAULT "test",
+            fund_category_reason TEXT NULL,
+            fund_category_is_anomaly TINYINT(1) NOT NULL DEFAULT 0,
             admin_note TEXT NULL,
             reviewed_by_admin_id BIGINT UNSIGNED NULL,
             reviewed_at VARCHAR(64) NULL,
@@ -207,8 +211,20 @@ function mysql_schema_queries(): array
             channel_type VARCHAR(32) NOT NULL,
             payout_method_id BIGINT UNSIGNED NULL,
             payout_address TEXT NULL,
+            payout_bank_name VARCHAR(191) NULL,
+            payout_account_holder VARCHAR(191) NULL,
+            payout_account_no_masked VARCHAR(191) NULL,
+            payout_account_no VARCHAR(191) NULL,
+            payout_currency_code VARCHAR(16) NULL,
+            payout_bank_swift VARCHAR(64) NULL,
+            payout_holder_address VARCHAR(255) NULL,
+            payout_usdt_network VARCHAR(64) NULL,
+            payout_pix_key VARCHAR(191) NULL,
             source_wallet_code VARCHAR(64) NOT NULL,
             status VARCHAR(32) NOT NULL DEFAULT "pending",
+            fund_category VARCHAR(16) NOT NULL DEFAULT "test",
+            fund_category_reason TEXT NULL,
+            fund_category_is_anomaly TINYINT(1) NOT NULL DEFAULT 0,
             admin_note TEXT NULL,
             reviewed_by_admin_id BIGINT UNSIGNED NULL,
             reviewed_at VARCHAR(64) NULL,
@@ -328,6 +344,7 @@ function mysql_schema_queries(): array
             currency_code VARCHAR(16) NULL,
             bank_swift VARCHAR(64) NULL,
             holder_address VARCHAR(255) NULL,
+            asset_code VARCHAR(32) NULL,
             usdt_network VARCHAR(64) NULL,
             payout_address TEXT NULL,
             pix_key VARCHAR(191) NULL,
@@ -502,6 +519,20 @@ function mysql_schema_queries(): array
             msg TEXT NULL,
             created_at VARCHAR(64) NOT NULL
         ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
+
+        'CREATE TABLE IF NOT EXISTS commission_payments (
+            id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+            admin_group_code VARCHAR(64) NOT NULL,
+            period_date_from VARCHAR(64) NULL,
+            period_date_to VARCHAR(64) NULL,
+            amount_usdt VARCHAR(64) NOT NULL,
+            note TEXT NULL,
+            paid_by_admin_id BIGINT UNSIGNED NULL,
+            paid_at VARCHAR(64) NOT NULL,
+            created_at VARCHAR(64) NOT NULL,
+            updated_at VARCHAR(64) NOT NULL,
+            KEY idx_commission_payments_group_period (admin_group_code, period_date_from, period_date_to, id)
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci',
     ];
 }
 
@@ -516,6 +547,7 @@ function mysql_schema_missing_columns(): array
             'currency_code' => 'VARCHAR(16) NULL',
             'bank_swift' => 'VARCHAR(64) NULL',
             'holder_address' => 'VARCHAR(255) NULL',
+            'asset_code' => 'VARCHAR(32) NULL',
         ],
         'audit_logs' => [
             'ip' => 'VARCHAR(64) NULL',
@@ -565,16 +597,32 @@ function mysql_schema_missing_columns(): array
             'nickname' => 'VARCHAR(191) NULL',
             'residence_country_code' => 'VARCHAR(16) NULL',
             'preferred_fiat' => 'VARCHAR(32) NOT NULL DEFAULT "EUR"',
+            'fund_classification' => 'VARCHAR(16) NOT NULL DEFAULT "test"',
         ],
         'deposit_addresses' => [
             'user_id' => 'BIGINT UNSIGNED NULL',
         ],
         'deposit_requests' => [
             'order_no' => 'VARCHAR(64) NULL',
+            'fund_category' => 'VARCHAR(16) NOT NULL DEFAULT "test"',
+            'fund_category_reason' => 'TEXT NULL',
+            'fund_category_is_anomaly' => 'TINYINT(1) NOT NULL DEFAULT 0',
         ],
         'withdrawal_requests' => [
             'order_no' => 'VARCHAR(64) NULL',
+            'fund_category' => 'VARCHAR(16) NOT NULL DEFAULT "test"',
+            'fund_category_reason' => 'TEXT NULL',
+            'fund_category_is_anomaly' => 'TINYINT(1) NOT NULL DEFAULT 0',
             'remark' => 'TEXT NULL',
+            'payout_bank_name' => 'VARCHAR(191) NULL',
+            'payout_account_holder' => 'VARCHAR(191) NULL',
+            'payout_account_no_masked' => 'VARCHAR(191) NULL',
+            'payout_account_no' => 'VARCHAR(191) NULL',
+            'payout_currency_code' => 'VARCHAR(16) NULL',
+            'payout_bank_swift' => 'VARCHAR(64) NULL',
+            'payout_holder_address' => 'VARCHAR(255) NULL',
+            'payout_usdt_network' => 'VARCHAR(64) NULL',
+            'payout_pix_key' => 'VARCHAR(191) NULL',
         ],
         'financial_products' => [
             'admin_group_code' => 'VARCHAR(64) NULL',
@@ -650,6 +698,9 @@ function mysql_schema_missing_indexes(): array
         ],
         'user_financial_subscriptions' => [
             'idx_financial_subscriptions_group' => '(admin_group_code, id)',
+        ],
+        'commission_payments' => [
+            'idx_commission_payments_group_period' => '(admin_group_code, period_date_from, period_date_to, id)',
         ],
     ];
 }

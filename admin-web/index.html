@@ -4,7 +4,7 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>EURFOREX 後台</title>
-<link rel="stylesheet" href="./shared/admin-console.css?v=20260913-wallets1"/>
+<link rel="stylesheet" href="./shared/admin-console.css?v=20261015-c2c-fiat1"/>
 <link rel="stylesheet" href="./shared/admin-glass-theme.css?v=20260913-wallets1"/>
 </head>
 <body class="admin-auth-pending">
@@ -62,6 +62,7 @@
 <button type="button" class="admin-nav-item" data-admin-view="deposits"><svg class="admin-nav-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg><span class="admin-nav-item__label">充值審核</span><span class="admin-nav-badge" data-admin-nav-badge="deposits" hidden></span></button>
 <button type="button" class="admin-nav-item" data-admin-view="deposit-addresses"><svg class="admin-nav-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>充值地址管理</button>
 <button type="button" class="admin-nav-item" data-admin-view="withdrawals"><svg class="admin-nav-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 9V7a5 5 0 00-10 0v2"/><rect x="5" y="9" width="14" height="10" rx="2"/></svg><span class="admin-nav-item__label">提現審核</span><span class="admin-nav-badge" data-admin-nav-badge="withdrawals" hidden></span></button>
+<button type="button" class="admin-nav-item" data-admin-view="commissions" data-admin-root-only hidden><svg class="admin-nav-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 000 7H14a3.5 3.5 0 010 7H6"/></svg>佣金計算</button>
 <button type="button" class="admin-nav-item" data-admin-view="eur-swap-withdraw-config"><svg class="admin-nav-item__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 16V4m0 0L3 8m4-4l4 4M17 8v12m0 0l4-4m-4 4l-4-4"/></svg>換匯提領配置</button>
 </div>
 <div class="admin-nav-group">
@@ -163,12 +164,12 @@
 <div class="admin-dash-stat admin-dash-stat--in">
 <div class="admin-dash-stat__label">總充值</div>
 <div class="admin-dash-stat__value mono" id="dash-total-deposit">—</div>
-<div class="admin-dash-stat__sub" id="dash-total-deposit-sub">折合 USDT · 含法幣入帳</div>
+<div class="admin-dash-stat__sub" id="dash-total-deposit-sub">折合 USDT · 僅客戶 · 含法幣入帳</div>
 </div>
 <div class="admin-dash-stat admin-dash-stat--out">
 <div class="admin-dash-stat__label">總提現</div>
 <div class="admin-dash-stat__value mono" id="dash-total-withdraw">—</div>
-<div class="admin-dash-stat__sub" id="dash-total-withdraw-sub">折合 USDT · 含法幣出金</div>
+<div class="admin-dash-stat__sub" id="dash-total-withdraw-sub">折合 USDT · 僅客戶 · 含法幣出金</div>
 </div>
 </div>
 </div>
@@ -280,12 +281,14 @@
 
 <!-- deposits — 對齊 depositsTable 欄位 -->
 <section id="view-deposits" class="admin-view" aria-hidden="true" role="region" aria-labelledby="head-deposits">
-<div class="admin-page-head"><h1 id="head-deposits">充值審核</h1><p>法幣 / 鏈上充值憑證審核、駁回與補件。待審核列可操作通過／駁回；勾選多筆後可用上方批次按鈕。</p></div>
+<div class="admin-page-head"><h1 id="head-deposits">充值審核</h1><p>法幣 / 鏈上充值憑證審核、駁回與補件。通過時必須選擇「客戶 / 測試」分類。</p></div>
 <div class="admin-filters">
 <div class="admin-field"><label>關鍵字</label><input id="view-dp-keyword" class="admin-input" placeholder="訂單編號／用戶名／參考號／資產"/></div>
 <div class="admin-field"><label>用戶</label><input id="view-dp-user" class="admin-input mono" placeholder="用戶 ID／郵箱／手機"/></div>
 <div class="admin-field"><label>狀態</label><select id="view-dp-status" class="admin-select"><option value="">全部狀態</option><option value="pending">待審核</option><option value="approved">已通過</option><option value="rejected">已駁回</option><option value="cancelled">已取消</option></select></div>
 <span data-admin-filter-actions="reset#view-dp-reset|query#view-dp-query|refresh#view-dp-refresh"></span>
+<div class="admin-filters__push" aria-hidden="true"></div>
+<button type="button" class="admin-btn admin-btn--primary" id="view-dp-create">新增充值訂單</button>
 </div>
 <div class="admin-submodule-bar" role="group" aria-label="充值資產分類">
 <div class="admin-submodule-bar__caption">（全部 / USDT / EUR）</div>
@@ -302,14 +305,8 @@
 </div>
 </div>
 <div class="admin-card admin-card--flush">
-<div class="admin-toolbar" style="flex-direction:column;align-items:flex-start;gap:8px">
-<div style="display:flex;flex-wrap:wrap;gap:8px">
-<button type="button" class="admin-btn admin-btn--success" id="view-dp-batch-approve">批量通過</button>
-<button type="button" class="admin-btn admin-btn--danger" id="view-dp-batch-reject">批量駁回</button>
-</div>
-</div>
 <div class="admin-table-wrap"><table class="admin-table">
-<thead><tr><th scope="col" style="width:44px"><input type="checkbox" id="view-dp-select-all" title="本頁待審列全選" aria-label="全選待審"/></th><th title="編號僅供快速查詢用">編號</th><th>訂單編號</th><th>用戶</th><th>組別</th><th>金額</th><th>資產</th><th>網路</th><th>日期</th><th>狀態</th><th>操作</th></tr></thead>
+<thead><tr><th title="編號僅供快速查詢用">編號</th><th>訂單編號</th><th>用戶</th><th>組別</th><th>分類</th><th>金額</th><th>資產</th><th>網路</th><th>日期</th><th>狀態</th><th>操作</th></tr></thead>
 <tbody id="view-deposits-tbody">
 <tr><td colspan="11" class="admin-muted">載入中…</td></tr>
 </tbody></table></div>
@@ -346,7 +343,7 @@
 
 <!-- withdrawals — 對齊 withdrawalsTable 欄位 -->
 <section id="view-withdrawals" class="admin-view" aria-hidden="true" role="region" aria-labelledby="head-wd">
-<div class="admin-page-head"><h1 id="head-wd">提現審核</h1><p>法幣 / 鏈上提現放款、風控攔截與人工覆核。</p></div>
+<div class="admin-page-head"><h1 id="head-wd">提現審核</h1><p>法幣 / 鏈上提現放款、風控攔截與人工覆核。放行時必須選擇「客戶 / 測試」分類。</p></div>
 <div class="admin-filters">
 <div class="admin-field"><label>關鍵字</label><input id="view-wd-keyword" class="admin-input" placeholder="訂單編號 / 用戶名 / 地址 / 資產"/></div>
 <div class="admin-field"><label>用戶</label><input id="view-wd-user" class="admin-input mono" placeholder="EN 編號 / 用户 ID / 邮箱 / 手机"/></div>
@@ -354,19 +351,31 @@
 <div class="admin-field"><label>資產</label><select id="view-wd-asset" class="admin-select"><option value="">全部分類</option><option value="USDT">USDT</option><option value="USD">美元</option><option value="EUR">歐元</option></select></div>
 <div class="admin-field"><label>狀態</label><select id="view-wd-status" class="admin-select"><option value="">全部狀態</option><option value="pending">待審核</option><option value="approved">已通過</option><option value="rejected">已駁回</option><option value="cancelled">已取消</option></select></div>
 <span data-admin-filter-actions="reset#view-wd-reset|query#view-wd-query|refresh#view-wd-refresh"></span>
+<div class="admin-filters__push" aria-hidden="true"></div>
+<button type="button" class="admin-btn admin-btn--primary" id="view-wd-create">新增提款訂單</button>
 </div>
 <div class="admin-card admin-card--flush">
-<div class="admin-toolbar" style="flex-direction:column;align-items:flex-start;gap:8px">
-<p class="admin-muted" style="margin:0;font-size:0.8rem">請先勾選狀態為「待審核」的列；拒絕時會提示填寫原因（後端必填）。需具備提現審核寫入權限。</p>
-<div style="display:flex;flex-wrap:wrap;gap:8px">
-<button type="button" class="admin-btn admin-btn--success" id="view-wd-batch-approve">放行放款</button>
-<button type="button" class="admin-btn admin-btn--danger" id="view-wd-batch-reject">拒絕並退回</button>
-</div>
-</div>
 <div class="admin-table-wrap"><table class="admin-table">
-<thead><tr><th scope="col" style="width:44px"><input type="checkbox" id="view-wd-select-all" title="本頁可勾選之待審列全選" aria-label="全選待審"/></th><th title="編號僅供快速查詢用">編號</th><th class="admin-wd-order-head">訂單編號 / 日期</th><th class="admin-wd-user-head">用戶</th><th>組別</th><th>金額</th><th class="admin-wd-payout-head">提款信息</th><th>渠道</th><th class="admin-wd-remark-head">備註</th><th>狀態</th><th>操作</th></tr></thead>
+<thead><tr><th title="編號僅供快速查詢用">編號</th><th class="admin-wd-order-head">訂單編號 / 日期</th><th class="admin-wd-user-head">用戶</th><th>組別</th><th>分類</th><th>金額</th><th class="admin-wd-payout-head">提款信息</th><th>渠道</th><th class="admin-wd-remark-head">備註</th><th>狀態</th><th>操作</th></tr></thead>
 <tbody id="view-withdrawals-tbody">
-<tr><td colspan="12" class="admin-muted">載入中…</td></tr>
+<tr><td colspan="11" class="admin-muted">載入中…</td></tr>
+</tbody></table></div>
+</div>
+</section>
+
+<!-- commissions — 大老板專用 -->
+<section id="view-commissions" class="admin-view" aria-hidden="true" role="region" aria-labelledby="head-commissions">
+<div class="admin-page-head"><h1 id="head-commissions">佣金計算</h1><p>僅統計分類為「客戶」的已通過充值 / 提款，全部折算為 USDT；佣金 =（充值 - 提款）× 10%。</p></div>
+<div class="admin-filters">
+<div class="admin-field"><label>開始時間</label><input id="view-commission-date-from" class="admin-input mono" placeholder="YYYY-MM-DD 或完整時間"/></div>
+<div class="admin-field"><label>結束時間</label><input id="view-commission-date-to" class="admin-input mono" placeholder="YYYY-MM-DD 或完整時間"/></div>
+<span data-admin-filter-actions="reset#view-commission-reset|query#view-commission-query|refresh#view-commission-refresh"></span>
+</div>
+<div class="admin-card admin-card--flush">
+<div class="admin-table-wrap"><table class="admin-table">
+<thead><tr><th>分組</th><th>充值（USDT）</th><th>提款（USDT）</th><th>需繳（USDT）</th><th>已繳（USDT）</th><th>尚欠（USDT）</th><th>操作</th></tr></thead>
+<tbody id="view-commissions-tbody">
+<tr><td colspan="7" class="admin-muted">載入中…</td></tr>
 </tbody></table></div>
 </div>
 </section>
@@ -685,6 +694,22 @@
 <!-- system-config — 對齊 systemConfigsTable + 分組篩選 -->
 <section id="view-system-config" class="admin-view" aria-hidden="true" role="region" aria-labelledby="head-sc">
 <div class="admin-page-head"><h1 id="head-sc">系統配置</h1><p>分組 KV：認證、資金、語言、站點、交易、驗證碼等。</p></div>
+<form class="admin-card admin-sc-fiat-card" id="view-sc-c2c-fiat-form">
+<div class="admin-card__head"><h2 class="admin-card__title">C2C 前端法幣顯示</h2><span class="admin-muted">未勾選的幣別不會出現在用戶交易大廳</span></div>
+<div class="admin-sc-fiat-card__body">
+<div class="admin-sc-fiat-options" role="group" aria-label="C2C 前端顯示法幣">
+<label class="admin-inline-check"><input type="checkbox" value="EUR" data-sc-c2c-fiat/> EUR</label>
+<label class="admin-inline-check"><input type="checkbox" value="CHF" data-sc-c2c-fiat/> CHF</label>
+<label class="admin-inline-check"><input type="checkbox" value="USD" data-sc-c2c-fiat/> USD</label>
+<label class="admin-inline-check"><input type="checkbox" value="GBP" data-sc-c2c-fiat/> GBP</label>
+</div>
+<div class="admin-sc-fiat-actions">
+<label class="admin-field admin-sc-fiat-reason"><span>異動原因</span><input class="admin-input" id="view-sc-c2c-fiat-reason" type="text" required placeholder="必填，供稽核"/></label>
+<button type="submit" class="admin-btn admin-btn--primary" id="view-sc-c2c-fiat-save">儲存顯示設定</button>
+</div>
+<p class="admin-modal__message-slot" id="view-sc-c2c-fiat-msg" role="status"></p>
+</div>
+</form>
 <div class="admin-filters">
 <div class="admin-field"><label>分組</label><select class="admin-select" id="view-sc-group"><option value="">全部分組</option><option value="auth">認證</option><option value="finance">資金</option><option value="language">語言</option><option value="site">站點</option><option value="trade">交易</option><option value="captcha">驗證碼</option></select></div>
 <span data-admin-filter-actions="reset#view-sc-reset|query#view-sc-query|refresh#view-sc-refresh"></span>
@@ -1955,7 +1980,7 @@
 <script src="./shared/admin-console.js?v=20260714-0301"></script>
 <script src="./shared/admin-api-fetch.js?v=20260714-0301"></script>
 <script src="./shared/admin-modals.js?v=20260913-wallets1"></script>
-<script src="./shared/admin-view-loaders.js?v=20260913-wallets1"></script>
+<script src="./shared/admin-view-loaders.js?v=20261015-c2c-fiat1"></script>
 <script src="./shared/admin-api-client.js?v=20260714-0301"></script>
 <script src="./shared/admin-tabs.js?v=20260714-0301"></script>
 </body>

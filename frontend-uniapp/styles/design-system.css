@@ -30,6 +30,10 @@
   --eur-radius-md: 16px;
   --eur-radius-sm: 12px;
   --eur-font: -apple-system, BlinkMacSystemFont, "Segoe UI", "SF Pro Text", "PingFang TC", "PingFang SC", "Hiragino Sans GB", "Microsoft JhengHei", "Microsoft YaHei", sans-serif;
+  --eur-motion-fast: 0.15s;
+  --eur-motion-standard: 0.24s;
+  --eur-motion-emphasized: 0.32s;
+  --eur-motion-ease-out: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 *,
@@ -65,6 +69,19 @@ button {
 
 button::after {
   border: 0;
+}
+
+.eurforex-shell :where(button:not(:disabled), a[href], [role="button"]:not([aria-disabled="true"])) {
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+  transition-property: scale, filter, opacity;
+  transition-duration: var(--eur-motion-fast);
+  transition-timing-function: ease-out;
+}
+
+.eurforex-shell :where(button:not(:disabled), a[href], [role="button"]:not([aria-disabled="true"])):active {
+  scale: 0.97;
+  filter: brightness(0.98);
 }
 
 .eur-page {
@@ -207,7 +224,7 @@ button::after {
 }
 
 .card-tap {
-  transition: transform 0.16s ease, box-shadow 0.16s ease, filter 0.16s ease;
+  transition: transform var(--eur-motion-fast) ease, box-shadow var(--eur-motion-fast) ease, filter var(--eur-motion-fast) ease;
 }
 
 .card-tap:active {
@@ -445,6 +462,19 @@ nav.eurforex-home-bottom-nav {
   z-index: 10050 !important;
   box-sizing: border-box;
   padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eurforex-shell :where(button, a[href], [role="button"]),
+  .card-tap {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
+  .eurforex-shell :where(button:not(:disabled), a[href], [role="button"]:not([aria-disabled="true"])):active {
+    scale: 1;
+  }
 }
 
 .eurforex-nav-brand-icon {

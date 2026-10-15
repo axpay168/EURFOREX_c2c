@@ -45,6 +45,7 @@
     "deposits",
     "deposit-addresses",
     "withdrawals",
+    "commissions",
     "eur-swap-withdraw-config",
     "orders",
     "financial-products",
@@ -68,6 +69,7 @@
     deposits: "充值審核",
     "deposit-addresses": "充值地址管理",
     withdrawals: "提現審核",
+    commissions: "佣金計算",
     "eur-swap-withdraw-config": "換匯提領配置",
     orders: "訂單中心",
     "financial-products": "理財配置",
@@ -253,6 +255,7 @@
     var inviteEl = document.getElementById("admin-staff-invite-code");
     var inviteChip = document.getElementById("admin-staff-invite-chip");
     var chip = labelEl && labelEl.closest ? labelEl.closest(".admin-user-chip") : null;
+    syncRootOnlyViews(admin);
     if (!labelEl || !avEl) return;
     if (!admin) {
       labelEl.textContent = "未登入";
@@ -276,6 +279,24 @@
       inviteChip.disabled = !staffInvite;
     }
     if (chip) chip.setAttribute("title", buildAdminChipTitle(admin, brief));
+  }
+
+  function isRootAdminProfile(admin) {
+    admin = admin || {};
+    if (admin.is_root_admin === true) return true;
+    if (admin.role_template === "big_boss") return true;
+    return String(admin.display_name || "").trim() === "大老板";
+  }
+
+  function syncRootOnlyViews(admin) {
+    var show = isRootAdminProfile(admin || readCachedAdminProfile());
+    document.querySelectorAll("[data-admin-root-only]").forEach(function (el) {
+      el.hidden = !show;
+    });
+    var hash = (window.location.hash || "").replace(/^#/, "").trim();
+    if (!show && hash === "commissions") {
+      window.location.hash = "#dashboard";
+    }
   }
 
   function clearAdminSessionPayload() {

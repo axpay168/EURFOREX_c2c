@@ -617,6 +617,48 @@
   margin: 0;
 }
 
+.admin-sc-fiat-card {
+  margin-bottom: 16px;
+  padding: 0;
+  overflow: hidden;
+}
+
+.admin-sc-fiat-card__body {
+  padding: 16px 20px 18px;
+}
+
+.admin-sc-fiat-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin-bottom: 16px;
+}
+
+.admin-sc-fiat-actions {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.admin-sc-fiat-reason {
+  flex: 1 1 320px;
+}
+
+.admin-sc-fiat-reason .admin-input {
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .admin-sc-fiat-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .admin-sc-fiat-reason {
+    flex-basis: auto;
+  }
+}
+
 .admin-kpi {
   padding: 18px 20px;
   position: relative;
@@ -1404,6 +1446,14 @@
   color: #1a5cad;
 }
 
+.admin-positive {
+  color: var(--ac-success);
+}
+
+.admin-negative {
+  color: var(--ac-danger);
+}
+
 .admin-toolbar {
   display: flex;
   flex-wrap: wrap;
@@ -1684,6 +1734,94 @@
 
   .admin-main {
     padding: 16px;
+  }
+}
+
+@media (max-width: 720px) {
+  .admin-main {
+    padding: 12px 10px 96px;
+  }
+
+  .admin-page-head {
+    margin-bottom: 14px;
+  }
+
+  .admin-page-head h1 {
+    font-size: 1.35rem;
+    line-height: 1.2;
+  }
+
+  .admin-page-head p {
+    font-size: 0.82rem;
+    line-height: 1.55;
+  }
+
+  .admin-filters {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    align-items: end;
+  }
+
+  .admin-filters .admin-field {
+    min-width: 0;
+  }
+
+  .admin-filters .admin-input,
+  .admin-filters .admin-select,
+  .admin-filters .admin-btn {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .admin-filters__push {
+    display: none;
+  }
+
+  .admin-card--flush {
+    overflow: hidden;
+  }
+
+  .admin-table-wrap {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .admin-table {
+    min-width: 860px;
+    table-layout: auto;
+    font-size: 0.78rem;
+  }
+
+  .admin-table th,
+  .admin-table td {
+    padding: 10px 12px;
+    white-space: nowrap;
+    word-break: normal;
+  }
+
+  .admin-table td {
+    vertical-align: middle;
+  }
+
+  .admin-table .admin-cell-sub {
+    white-space: nowrap;
+  }
+}
+
+@media (max-width: 460px) {
+  .admin-main {
+    padding-left: 8px;
+    padding-right: 8px;
+  }
+
+  .admin-filters {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-table {
+    min-width: 920px;
   }
 }
 

@@ -501,8 +501,10 @@ function default_market_spark_points(string $code): array
 {
     $upper = strtoupper(trim($code));
     return match ($upper) {
+        'USDC' => [1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00, 1.00],
         'BTC' => [1.00, 1.01, 1.00, 1.02, 1.03, 1.04, 1.03, 1.05, 1.04, 1.06, 1.07, 1.08],
         'ETH' => [1.00, 1.00, 1.01, 1.00, 1.02, 1.03, 1.02, 1.04, 1.05, 1.06, 1.05, 1.07],
+        'TRX' => [1.00, 1.01, 1.00, 1.01, 1.02, 1.01, 1.02, 1.03, 1.02, 1.04, 1.03, 1.04],
         'XRP' => [1.00, 0.99, 1.00, 1.01, 1.00, 1.02, 1.01, 1.02, 1.03, 1.02, 1.04, 1.03],
         default => [1, 1, 1, 1],
     };
@@ -565,14 +567,16 @@ function fetch_market_spark_points(array $pairs): array
 
 function fetch_market_snapshot_coingecko(): ?array
 {
-    $endpoint = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=bitcoin,ethereum,ripple&order=market_cap_desc&per_page=3&page=1&sparkline=true&price_change_percentage=24h';
+    $endpoint = 'https://api.coingecko.com/api/v3/coins/markets?vs_currency=usd&ids=usd-coin,bitcoin,ethereum,tron,ripple&order=market_cap_desc&per_page=5&page=1&sparkline=true&price_change_percentage=24h';
     $payload = http_get_json($endpoint, 2);
     if (!is_array($payload) || !$payload) {
         return null;
     }
     $codeMap = [
+        'usd-coin' => 'USDC',
         'bitcoin' => 'BTC',
         'ethereum' => 'ETH',
+        'tron' => 'TRX',
         'ripple' => 'XRP',
     ];
     $items = [];
@@ -607,7 +611,7 @@ function fetch_market_snapshot_coingecko(): ?array
         return null;
     }
     usort($items, static function (array $left, array $right): int {
-        $order = ['BTC' => 0, 'ETH' => 1, 'XRP' => 2];
+        $order = ['USDC' => 0, 'BTC' => 1, 'ETH' => 2, 'TRX' => 3, 'XRP' => 4];
         return ($order[$left['code']] ?? 99) <=> ($order[$right['code']] ?? 99);
     });
     return $items;
@@ -626,12 +630,14 @@ function fetch_market_snapshot(): array
     }
 
     $default = [
+        ['code' => 'USDC', 'price' => '1.00', 'delta' => '+0.00%', 'change' => 1, 'volume' => '—', 'spark' => default_market_spark_points('USDC')],
         ['code' => 'BTC', 'price' => '67,432.00', 'delta' => '+2.45%', 'change' => 1, 'volume' => '—', 'spark' => default_market_spark_points('BTC')],
         ['code' => 'ETH', 'price' => '3,492.00', 'delta' => '+1.12%', 'change' => 1, 'volume' => '—', 'spark' => default_market_spark_points('ETH')],
+        ['code' => 'TRX', 'price' => '0.34', 'delta' => '+0.00%', 'change' => 1, 'volume' => '—', 'spark' => default_market_spark_points('TRX')],
         ['code' => 'XRP', 'price' => '1.24', 'delta' => '-0.86%', 'change' => -1, 'volume' => '—', 'spark' => default_market_spark_points('XRP')],
     ];
 
-    $endpoint = 'https://api.binance.com/api/v3/ticker/24hr?symbols=%5B%22BTCUSDT%22,%22ETHUSDT%22,%22XRPUSDT%22%5D';
+    $endpoint = 'https://api.binance.com/api/v3/ticker/24hr?symbols=%5B%22USDCUSDT%22,%22BTCUSDT%22,%22ETHUSDT%22,%22TRXUSDT%22,%22XRPUSDT%22%5D';
     $payload = http_get_json($endpoint, 2);
     if (!$payload) {
         $coingecko = fetch_market_snapshot_coingecko();
@@ -643,8 +649,10 @@ function fetch_market_snapshot(): array
     }
 
     $symbolMap = [
+        'USDCUSDT' => 'USDC',
         'BTCUSDT' => 'BTC',
         'ETHUSDT' => 'ETH',
+        'TRXUSDT' => 'TRX',
         'XRPUSDT' => 'XRP',
     ];
     $sparkByCode = fetch_market_spark_points($symbolMap);
@@ -1057,6 +1065,13 @@ function site_config_payload(PDO $pdo): array
 
 function normalize_admin_system_config_value(string $group, string $key, mixed $value): mixed
 {
+    if ($group === 'trade' && $key === 'c2c_enabled_fiat_codes') {
+        $codes = normalize_c2c_fiat_code_list($value);
+        if ($codes === []) {
+            failure('ADMIN_SYSTEM_CONFIG_VALUE_INVALID', 'At least one C2C fiat currency must be enabled');
+        }
+        return $codes;
+    }
     if ($group === 'site' && $key === 'frontend_base_urls') {
         try {
             return parse_public_base_url_list($value, true);
@@ -2176,8 +2191,10 @@ function pdo(): PDO
     backfill_withdrawal_request_order_numbers($pdo);
     backfill_c2c_order_numbers($pdo);
     backfill_listing_admin_group_codes($pdo);
-    approve_bank_payout_methods($pdo);
+    approve_payout_methods_without_review($pdo);
     backfill_payout_method_currency($pdo);
+    backfill_payout_method_asset_code($pdo);
+    backfill_withdrawal_payout_snapshots($pdo);
     backfill_kyc_id_number($pdo);
     migrate_legacy_eur_wallet_code($pdo);
     backfill_missing_user_defaults($pdo);
@@ -2212,6 +2229,7 @@ function ensure_schema_mysql(PDO $pdo): void
     }
 
     backfill_financial_subscription_admin_group_codes($pdo);
+    backfill_fund_category_defaults($pdo);
 }
 
 function backfill_financial_subscription_admin_group_codes(PDO $pdo): void
@@ -2225,6 +2243,30 @@ function backfill_financial_subscription_admin_group_codes(PDO $pdo): void
         SET s.admin_group_code = u.admin_group_code
         WHERE (s.admin_group_code IS NULL OR s.admin_group_code = "")
           AND COALESCE(u.admin_group_code, "") <> ""');
+}
+
+function backfill_fund_category_defaults(PDO $pdo): void
+{
+    if (db_table_has_column($pdo, 'users', 'fund_classification')) {
+        $pdo->exec('UPDATE users SET fund_classification = "test" WHERE fund_classification IS NULL OR fund_classification = ""');
+    }
+    foreach (['deposit_requests', 'withdrawal_requests'] as $table) {
+        if (!db_table_has_column($pdo, $table, 'fund_category')) {
+            continue;
+        }
+        $pdo->exec("UPDATE {$table} SET fund_category = 'test' WHERE fund_category IS NULL OR fund_category = ''");
+    }
+
+    $testReason = '指定为测试订单，不计入佣金计算';
+    $markWithdrawal = $pdo->prepare('UPDATE withdrawal_requests
+        SET fund_category = "test", fund_category_reason = :reason, fund_category_is_anomaly = 0, updated_at = :updated_at
+        WHERE id = 43 AND (fund_category <> "test" OR COALESCE(fund_category_reason, "") <> :reason_check OR fund_category_is_anomaly <> 0)');
+    $markWithdrawal->execute([':reason' => $testReason, ':updated_at' => now_iso(), ':reason_check' => $testReason]);
+
+    $markDeposit = $pdo->prepare('UPDATE deposit_requests
+        SET fund_category = "test", fund_category_reason = :reason, fund_category_is_anomaly = 0, updated_at = :updated_at
+        WHERE id = 68 AND (fund_category <> "test" OR COALESCE(fund_category_reason, "") <> :reason_check OR fund_category_is_anomaly <> 0)');
+    $markDeposit->execute([':reason' => $testReason, ':updated_at' => now_iso(), ':reason_check' => $testReason]);
 }
 
 function backfill_deposit_request_order_numbers(PDO $pdo): void
@@ -2308,6 +2350,17 @@ function payout_bank_currency_codes(): array
     return ['EUR', 'CHF', 'USD', 'GBP'];
 }
 
+function payout_crypto_asset_networks(): array
+{
+    return [
+        'USDT' => ['TRC20', 'ERC20', 'BEP20'],
+        'USDC' => ['TRC20', 'ERC20', 'BEP20'],
+        'BTC' => ['BTC'],
+        'ETH' => ['ERC20'],
+        'TRX' => ['TRC20'],
+    ];
+}
+
 /** 舊有銀行收款方式沒有幣別欄位，一律視為 EUR；早期只存遮罩帳號，未被遮罩（4 碼以內）的直接補進完整帳號欄位 */
 function backfill_payout_method_currency(PDO $pdo): void
 {
@@ -2318,6 +2371,36 @@ function backfill_payout_method_currency(PDO $pdo): void
     if (db_table_has_column($pdo, 'user_payout_methods', 'account_no')) {
         $pdo->exec("UPDATE user_payout_methods SET account_no = account_no_masked WHERE channel_type = 'bank' AND (account_no IS NULL OR account_no = '') AND account_no_masked IS NOT NULL AND account_no_masked <> '' AND account_no_masked NOT LIKE '%*%'");
     }
+}
+
+/** 舊有鏈上地址建立時沒有資產欄位，依原本功能一律視為 USDT。 */
+function backfill_payout_method_asset_code(PDO $pdo): void
+{
+    if (!db_table_has_column($pdo, 'user_payout_methods', 'asset_code')) {
+        return;
+    }
+    $pdo->exec("UPDATE user_payout_methods SET asset_code = 'USDT' WHERE channel_type = 'usdt' AND (asset_code IS NULL OR asset_code = '')");
+}
+
+/** 提款提交后应固定保存当时收款资料，不能因用户后来删除/修改绑定而消失 */
+function backfill_withdrawal_payout_snapshots(PDO $pdo): void
+{
+    if (!db_table_has_column($pdo, 'withdrawal_requests', 'payout_bank_name')
+        || !db_table_has_column($pdo, 'user_payout_methods', 'account_no')) {
+        return;
+    }
+    $pdo->exec('UPDATE withdrawal_requests w
+        JOIN user_payout_methods p ON p.id = w.payout_method_id
+        SET w.payout_bank_name = COALESCE(w.payout_bank_name, p.bank_name),
+            w.payout_account_holder = COALESCE(w.payout_account_holder, p.account_holder),
+            w.payout_account_no_masked = COALESCE(w.payout_account_no_masked, p.account_no_masked),
+            w.payout_account_no = COALESCE(w.payout_account_no, p.account_no),
+            w.payout_currency_code = COALESCE(w.payout_currency_code, p.currency_code),
+            w.payout_bank_swift = COALESCE(w.payout_bank_swift, p.bank_swift),
+            w.payout_holder_address = COALESCE(w.payout_holder_address, p.holder_address),
+            w.payout_usdt_network = COALESCE(w.payout_usdt_network, p.usdt_network),
+            w.payout_pix_key = COALESCE(w.payout_pix_key, p.pix_key)
+        WHERE w.payout_method_id IS NOT NULL');
 }
 
 /** 早期 KYC 只存遮罩後的證件號；未被遮罩（4 碼以內）的直接補進完整欄位，其餘只能對照證件照片 */
@@ -2339,7 +2422,7 @@ function mask_payout_account_no(string $accountNo): string
     return mb_strlen($accountNo) > 4 ? str_repeat('*', max(0, mb_strlen($accountNo) - 4)) . mb_substr($accountNo, -4) : $accountNo;
 }
 
-function approve_bank_payout_methods(PDO $pdo): void
+function approve_payout_methods_without_review(PDO $pdo): void
 {
     if (!db_table_has_column($pdo, 'user_payout_methods', 'status')) {
         return;
@@ -2348,7 +2431,7 @@ function approve_bank_payout_methods(PDO $pdo): void
     $now = now_iso();
     $pdo->prepare('UPDATE user_payout_methods
         SET status = "approved", review_note = null, reviewed_at = COALESCE(reviewed_at, :reviewed_at), updated_at = :updated_at
-        WHERE channel_type = "bank" AND status = "pending"')
+        WHERE status IN ("pending", "rejected")')
         ->execute([
             ':reviewed_at' => $now,
             ':updated_at' => $now,
@@ -3105,6 +3188,7 @@ function seed_data(PDO $pdo): void
         ['config_group' => 'finance', 'config_key' => 'usdt_platform_deposit_bep20', 'config_value' => '0x9208A00F5D4B652a68687335Fae4050B5f006332'],
         ['config_group' => 'finance', 'config_key' => 'usdt_platform_deposit_solana', 'config_value' => '4r2so8ycjqAFDe5rVy9jE9WZiECp8LSZi8LRd8zHbr82'],
         ['config_group' => 'trade', 'config_key' => 'hall_notice', 'config_value' => 'FROM 11AM TO 11PM EVERY DAY ! Market notice and service update.'],
+        ['config_group' => 'trade', 'config_key' => 'c2c_enabled_fiat_codes', 'config_value' => '["EUR","CHF","USD","GBP"]'],
         ['config_group' => 'home', 'config_key' => 'banners', 'config_value' => '[]'],
         ['config_group' => 'site', 'config_key' => 'frontend_base_urls', 'config_value' => $defaultFrontendBaseUrls],
         ['config_group' => 'site', 'config_key' => 'api_public_base_url', 'config_value' => $defaultApiPublicBaseUrl],
@@ -3159,6 +3243,7 @@ function seed_data(PDO $pdo): void
                 'bank_name' => null,
                 'account_holder' => null,
                 'account_no_masked' => null,
+                'asset_code' => 'USDT',
                 'usdt_network' => 'TRC20',
                 'payout_address' => $index === 0 ? 'TPSeedWalletAddress0001' : 'TPPendingWalletAddress0002',
                 'pix_key' => null,
@@ -3179,10 +3264,10 @@ function seed_data(PDO $pdo): void
             }
 
             $pdo->prepare('INSERT INTO user_payout_methods (
-                user_id, channel_type, status, bank_name, account_holder, account_no_masked, usdt_network,
+                user_id, channel_type, status, bank_name, account_holder, account_no_masked, asset_code, usdt_network,
                 payout_address, pix_key, is_default, review_note, reviewed_by_admin_id, reviewed_at, created_at, updated_at
             ) VALUES (
-                :user_id, :channel_type, :status, :bank_name, :account_holder, :account_no_masked, :usdt_network,
+                :user_id, :channel_type, :status, :bank_name, :account_holder, :account_no_masked, :asset_code, :usdt_network,
                 :payout_address, :pix_key, :is_default, :review_note, :reviewed_by_admin_id, :reviewed_at, :created_at, :updated_at
             )')->execute([
                 ':user_id' => $userId,
@@ -3191,6 +3276,7 @@ function seed_data(PDO $pdo): void
                 ':bank_name' => $seed['bank_name'],
                 ':account_holder' => $seed['account_holder'],
                 ':account_no_masked' => $seed['account_no_masked'],
+                ':asset_code' => $seed['asset_code'] ?? null,
                 ':usdt_network' => $seed['usdt_network'],
                 ':payout_address' => $seed['payout_address'],
                 ':pix_key' => $seed['pix_key'],
@@ -3619,6 +3705,7 @@ function admin_module_catalog(): array
         'deposits' => ['label' => '充值审核', 'permissions' => ['deposits.read', 'deposits.write']],
         'deposit-addresses' => ['label' => '充值地址管理', 'permissions' => ['deposit_addresses.read', 'deposit_addresses.write']],
         'withdrawals' => ['label' => '提现审核', 'permissions' => ['withdrawals.read', 'withdrawals.write']],
+        'commissions' => ['label' => '佣金计算', 'permissions' => ['commissions.read']],
         'orders' => ['label' => '订单中心', 'permissions' => ['orders.read', 'orders.write']],
         'financial-products' => ['label' => '理财配置', 'permissions' => ['financial_products.read', 'financial_products.write']],
         'financial-orders' => ['label' => '理财订单', 'permissions' => ['financial_orders.read', 'financial_orders.write']],
@@ -3638,6 +3725,7 @@ function admin_role_template_catalog(): array
 {
     $superAdminAccess = array_fill_keys(array_keys(admin_module_catalog()), 'write');
     $superAdminAccess['deposits'] = 'read';
+    $superAdminAccess['commissions'] = '';
 
     return [
         'big_boss' => [
@@ -3754,6 +3842,7 @@ function admin_role_template_all_for_admin(PDO $pdo, array $admin): array
     foreach (admin_role_template_catalog() as $key => $row) {
         $access = normalize_admin_module_access($row['module_access'] ?? []);
         if (admin_module_access_within_admin_grant($admin, $access)) {
+            $row['module_access'] = $access;
             $merged[$key] = $row;
         }
     }
@@ -4719,6 +4808,7 @@ function admin_dashboard_sum_approved_usdt_equiv(
         FROM {$tableName} {$alias}
         INNER JOIN users u ON u.id = {$alias}.user_id
         WHERE {$alias}.status = 'approved'
+        AND {$alias}.fund_category = 'customer'
         AND {$alias}.created_at >= :range_start
         AND {$alias}.created_at <= :range_end
         {$scopeTail}";
@@ -4996,6 +5086,8 @@ function admin_required_permissions_for_request(string $path, string $method): a
         '#^/api/admin/tier-templates(?:/\d+)?$#' => ['read' => ['tiers.read'], 'write' => ['tiers.write']],
         '#^/api/admin/deposit-requests(?:/\d+)?$#' => ['read' => ['deposits.read'], 'write' => ['deposits.write']],
         '#^/api/admin/deposit-addresses(?:/\d+)?$#' => ['read' => ['deposit_addresses.read'], 'write' => ['deposit_addresses.write']],
+        '#^/api/admin/commission-summary$#' => ['read' => ['commissions.read'], 'write' => []],
+        '#^/api/admin/commission-payments$#' => ['read' => ['commissions.read'], 'write' => ['commissions.read']],
         '#^/api/admin/financial-products(?:/\d+)?$#' => ['read' => ['financial_products.read'], 'write' => ['financial_products.write']],
         '#^/api/admin/uploads$#' => ['write' => ['deposit_addresses.write', 'home_content.write']],
         '#^/api/admin/withdrawal-requests(?:/\d+)?$#' => ['read' => ['withdrawals.read'], 'write' => ['withdrawals.write']],
@@ -5622,6 +5714,34 @@ function supported_fiat_codes(): array
     return ['EUR', 'CHF', 'USD', 'GBP'];
 }
 
+function normalize_c2c_fiat_code_list(mixed $value): array
+{
+    $items = is_array($value) ? $value : [];
+    if (!is_array($value)) {
+        $raw = trim((string) $value);
+        if ($raw !== '') {
+            $decoded = json_decode($raw, true);
+            $items = is_array($decoded) ? $decoded : (preg_split('/[\s,]+/', $raw) ?: []);
+        }
+    }
+
+    $selected = [];
+    foreach ($items as $item) {
+        $code = strtoupper(trim((string) $item));
+        if (in_array($code, supported_fiat_codes(), true)) {
+            $selected[$code] = true;
+        }
+    }
+
+    return array_values(array_filter(supported_fiat_codes(), static fn (string $code): bool => isset($selected[$code])));
+}
+
+function c2c_enabled_fiat_codes(PDO $pdo): array
+{
+    $codes = normalize_c2c_fiat_code_list(get_system_config($pdo, 'trade', 'c2c_enabled_fiat_codes', ''));
+    return $codes !== [] ? $codes : supported_fiat_codes();
+}
+
 function normalize_supported_fiat_code(mixed $value, string $fallback = 'EUR'): string
 {
     $code = strtoupper(trim((string) $value));
@@ -5747,6 +5867,97 @@ function wallet_usdt_value(array $wallet, array $rates): ?float
     }
     $total = (float) ($wallet['available_balance'] ?? 0) + (float) ($wallet['reserved_balance'] ?? 0);
     return $total * (float) $rates[$currency];
+}
+
+function normalize_fund_category(mixed $value): string
+{
+    $raw = strtolower(trim((string) $value));
+    if (in_array($raw, ['customer', 'client', '客戶', '客户'], true)) {
+        return 'customer';
+    }
+    if (in_array($raw, ['test', '測試', '测试'], true)) {
+        return 'test';
+    }
+    return '';
+}
+
+function current_user_fund_classification(PDO $pdo, int $userId): string
+{
+    $stmt = $pdo->prepare('SELECT fund_classification FROM users WHERE id = :id LIMIT 1');
+    $stmt->execute([':id' => $userId]);
+    $value = normalize_fund_category((string) ($stmt->fetchColumn() ?: ''));
+    return $value !== '' ? $value : 'test';
+}
+
+function admin_review_fund_category_payload(PDO $pdo, int $userId, array $input): array
+{
+    $category = normalize_fund_category($input['fund_category'] ?? '');
+    if ($category === '') {
+        failure('ADMIN_FUND_CATEGORY_REQUIRED', 'Fund category is required');
+    }
+    $reason = trim((string) ($input['fund_category_reason'] ?? ''));
+    $current = current_user_fund_classification($pdo, $userId);
+    $isAnomaly = $current === 'customer' && $category === 'test';
+    if ($isAnomaly && $reason === '') {
+        failure('ADMIN_FUND_CATEGORY_REASON_REQUIRED', 'Reason is required when customer funds are classified as test');
+    }
+
+    return [
+        'category' => $category,
+        'reason' => $reason,
+        'is_anomaly' => $isAnomaly ? 1 : 0,
+        'user_fund_classification' => $current,
+    ];
+}
+
+function apply_user_fund_category_tag(PDO $pdo, int $userId, string $category, string $now): void
+{
+    if ($category !== 'customer') {
+        return;
+    }
+    $pdo->prepare('UPDATE users SET fund_classification = "customer", updated_at = :updated_at WHERE id = :id AND fund_classification <> "customer"')
+        ->execute([
+            ':updated_at' => $now,
+            ':id' => $userId,
+        ]);
+}
+
+function money_request_usdt_value(array $row, array $rates): float
+{
+    $asset = strtoupper(trim((string) ($row['asset_code'] ?? '')));
+    $amount = (float) ($row['amount'] ?? 0);
+    if ($asset === '' || $amount <= 0) {
+        return 0.0;
+    }
+    return $amount * (float) ($rates[$asset] ?? 0.0);
+}
+
+function admin_manual_order_asset_payload(mixed $value): array
+{
+    $asset = strtoupper(trim((string) $value));
+    if ($asset === '') {
+        $asset = 'USDT';
+    }
+    if (in_array($asset, supported_fiat_codes(), true)) {
+        return [
+            'asset_code' => $asset,
+            'wallet_code' => fiat_wallet_code($asset),
+            'network' => null,
+            'channel_type' => 'bank',
+        ];
+    }
+    $asset = normalize_crypto_deposit_asset_code($asset);
+    return [
+        'asset_code' => $asset,
+        'wallet_code' => crypto_deposit_wallet_code($asset),
+        'network' => $asset === 'BTC' ? 'BTC' : ($asset === 'ETH' ? 'ERC20' : ($asset === 'TRX' ? 'TRC20' : 'TRC20')),
+        'channel_type' => 'usdt',
+    ];
+}
+
+function admin_manual_order_fund_category(PDO $pdo, int $userId): string
+{
+    return current_user_fund_classification($pdo, $userId) === 'customer' ? 'customer' : 'test';
 }
 
 /**
@@ -6305,6 +6516,54 @@ function derive_withdrawal_remark(array $item): string
         return 'EUR提现';
     }
     return $assetCode !== '' ? $assetCode . '提现' : '-';
+}
+
+function withdrawal_payout_snapshot_from_method(?array $method): array
+{
+    $method = $method ?: [];
+    return [
+        'payout_bank_name' => $method['bank_name'] ?? null,
+        'payout_account_holder' => $method['account_holder'] ?? null,
+        'payout_account_no_masked' => $method['account_no_masked'] ?? null,
+        'payout_account_no' => $method['account_no'] ?? null,
+        'payout_currency_code' => $method['currency_code'] ?? null,
+        'payout_bank_swift' => $method['bank_swift'] ?? null,
+        'payout_holder_address' => $method['holder_address'] ?? null,
+        'payout_usdt_network' => $method['usdt_network'] ?? null,
+        'payout_pix_key' => $method['pix_key'] ?? null,
+    ];
+}
+
+function backfill_withdrawal_payout_snapshot_for_method(PDO $pdo, array $method): void
+{
+    $methodId = (int) ($method['id'] ?? 0);
+    if ($methodId <= 0 || !db_table_has_column($pdo, 'withdrawal_requests', 'payout_bank_name')) {
+        return;
+    }
+    $snapshot = withdrawal_payout_snapshot_from_method($method);
+    $pdo->prepare('UPDATE withdrawal_requests
+        SET payout_bank_name = COALESCE(payout_bank_name, :payout_bank_name),
+            payout_account_holder = COALESCE(payout_account_holder, :payout_account_holder),
+            payout_account_no_masked = COALESCE(payout_account_no_masked, :payout_account_no_masked),
+            payout_account_no = COALESCE(payout_account_no, :payout_account_no),
+            payout_currency_code = COALESCE(payout_currency_code, :payout_currency_code),
+            payout_bank_swift = COALESCE(payout_bank_swift, :payout_bank_swift),
+            payout_holder_address = COALESCE(payout_holder_address, :payout_holder_address),
+            payout_usdt_network = COALESCE(payout_usdt_network, :payout_usdt_network),
+            payout_pix_key = COALESCE(payout_pix_key, :payout_pix_key)
+        WHERE payout_method_id = :payout_method_id')
+        ->execute([
+            ':payout_bank_name' => $snapshot['payout_bank_name'],
+            ':payout_account_holder' => $snapshot['payout_account_holder'],
+            ':payout_account_no_masked' => $snapshot['payout_account_no_masked'],
+            ':payout_account_no' => $snapshot['payout_account_no'],
+            ':payout_currency_code' => $snapshot['payout_currency_code'],
+            ':payout_bank_swift' => $snapshot['payout_bank_swift'],
+            ':payout_holder_address' => $snapshot['payout_holder_address'],
+            ':payout_usdt_network' => $snapshot['payout_usdt_network'],
+            ':payout_pix_key' => $snapshot['payout_pix_key'],
+            ':payout_method_id' => $methodId,
+        ]);
 }
 
 function financial_return_schedule(string $maturityAt, int $delayDays): string
@@ -7291,17 +7550,25 @@ if (($path === '/index.php/api/user/withdrawal-requests' || $path === '/api/user
     if ($channelType !== 'usdt' && !$payoutMethodId) {
         failure('AUTH_INVALID_PARAMS', 'Payout method is required');
     }
+    $payoutMethodSnapshot = withdrawal_payout_snapshot_from_method(null);
+    if ($payoutMethodId) {
+        $methodStmt = $pdo->prepare('SELECT * FROM user_payout_methods WHERE id = :id AND user_id = :user_id LIMIT 1');
+        $methodStmt->execute([':id' => $payoutMethodId, ':user_id' => (int) $user['user_id']]);
+        $methodRow = $methodStmt->fetch();
+        if (!$methodRow) {
+            failure('AUTH_INVALID_PARAMS', 'Payout method is unavailable');
+        }
+        if ($channelType !== 'usdt' && (string) ($methodRow['channel_type'] ?? '') !== $channelType) {
+            failure('AUTH_INVALID_PARAMS', 'Payout method channel mismatch');
+        }
+        $payoutMethodSnapshot = withdrawal_payout_snapshot_from_method($methodRow);
+    }
 
-    $tierStmt = $pdo->prepare('SELECT is_verified, withdrawal_restricted, restriction_reason FROM user_tier_profiles WHERE user_id = :user_id LIMIT 1');
+    $tierStmt = $pdo->prepare('SELECT withdrawal_restricted FROM user_tier_profiles WHERE user_id = :user_id LIMIT 1');
     $tierStmt->execute([':user_id' => (int) $user['user_id']]);
     $tier = $tierStmt->fetch();
-    $withdrawalRestricted = $tier && !empty($tier['withdrawal_restricted']);
-    $restrictionReason = $tier ? trim((string) ($tier['restriction_reason'] ?? '')) : '';
-    if ($withdrawalRestricted && $restrictionReason === 'kyc_required' && (!$tier || !(bool) $tier['is_verified'])) {
-        failure('AUTH_KYC_REQUIRED', 'KYC is required before withdrawal');
-    }
-    if ($withdrawalRestricted && $restrictionReason !== 'kyc_required') {
-        failure('AUTH_WITHDRAWAL_RESTRICTED', 'Withdrawal is restricted');
+    if ($tier && !empty($tier['withdrawal_restricted'])) {
+        failure('AUTH_WITHDRAWAL_RESTRICTED', 'Withdrawals are currently restricted. Please contact support');
     }
 
     $walletStmt = $pdo->prepare('SELECT available_balance, reserved_balance FROM user_wallet_balances WHERE user_id = :user_id AND wallet_code = :wallet_code LIMIT 1');
@@ -7323,10 +7590,16 @@ if (($path === '/index.php/api/user/withdrawal-requests' || $path === '/api/user
         $pdo->beginTransaction();
         apply_wallet_delta($pdo, (int) $user['user_id'], $sourceWalletCode, -(float) $amount, (float) $amount);
         $pdo->prepare('INSERT INTO withdrawal_requests (
-            order_no, user_id, amount, asset_code, channel_type, payout_method_id, payout_address, source_wallet_code, remark,
+            order_no, user_id, amount, asset_code, channel_type, payout_method_id, payout_address,
+            payout_bank_name, payout_account_holder, payout_account_no_masked, payout_account_no, payout_currency_code,
+            payout_bank_swift, payout_holder_address, payout_usdt_network, payout_pix_key,
+            source_wallet_code, remark,
             status, admin_note, reviewed_by_admin_id, reviewed_at, created_at, updated_at
         ) VALUES (
-            :order_no, :user_id, :amount, :asset_code, :channel_type, :payout_method_id, :payout_address, :source_wallet_code, :remark,
+            :order_no, :user_id, :amount, :asset_code, :channel_type, :payout_method_id, :payout_address,
+            :payout_bank_name, :payout_account_holder, :payout_account_no_masked, :payout_account_no, :payout_currency_code,
+            :payout_bank_swift, :payout_holder_address, :payout_usdt_network, :payout_pix_key,
+            :source_wallet_code, :remark,
             "pending", null, null, null, :created_at, :updated_at
         )')->execute([
             ':order_no' => $orderNo,
@@ -7336,6 +7609,15 @@ if (($path === '/index.php/api/user/withdrawal-requests' || $path === '/api/user
             ':channel_type' => $channelType,
             ':payout_method_id' => $payoutMethodId,
             ':payout_address' => $payoutAddress !== '' ? $payoutAddress : null,
+            ':payout_bank_name' => $payoutMethodSnapshot['payout_bank_name'],
+            ':payout_account_holder' => $payoutMethodSnapshot['payout_account_holder'],
+            ':payout_account_no_masked' => $payoutMethodSnapshot['payout_account_no_masked'],
+            ':payout_account_no' => $payoutMethodSnapshot['payout_account_no'],
+            ':payout_currency_code' => $payoutMethodSnapshot['payout_currency_code'],
+            ':payout_bank_swift' => $payoutMethodSnapshot['payout_bank_swift'],
+            ':payout_holder_address' => $payoutMethodSnapshot['payout_holder_address'],
+            ':payout_usdt_network' => $payoutMethodSnapshot['payout_usdt_network'],
+            ':payout_pix_key' => $payoutMethodSnapshot['payout_pix_key'],
             ':source_wallet_code' => $sourceWalletCode,
             ':remark' => $remark !== '' ? $remark : null,
             ':created_at' => $now,
@@ -7376,7 +7658,15 @@ if (preg_match('#^/(?:index\.php/)?api/user/withdrawal-requests/(\d+)$#', $path,
     $requestId = (int) $matches[1];
     $stmt = $pdo->prepare('SELECT w.id, w.order_no, w.user_id, w.amount, w.asset_code, w.channel_type, w.payout_method_id, w.payout_address,
             w.source_wallet_code, w.remark, w.status, w.admin_note, w.reviewed_at, w.created_at, w.updated_at,
-            p.bank_name, p.account_holder, p.account_no_masked, p.usdt_network, p.pix_key, p.account_no, p.currency_code, p.bank_swift, p.holder_address
+            COALESCE(w.payout_bank_name, p.bank_name) AS bank_name,
+            COALESCE(w.payout_account_holder, p.account_holder) AS account_holder,
+            COALESCE(w.payout_account_no_masked, p.account_no_masked) AS account_no_masked,
+            COALESCE(w.payout_usdt_network, p.usdt_network) AS usdt_network,
+            COALESCE(w.payout_pix_key, p.pix_key) AS pix_key,
+            COALESCE(w.payout_account_no, p.account_no) AS account_no,
+            COALESCE(w.payout_currency_code, p.currency_code) AS currency_code,
+            COALESCE(w.payout_bank_swift, p.bank_swift) AS bank_swift,
+            COALESCE(w.payout_holder_address, p.holder_address) AS holder_address
         FROM withdrawal_requests w
         LEFT JOIN user_payout_methods p ON p.id = w.payout_method_id
         WHERE w.id = :id AND w.user_id = :user_id
@@ -7474,6 +7764,7 @@ if (($path === '/index.php/api/user/payout-methods' || $path === '/api/user/payo
     $usdtNetwork = trim((string) ($input['usdt_network'] ?? ''));
     $payoutAddress = trim((string) ($input['payout_address'] ?? ''));
     $pixKey = trim((string) ($input['pix_key'] ?? ''));
+    $assetCode = strtoupper(trim((string) ($input['asset_code'] ?? 'USDT')));
     $currencyCode = strtoupper(trim((string) ($input['currency_code'] ?? '')));
     $bankSwift = strtoupper((string) preg_replace('/\s+/', '', (string) ($input['bank_swift'] ?? '')));
     $holderAddress = trim((string) ($input['holder_address'] ?? ''));
@@ -7502,8 +7793,17 @@ if (($path === '/index.php/api/user/payout-methods' || $path === '/api/user/payo
         $bankSwift = '';
         $holderAddress = '';
     }
-    if ($channelType === 'usdt' && ($usdtNetwork === '' || $payoutAddress === '')) {
-        failure('AUTH_INVALID_PARAMS', 'USDT payout fields are required');
+    if ($channelType === 'usdt') {
+        $usdtNetwork = strtoupper($usdtNetwork);
+        $assetNetworks = payout_crypto_asset_networks();
+        if ($usdtNetwork === '' || $payoutAddress === '') {
+            failure('AUTH_INVALID_PARAMS', 'Crypto payout fields are required');
+        }
+        if (!isset($assetNetworks[$assetCode]) || !in_array($usdtNetwork, $assetNetworks[$assetCode], true)) {
+            failure('AUTH_INVALID_PARAMS', 'Unsupported asset or network');
+        }
+    } else {
+        $assetCode = '';
     }
     if ($channelType === 'pix' && $pixKey === '') {
         failure('AUTH_INVALID_PARAMS', 'PIX key is required');
@@ -7511,18 +7811,16 @@ if (($path === '/index.php/api/user/payout-methods' || $path === '/api/user/payo
 
     $maskedAccount = mask_payout_account_no($accountNo);
     $now = now_iso();
-    $initialStatus = $channelType === 'bank' ? 'approved' : 'pending';
-    $reviewedAt = $channelType === 'bank' ? $now : null;
     $pdo->prepare('INSERT INTO user_payout_methods (
-        user_id, channel_type, status, bank_name, account_holder, account_no_masked, account_no, currency_code, bank_swift, holder_address, usdt_network,
+        user_id, channel_type, status, bank_name, account_holder, account_no_masked, account_no, currency_code, bank_swift, holder_address, asset_code, usdt_network,
         payout_address, pix_key, is_default, review_note, reviewed_by_admin_id, reviewed_at, created_at, updated_at
     ) VALUES (
-        :user_id, :channel_type, :status, :bank_name, :account_holder, :account_no_masked, :account_no, :currency_code, :bank_swift, :holder_address, :usdt_network,
+        :user_id, :channel_type, :status, :bank_name, :account_holder, :account_no_masked, :account_no, :currency_code, :bank_swift, :holder_address, :asset_code, :usdt_network,
         :payout_address, :pix_key, :is_default, null, null, :reviewed_at, :created_at, :updated_at
     )')->execute([
         ':user_id' => (int) $user['user_id'],
         ':channel_type' => $channelType,
-        ':status' => $initialStatus,
+        ':status' => 'approved',
         ':bank_name' => $bankName !== '' ? $bankName : null,
         ':account_holder' => $accountHolder !== '' ? $accountHolder : null,
         ':account_no_masked' => $maskedAccount !== '' ? $maskedAccount : null,
@@ -7530,15 +7828,49 @@ if (($path === '/index.php/api/user/payout-methods' || $path === '/api/user/payo
         ':currency_code' => $currencyCode !== '' ? $currencyCode : null,
         ':bank_swift' => $bankSwift !== '' ? $bankSwift : null,
         ':holder_address' => $holderAddress !== '' ? $holderAddress : null,
+        ':asset_code' => $assetCode !== '' ? $assetCode : null,
         ':usdt_network' => $usdtNetwork !== '' ? $usdtNetwork : null,
         ':payout_address' => $payoutAddress !== '' ? $payoutAddress : null,
         ':pix_key' => $pixKey !== '' ? $pixKey : null,
         ':is_default' => $isDefault,
-        ':reviewed_at' => $reviewedAt,
+        ':reviewed_at' => $now,
         ':created_at' => $now,
         ':updated_at' => $now,
     ]);
-    success('AUTH_PAYOUT_METHOD_SUBMITTED', 'Payout method submitted', []);
+    success('AUTH_PAYOUT_METHOD_SUBMITTED', 'Payout method saved', []);
+}
+
+if (preg_match('#^/(?:index\.php/)?api/user/payout-methods/(\d+)$#', $path, $matches) && $method === 'DELETE') {
+    $user = require_user($pdo);
+    $methodId = (int) $matches[1];
+    $stmt = $pdo->prepare('SELECT * FROM user_payout_methods WHERE id = :id AND user_id = :user_id LIMIT 1');
+    $stmt->execute([
+        ':id' => $methodId,
+        ':user_id' => (int) $user['user_id'],
+    ]);
+    $methodItem = $stmt->fetch();
+    if (!$methodItem) {
+        failure('AUTH_NOT_FOUND', 'Payout method not found', 404);
+    }
+
+    backfill_withdrawal_payout_snapshot_for_method($pdo, $methodItem);
+    $pdo->prepare('DELETE FROM user_payout_methods WHERE id = :id AND user_id = :user_id')
+        ->execute([
+            ':id' => $methodId,
+            ':user_id' => (int) $user['user_id'],
+        ]);
+    audit($pdo, 'user', 'payout_method_deleted', 'user', (int) $user['user_id'], 'payout_method', $methodId, '', [
+        'channel_type' => $methodItem['channel_type'] ?? null,
+        'status' => $methodItem['status'] ?? null,
+        'bank_name' => $methodItem['bank_name'] ?? null,
+        'account_holder' => $methodItem['account_holder'] ?? null,
+        'account_no_masked' => $methodItem['account_no_masked'] ?? null,
+        'currency_code' => $methodItem['currency_code'] ?? null,
+        'asset_code' => $methodItem['asset_code'] ?? null,
+        'usdt_network' => $methodItem['usdt_network'] ?? null,
+        'payout_address' => $methodItem['payout_address'] ?? null,
+    ], null);
+    success('AUTH_PAYOUT_METHOD_DELETED', 'ok', []);
 }
 
 if (preg_match('#^/(?:index\.php/)?api/user/payout-methods/(\d+)/account-no$#', $path, $matches) && $method === 'POST') {
@@ -7578,7 +7910,7 @@ if (preg_match('#^/(?:index\.php/)?api/user/payout-methods/(\d+)/account-no$#', 
 
 if (($path === '/index.php/api/user/payout-methods' || $path === '/api/user/payout-methods') && $method === 'GET') {
     $user = require_user($pdo);
-    $stmt = $pdo->prepare('SELECT id, channel_type, status, bank_name, account_holder, account_no_masked, account_no, currency_code, bank_swift, holder_address, usdt_network, payout_address, pix_key, is_default, review_note, created_at, reviewed_at
+    $stmt = $pdo->prepare('SELECT id, channel_type, status, bank_name, account_holder, account_no_masked, account_no, currency_code, bank_swift, holder_address, asset_code, usdt_network, payout_address, pix_key, is_default, review_note, created_at, reviewed_at
         FROM user_payout_methods
         WHERE user_id = :user_id
         ORDER BY id DESC');
@@ -7656,7 +7988,7 @@ if (($path === '/index.php/api/user/overview' || $path === '/api/user/overview')
     $payoutCountStmt->execute([':user_id' => $userId]);
     $approvedPayoutCount = (int) $payoutCountStmt->fetchColumn();
 
-    $defaultPayoutStmt = $pdo->prepare('SELECT id, channel_type, status, bank_name, account_holder, account_no_masked, usdt_network, payout_address, pix_key
+    $defaultPayoutStmt = $pdo->prepare('SELECT id, channel_type, status, bank_name, account_holder, account_no_masked, asset_code, usdt_network, payout_address, pix_key
         FROM user_payout_methods
         WHERE user_id = :user_id
         ORDER BY is_default DESC, id DESC
@@ -8294,6 +8626,13 @@ function attach_listing_badge_fields(array $row): array
     return $row;
 }
 
+if (($path === '/index.php/api/user/c2c-config' || $path === '/api/user/c2c-config') && $method === 'GET') {
+    require_user($pdo);
+    success('AUTH_C2C_CONFIG_SUCCESS', 'ok', [
+        'fiat_codes' => c2c_enabled_fiat_codes($pdo),
+    ]);
+}
+
 if (($path === '/index.php/api/user/listings' || $path === '/api/user/listings') && $method === 'GET') {
     $user = require_user($pdo);
     $userGroupCode = user_admin_group_code($user);
@@ -8301,6 +8640,7 @@ if (($path === '/index.php/api/user/listings' || $path === '/api/user/listings')
     $fiatCode = strtoupper(trim((string) ($_GET['fiat_code'] ?? '')));
     $where = 'WHERE l.status = "active" AND COALESCE(l.admin_group_code, "") = :admin_group_code';
     $params = [':admin_group_code' => $userGroupCode];
+    $enabledFiatCodes = c2c_enabled_fiat_codes($pdo);
     if ($side !== '') {
         $where .= ' AND l.side = :side';
         $params[':side'] = $side;
@@ -8310,8 +8650,19 @@ if (($path === '/index.php/api/user/listings' || $path === '/api/user/listings')
         if ($fiatCode === '') {
             failure('AUTH_INVALID_PARAMS', 'Unsupported fiat code');
         }
+        if (!in_array($fiatCode, $enabledFiatCodes, true)) {
+            failure('AUTH_C2C_FIAT_DISABLED', 'Fiat currency is disabled');
+        }
         $where .= ' AND UPPER(l.fiat_code) = :fiat_code';
         $params[':fiat_code'] = $fiatCode;
+    } else {
+        $enabledFiatPlaceholders = [];
+        foreach ($enabledFiatCodes as $index => $enabledFiatCode) {
+            $placeholder = ':enabled_fiat_' . $index;
+            $enabledFiatPlaceholders[] = $placeholder;
+            $params[$placeholder] = $enabledFiatCode;
+        }
+        $where .= ' AND UPPER(l.fiat_code) IN (' . implode(', ', $enabledFiatPlaceholders) . ')';
     }
     $limit = (int) ($_GET['page_size'] ?? ($_GET['limit'] ?? 0));
     $limit = max(0, min(100, $limit));
@@ -8358,6 +8709,9 @@ if ((preg_match('#^/index.php/api/user/listings/(\d+)$#', $path, $matches) || pr
     if (!$listing) {
         failure('AUTH_INVALID_PARAMS', 'Listing not found');
     }
+    if (!in_array(normalize_supported_fiat_code($listing['fiat_code'] ?? '', ''), c2c_enabled_fiat_codes($pdo), true)) {
+        failure('AUTH_INVALID_PARAMS', 'Listing not found');
+    }
     $listing['id'] = (int) $listing['id'];
     $listing['owner_user_id'] = (int) $listing['owner_user_id'];
     $listing['completion_rate'] = normalize_listing_completion_rate($listing['completion_rate'] ?? null);
@@ -8387,6 +8741,9 @@ if (($path === '/index.php/api/user/orders' || $path === '/api/user/orders') && 
     $listing = $stmt->fetch();
     if (!$listing) {
         failure('AUTH_INVALID_PARAMS', 'Listing not found');
+    }
+    if (!in_array(normalize_supported_fiat_code($listing['fiat_code'] ?? '', ''), c2c_enabled_fiat_codes($pdo), true)) {
+        failure('AUTH_C2C_FIAT_DISABLED', 'Fiat currency is disabled');
     }
     $amountFloat = (float) $amount;
     if ($amountFloat < (float) $listing['min_amount'] || $amountFloat > (float) $listing['max_amount']) {
@@ -9115,15 +9472,35 @@ if ($path === '/api/admin/admin-groups' && $method === 'POST') {
     $admin = require_admin($pdo);
     require_root_admin($admin);
     $groupName = normalize_admin_group_name($input['group_name'] ?? '');
-    $groupCode = normalize_admin_group_code($input['group_code'] ?? $groupName);
-    if ($groupName === '' || $groupCode === '') {
-        failure('ADMIN_GROUP_REQUIRED', 'Group name and code are required');
+    $rawGroupCode = trim((string) ($input['group_code'] ?? ''));
+    $groupCode = normalize_admin_group_code($rawGroupCode);
+    if ($groupName === '') {
+        failure('ADMIN_GROUP_REQUIRED', '請填寫組別名稱');
+    }
+    if ($groupCode === '') {
+        $groupCode = normalize_admin_group_code($groupName);
+    }
+    if ($groupCode === '') {
+        $groupCode = 'grp-' . substr(hash('crc32b', $groupName), 0, 8);
     }
 
     $existsStmt = $pdo->prepare('SELECT id FROM admin_groups WHERE group_code = :group_code LIMIT 1');
     $existsStmt->execute([':group_code' => $groupCode]);
-    if ($existsStmt->fetch()) {
-        failure('ADMIN_GROUP_EXISTS', 'Group code already exists');
+    $groupCodeExists = (bool) $existsStmt->fetch();
+    if ($groupCodeExists && $rawGroupCode === '') {
+        $baseGroupCode = $groupCode;
+        for ($suffix = 2; $suffix <= 99; $suffix++) {
+            $candidateGroupCode = mb_substr($baseGroupCode, 0, 61) . '-' . $suffix;
+            $existsStmt->execute([':group_code' => $candidateGroupCode]);
+            if (!$existsStmt->fetch()) {
+                $groupCode = $candidateGroupCode;
+                $groupCodeExists = false;
+                break;
+            }
+        }
+    }
+    if ($groupCodeExists) {
+        failure('ADMIN_GROUP_EXISTS', '組別代碼已存在');
     }
 
     $now = now_iso();
@@ -10093,10 +10470,11 @@ if ($path === '/api/admin/users' && $method === 'GET') {
     }
     if ($keyword !== '') {
         if (preg_match('/^\d+$/', $keyword)) {
-            $where[] = 'u.id = :keyword_user_id';
+            $where[] = '(u.id = :keyword_user_id OR u.username LIKE :keyword OR u.email LIKE :keyword OR u.mobile_e164 LIKE :keyword OR u.invitation_code LIKE :keyword)';
             $params[':keyword_user_id'] = (string) ((int) $keyword);
+            $params[':keyword'] = '%' . $keyword . '%';
         } else {
-            $where[] = '(u.username LIKE :keyword OR u.email LIKE :keyword OR u.mobile_e164 LIKE :keyword)';
+            $where[] = '(u.username LIKE :keyword OR u.email LIKE :keyword OR u.mobile_e164 LIKE :keyword OR u.invitation_code LIKE :keyword)';
             $params[':keyword'] = '%' . $keyword . '%';
         }
     }
@@ -11968,6 +12346,68 @@ if (preg_match('#^/api/admin/users/(\d+)/tier-profile$#', $path, $matches) && $m
     success('ADMIN_USER_TIER_PROFILE_UPDATED', 'ok', []);
 }
 
+if ($path === '/api/admin/deposit-requests' && $method === 'POST') {
+    $admin = require_admin($pdo);
+    $userId = (int) ($input['user_id'] ?? 0);
+    $amountInput = $input['amount'] ?? null;
+    if ($userId <= 0) {
+        failure('ADMIN_INVALID_PARAMS', 'User is required');
+    }
+    if (!is_numeric($amountInput) || (float) $amountInput <= 0) {
+        failure('ADMIN_INVALID_PARAMS', 'Invalid amount');
+    }
+    require_admin_can_access_user($pdo, $admin, $userId);
+    $asset = admin_manual_order_asset_payload($input['asset_code'] ?? 'USDT');
+    $amount = (float) $amountInput;
+    $now = now_iso();
+    $orderNo = generate_deposit_order_no($pdo, $now);
+    $fundCategory = admin_manual_order_fund_category($pdo, $userId);
+    ensure_wallet_balance($pdo, $userId, $asset['wallet_code'], $asset['asset_code']);
+
+    try {
+        $pdo->beginTransaction();
+        $pdo->prepare('INSERT INTO deposit_requests (
+            order_no, user_id, amount, asset_code, network, target_wallet_code, proof_url, reference_text,
+            status, fund_category, fund_category_reason, fund_category_is_anomaly, admin_note, reviewed_by_admin_id, reviewed_at, created_at, updated_at
+        ) VALUES (
+            :order_no, :user_id, :amount, :asset_code, :network, :target_wallet_code, null, :reference_text,
+            "pending", :fund_category, null, 0, :admin_note, null, null, :created_at, :updated_at
+        )')->execute([
+            ':order_no' => $orderNo,
+            ':user_id' => $userId,
+            ':amount' => number_format($amount, 8, '.', ''),
+            ':asset_code' => $asset['asset_code'],
+            ':network' => $asset['network'],
+            ':target_wallet_code' => $asset['wallet_code'],
+            ':reference_text' => 'admin-created',
+            ':fund_category' => $fundCategory,
+            ':admin_note' => '後台代用戶新增充值訂單',
+            ':created_at' => $now,
+            ':updated_at' => $now,
+        ]);
+        $requestId = (int) $pdo->lastInsertId();
+        $pdo->commit();
+    } catch (Throwable $exception) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        failure('ADMIN_DEPOSIT_REQUEST_CREATE_FAILED', 'Deposit request creation failed');
+    }
+
+    audit($pdo, 'admin', 'deposit_request_created', 'admin', (int) $admin['admin_user_id'], 'deposit_request', $requestId, '後台新增充值訂單', null, [
+        'user_id' => $userId,
+        'order_no' => $orderNo,
+        'amount' => number_format($amount, 8, '.', ''),
+        'asset_code' => $asset['asset_code'],
+        'fund_category' => $fundCategory,
+        'status' => 'pending',
+    ]);
+    success('ADMIN_DEPOSIT_REQUEST_CREATED', 'ok', [
+        'id' => $requestId,
+        'order_no' => $orderNo,
+    ]);
+}
+
 if ($path === '/api/admin/deposit-requests' && $method === 'GET') {
     $admin = require_admin($pdo);
     $page = max(1, (int) ($_GET['page'] ?? 1));
@@ -12007,7 +12447,8 @@ if ($path === '/api/admin/deposit-requests' && $method === 'GET') {
     $total = (int) $countStmt->fetchColumn();
 
     $offset = ($page - 1) * $pageSize;
-    $stmt = $pdo->prepare("SELECT d.id, d.order_no, d.user_id, u.username, u.email, u.mobile_e164, u.invitation_code, u.admin_group_code, d.amount, d.asset_code, d.network, d.target_wallet_code, d.status, d.created_at, d.reviewed_at
+    $stmt = $pdo->prepare("SELECT d.id, d.order_no, d.user_id, u.username, u.email, u.mobile_e164, u.invitation_code, u.admin_group_code, u.fund_classification AS user_fund_classification,
+            d.amount, d.asset_code, d.network, d.target_wallet_code, d.status, d.fund_category, d.fund_category_reason, d.fund_category_is_anomaly, d.created_at, d.reviewed_at
         FROM deposit_requests d
         JOIN users u ON u.id = d.user_id
         {$whereSql}
@@ -12065,11 +12506,11 @@ if (preg_match('#^/api/admin/deposit-requests/(\d+)$#', $path, $matches) && $met
     $action = trim((string) ($input['action'] ?? ''));
     $reason = trim((string) ($input['reason'] ?? ''));
     $approvedAmountInput = $input['approved_amount'] ?? null;
-    $allowedActions = ['approve', 'reject', 'cancel'];
+    $allowedActions = ['approve', 'reject', 'cancel', 'edit'];
     if (!in_array($action, $allowedActions, true)) {
         failure('ADMIN_DEPOSIT_ACTION_INVALID', 'Deposit action is invalid');
     }
-    if ($reason === '' && $action !== 'approve') {
+    if ($reason === '' && !in_array($action, ['approve', 'edit'], true)) {
         failure('ADMIN_REASON_REQUIRED', 'Reason is required');
     }
 
@@ -12080,6 +12521,64 @@ if (preg_match('#^/api/admin/deposit-requests/(\d+)$#', $path, $matches) && $met
         failure('ADMIN_DEPOSIT_REQUEST_NOT_FOUND', 'Deposit request not found');
     }
     require_admin_can_access_user($pdo, $admin, (int) $requestItem['user_id']);
+    if ($action === 'edit') {
+        require_root_admin($admin);
+        $amountInput = $input['amount'] ?? $requestItem['amount'];
+        if (!is_numeric($amountInput) || (float) $amountInput <= 0) {
+            failure('ADMIN_DEPOSIT_AMOUNT_INVALID', 'Deposit amount is invalid');
+        }
+        $amount = (float) $amountInput;
+        $assetCode = strtoupper(trim((string) ($input['asset_code'] ?? $requestItem['asset_code'])));
+        if (!in_array($assetCode, ['USDT', 'USDC', 'BTC', 'ETH', 'TRX', 'EUR', 'CHF', 'USD', 'GBP'], true)) {
+            failure('ADMIN_DEPOSIT_ASSET_INVALID', 'Deposit asset is invalid');
+        }
+        $network = trim((string) ($input['network'] ?? ($requestItem['network'] ?? '')));
+        $referenceText = trim((string) ($input['reference_text'] ?? ($requestItem['reference_text'] ?? '')));
+        $adminNote = trim((string) ($input['admin_note'] ?? ($requestItem['admin_note'] ?? '')));
+        $fundCategory = strtolower(trim((string) ($input['fund_category'] ?? ($requestItem['fund_category'] ?? 'test'))));
+        if (!in_array($fundCategory, ['customer', 'test'], true)) {
+            failure('ADMIN_FUND_CATEGORY_INVALID', 'Fund category is invalid');
+        }
+        $now = now_iso();
+        try {
+            $pdo->beginTransaction();
+            if (($requestItem['status'] ?? '') === 'approved') {
+                $difference = $amount - (float) $requestItem['amount'];
+                if (abs($difference) > 0.000000001) {
+                    apply_wallet_delta($pdo, (int) $requestItem['user_id'], (string) $requestItem['target_wallet_code'], $difference, 0.0);
+                }
+            }
+            $pdo->prepare('UPDATE deposit_requests
+                SET amount = :amount, asset_code = :asset_code, network = :network, reference_text = :reference_text,
+                    fund_category = :fund_category, fund_category_reason = :fund_category_reason,
+                    fund_category_is_anomaly = 0, admin_note = :admin_note, updated_at = :updated_at
+                WHERE id = :id')
+                ->execute([
+                    ':amount' => number_format($amount, 8, '.', ''),
+                    ':asset_code' => $assetCode,
+                    ':network' => $network !== '' ? $network : null,
+                    ':reference_text' => $referenceText !== '' ? $referenceText : null,
+                    ':fund_category' => $fundCategory,
+                    ':fund_category_reason' => $fundCategory === 'test' ? '大老板编辑为测试订单，不计入佣金计算' : null,
+                    ':admin_note' => $adminNote !== '' ? $adminNote : null,
+                    ':updated_at' => $now,
+                    ':id' => $requestId,
+                ]);
+            $pdo->commit();
+        } catch (Throwable $exception) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            failure('ADMIN_DEPOSIT_EDIT_FAILED', 'Deposit request update failed');
+        }
+        audit($pdo, 'admin', 'deposit_request_edited', 'admin', (int) $admin['admin_user_id'], 'deposit_request', $requestId, $adminNote, $requestItem, [
+            'amount' => number_format($amount, 8, '.', ''),
+            'asset_code' => $assetCode,
+            'network' => $network,
+            'fund_category' => $fundCategory,
+        ]);
+        success('ADMIN_DEPOSIT_REQUEST_EDITED', 'ok', []);
+    }
     if (($requestItem['status'] ?? '') !== 'pending') {
         failure('ADMIN_DEPOSIT_STATUS_INVALID', 'Deposit request status is invalid');
     }
@@ -12091,7 +12590,13 @@ if (preg_match('#^/api/admin/deposit-requests/(\d+)$#', $path, $matches) && $met
     };
     $walletDelta = null;
     $reviewAmount = (float) $requestItem['amount'];
+    $fundCategory = [
+        'category' => (string) ($requestItem['fund_category'] ?? 'test'),
+        'reason' => (string) ($requestItem['fund_category_reason'] ?? ''),
+        'is_anomaly' => (int) ($requestItem['fund_category_is_anomaly'] ?? 0),
+    ];
     if ($action === 'approve') {
+        $fundCategory = admin_review_fund_category_payload($pdo, (int) $requestItem['user_id'], $input);
         if ($approvedAmountInput !== null && trim((string) $approvedAmountInput) !== '') {
             if (!is_numeric($approvedAmountInput) || (float) $approvedAmountInput <= 0) {
                 failure('ADMIN_DEPOSIT_AMOUNT_INVALID', 'Deposit approved amount is invalid');
@@ -12106,17 +12611,23 @@ if (preg_match('#^/api/admin/deposit-requests/(\d+)$#', $path, $matches) && $met
 
     $reviewedAt = now_iso();
     $pdo->prepare('UPDATE deposit_requests
-        SET status = :status, amount = :amount, admin_note = :admin_note, reviewed_by_admin_id = :reviewed_by_admin_id, reviewed_at = :reviewed_at, updated_at = :updated_at
+        SET status = :status, amount = :amount, fund_category = :fund_category, fund_category_reason = :fund_category_reason, fund_category_is_anomaly = :fund_category_is_anomaly, admin_note = :admin_note, reviewed_by_admin_id = :reviewed_by_admin_id, reviewed_at = :reviewed_at, updated_at = :updated_at
         WHERE id = :id')
         ->execute([
             ':status' => $nextStatus,
             ':amount' => number_format($reviewAmount, 8, '.', ''),
+            ':fund_category' => $fundCategory['category'],
+            ':fund_category_reason' => $fundCategory['reason'] !== '' ? $fundCategory['reason'] : null,
+            ':fund_category_is_anomaly' => $fundCategory['is_anomaly'],
             ':admin_note' => $reason,
             ':reviewed_by_admin_id' => (int) $admin['admin_user_id'],
             ':reviewed_at' => $reviewedAt,
             ':updated_at' => $reviewedAt,
             ':id' => $requestId,
         ]);
+    if ($action === 'approve') {
+        apply_user_fund_category_tag($pdo, (int) $requestItem['user_id'], $fundCategory['category'], $reviewedAt);
+    }
     audit(
         $pdo,
         'admin',
@@ -12133,10 +12644,93 @@ if (preg_match('#^/api/admin/deposit-requests/(\d+)$#', $path, $matches) && $met
             'wallet_code' => $requestItem['target_wallet_code'],
             'submitted_amount' => $requestItem['amount'],
             'approved_amount' => number_format($reviewAmount, 8, '.', ''),
+            'fund_category' => $fundCategory['category'],
+            'fund_category_reason' => $fundCategory['reason'],
+            'fund_category_is_anomaly' => $fundCategory['is_anomaly'],
             'wallet_delta' => $walletDelta,
         ]
     );
     success('ADMIN_DEPOSIT_REQUEST_REVIEWED', 'ok', []);
+}
+
+if ($path === '/api/admin/withdrawal-requests' && $method === 'POST') {
+    $admin = require_admin($pdo);
+    $userId = (int) ($input['user_id'] ?? 0);
+    $amountInput = $input['amount'] ?? null;
+    if ($userId <= 0) {
+        failure('ADMIN_INVALID_PARAMS', 'User is required');
+    }
+    if (!is_numeric($amountInput) || (float) $amountInput <= 0) {
+        failure('ADMIN_INVALID_PARAMS', 'Invalid amount');
+    }
+    require_admin_can_access_user($pdo, $admin, $userId);
+    $asset = admin_manual_order_asset_payload($input['asset_code'] ?? 'USDT');
+    $amount = (float) $amountInput;
+    $now = now_iso();
+    $orderNo = generate_withdrawal_order_no($pdo, $now);
+    $fundCategory = admin_manual_order_fund_category($pdo, $userId);
+    ensure_wallet_balance($pdo, $userId, $asset['wallet_code'], $asset['asset_code']);
+
+    try {
+        $pdo->beginTransaction();
+        $pdo->prepare('INSERT INTO withdrawal_requests (
+            order_no, user_id, amount, asset_code, channel_type, payout_method_id, payout_address,
+            payout_bank_name, payout_account_holder, payout_account_no_masked, payout_account_no, payout_currency_code,
+            payout_bank_swift, payout_holder_address, payout_usdt_network, payout_pix_key,
+            source_wallet_code, remark,
+            status, fund_category, fund_category_reason, fund_category_is_anomaly, admin_note, reviewed_by_admin_id, reviewed_at, created_at, updated_at
+        ) VALUES (
+            :order_no, :user_id, :amount, :asset_code, :channel_type, null, null,
+            null, null, null, null, :payout_currency_code,
+            null, null, :payout_usdt_network, null,
+            :source_wallet_code, :remark,
+            "pending", :fund_category, null, 0, :admin_note, null, null, :created_at, :updated_at
+        )')->execute([
+            ':order_no' => $orderNo,
+            ':user_id' => $userId,
+            ':amount' => number_format($amount, 8, '.', ''),
+            ':asset_code' => $asset['asset_code'],
+            ':channel_type' => $asset['channel_type'],
+            ':payout_currency_code' => in_array($asset['asset_code'], supported_fiat_codes(), true) ? $asset['asset_code'] : null,
+            ':payout_usdt_network' => $asset['network'],
+            ':source_wallet_code' => $asset['wallet_code'],
+            ':remark' => '後台代用戶新增提款訂單',
+            ':fund_category' => $fundCategory,
+            ':admin_note' => '後台代用戶新增提款訂單',
+            ':created_at' => $now,
+            ':updated_at' => $now,
+        ]);
+        $requestId = (int) $pdo->lastInsertId();
+        $walletDelta = apply_wallet_delta($pdo, $userId, $asset['wallet_code'], -$amount, $amount, [
+            'change_type' => 'admin_manual_withdrawal_pending',
+            'source_type' => 'withdrawal_request',
+            'source_id' => $requestId,
+            'operator_type' => 'admin',
+            'operator_id' => (int) $admin['admin_user_id'],
+            'reason' => '後台代用戶新增提款訂單',
+            'metadata' => ['order_no' => $orderNo, 'asset_code' => $asset['asset_code']],
+        ]);
+        $pdo->commit();
+    } catch (Throwable $exception) {
+        if ($pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        failure('ADMIN_WITHDRAWAL_REQUEST_CREATE_FAILED', 'Withdrawal request creation failed');
+    }
+
+    audit($pdo, 'admin', 'withdrawal_request_created', 'admin', (int) $admin['admin_user_id'], 'withdrawal_request', $requestId, '後台新增提款訂單', null, [
+        'user_id' => $userId,
+        'order_no' => $orderNo,
+        'amount' => number_format($amount, 8, '.', ''),
+        'asset_code' => $asset['asset_code'],
+        'fund_category' => $fundCategory,
+        'status' => 'pending',
+        'wallet_delta' => $walletDelta,
+    ]);
+    success('ADMIN_WITHDRAWAL_REQUEST_CREATED', 'ok', [
+        'id' => $requestId,
+        'order_no' => $orderNo,
+    ]);
 }
 
 if ($path === '/api/admin/withdrawal-requests' && $method === 'GET') {
@@ -12183,8 +12777,17 @@ if ($path === '/api/admin/withdrawal-requests' && $method === 'GET') {
     $total = (int) $countStmt->fetchColumn();
 
     $offset = ($page - 1) * $pageSize;
-    $stmt = $pdo->prepare("SELECT w.id, w.order_no, w.user_id, u.username, u.email, u.mobile_e164, u.invitation_code, u.admin_group_code, w.amount, w.asset_code, w.channel_type, w.payout_method_id, w.payout_address, w.source_wallet_code, w.remark, w.status, w.created_at, w.reviewed_at,
-            p.bank_name, p.account_holder, p.account_no_masked, p.usdt_network, p.pix_key, p.account_no, p.currency_code, p.bank_swift, p.holder_address
+    $stmt = $pdo->prepare("SELECT w.id, w.order_no, w.user_id, u.username, u.email, u.mobile_e164, u.invitation_code, u.admin_group_code, u.fund_classification AS user_fund_classification,
+            w.amount, w.asset_code, w.channel_type, w.payout_method_id, w.payout_address, w.source_wallet_code, w.remark, w.status, w.fund_category, w.fund_category_reason, w.fund_category_is_anomaly, w.created_at, w.reviewed_at,
+            COALESCE(w.payout_bank_name, p.bank_name) AS bank_name,
+            COALESCE(w.payout_account_holder, p.account_holder) AS account_holder,
+            COALESCE(w.payout_account_no_masked, p.account_no_masked) AS account_no_masked,
+            COALESCE(w.payout_usdt_network, p.usdt_network) AS usdt_network,
+            COALESCE(w.payout_pix_key, p.pix_key) AS pix_key,
+            COALESCE(w.payout_account_no, p.account_no) AS account_no,
+            COALESCE(w.payout_currency_code, p.currency_code) AS currency_code,
+            COALESCE(w.payout_bank_swift, p.bank_swift) AS bank_swift,
+            COALESCE(w.payout_holder_address, p.holder_address) AS holder_address
         FROM withdrawal_requests w
         JOIN users u ON u.id = w.user_id
         LEFT JOIN user_payout_methods p ON p.id = w.payout_method_id
@@ -12221,7 +12824,16 @@ if ($path === '/api/admin/withdrawal-requests' && $method === 'GET') {
 if (preg_match('#^/api/admin/withdrawal-requests/(\d+)$#', $path, $matches) && $method === 'GET') {
     $admin = require_admin($pdo);
     $requestId = (int) $matches[1];
-    $stmt = $pdo->prepare('SELECT w.*, u.username, u.email, u.mobile_e164, p.bank_name, p.account_holder, p.account_no_masked, p.usdt_network, p.pix_key, p.account_no, p.currency_code, p.bank_swift, p.holder_address
+    $stmt = $pdo->prepare('SELECT w.*, u.username, u.email, u.mobile_e164,
+            COALESCE(w.payout_bank_name, p.bank_name) AS bank_name,
+            COALESCE(w.payout_account_holder, p.account_holder) AS account_holder,
+            COALESCE(w.payout_account_no_masked, p.account_no_masked) AS account_no_masked,
+            COALESCE(w.payout_usdt_network, p.usdt_network) AS usdt_network,
+            COALESCE(w.payout_pix_key, p.pix_key) AS pix_key,
+            COALESCE(w.payout_account_no, p.account_no) AS account_no,
+            COALESCE(w.payout_currency_code, p.currency_code) AS currency_code,
+            COALESCE(w.payout_bank_swift, p.bank_swift) AS bank_swift,
+            COALESCE(w.payout_holder_address, p.holder_address) AS holder_address
         FROM withdrawal_requests w
         JOIN users u ON u.id = w.user_id
         LEFT JOIN user_payout_methods p ON p.id = w.payout_method_id
@@ -12247,11 +12859,11 @@ if (preg_match('#^/api/admin/withdrawal-requests/(\d+)$#', $path, $matches) && $
     $requestId = (int) $matches[1];
     $action = trim((string) ($input['action'] ?? ''));
     $reason = trim((string) ($input['reason'] ?? ''));
-    $allowedActions = ['approve', 'reject', 'cancel'];
+    $allowedActions = ['approve', 'reject', 'cancel', 'edit'];
     if (!in_array($action, $allowedActions, true)) {
         failure('ADMIN_WITHDRAWAL_ACTION_INVALID', 'Withdrawal action is invalid');
     }
-    if ($reason === '' && $action !== 'approve') {
+    if ($reason === '' && !in_array($action, ['approve', 'edit'], true)) {
         failure('ADMIN_REASON_REQUIRED', 'Reason is required');
     }
 
@@ -12262,6 +12874,70 @@ if (preg_match('#^/api/admin/withdrawal-requests/(\d+)$#', $path, $matches) && $
         failure('ADMIN_WITHDRAWAL_REQUEST_NOT_FOUND', 'Withdrawal request not found');
     }
     require_admin_can_access_user($pdo, $admin, (int) $requestItem['user_id']);
+    if ($action === 'edit') {
+        require_root_admin($admin);
+        $amountInput = $input['amount'] ?? $requestItem['amount'];
+        if (!is_numeric($amountInput) || (float) $amountInput <= 0) {
+            failure('ADMIN_WITHDRAWAL_AMOUNT_INVALID', 'Withdrawal amount is invalid');
+        }
+        $amount = (float) $amountInput;
+        $assetCode = strtoupper(trim((string) ($input['asset_code'] ?? $requestItem['asset_code'])));
+        if (!in_array($assetCode, ['USDT', 'USDC', 'BTC', 'ETH', 'TRX', 'EUR', 'CHF', 'USD', 'GBP'], true)) {
+            failure('ADMIN_WITHDRAWAL_ASSET_INVALID', 'Withdrawal asset is invalid');
+        }
+        $payoutAddress = trim((string) ($input['payout_address'] ?? ($requestItem['payout_address'] ?? '')));
+        $payoutNetwork = strtoupper(trim((string) ($input['payout_usdt_network'] ?? ($requestItem['payout_usdt_network'] ?? ''))));
+        $remark = trim((string) ($input['remark'] ?? ($requestItem['remark'] ?? '')));
+        $adminNote = trim((string) ($input['admin_note'] ?? ($requestItem['admin_note'] ?? '')));
+        $fundCategory = strtolower(trim((string) ($input['fund_category'] ?? ($requestItem['fund_category'] ?? 'test'))));
+        if (!in_array($fundCategory, ['customer', 'test'], true)) {
+            failure('ADMIN_FUND_CATEGORY_INVALID', 'Fund category is invalid');
+        }
+        $difference = $amount - (float) $requestItem['amount'];
+        $now = now_iso();
+        try {
+            $pdo->beginTransaction();
+            if (abs($difference) > 0.000000001) {
+                if (($requestItem['status'] ?? '') === 'pending') {
+                    apply_wallet_delta($pdo, (int) $requestItem['user_id'], (string) $requestItem['source_wallet_code'], -$difference, $difference);
+                } elseif (($requestItem['status'] ?? '') === 'approved') {
+                    apply_wallet_delta($pdo, (int) $requestItem['user_id'], (string) $requestItem['source_wallet_code'], -$difference, 0.0);
+                }
+            }
+            $pdo->prepare('UPDATE withdrawal_requests
+                SET amount = :amount, asset_code = :asset_code, payout_address = :payout_address,
+                    payout_usdt_network = :payout_usdt_network, remark = :remark,
+                    fund_category = :fund_category, fund_category_reason = :fund_category_reason,
+                    fund_category_is_anomaly = 0, admin_note = :admin_note, updated_at = :updated_at
+                WHERE id = :id')
+                ->execute([
+                    ':amount' => number_format($amount, 8, '.', ''),
+                    ':asset_code' => $assetCode,
+                    ':payout_address' => $payoutAddress !== '' ? $payoutAddress : null,
+                    ':payout_usdt_network' => $payoutNetwork !== '' ? $payoutNetwork : null,
+                    ':remark' => $remark !== '' ? $remark : null,
+                    ':fund_category' => $fundCategory,
+                    ':fund_category_reason' => $fundCategory === 'test' ? '大老板编辑为测试订单，不计入佣金计算' : null,
+                    ':admin_note' => $adminNote !== '' ? $adminNote : null,
+                    ':updated_at' => $now,
+                    ':id' => $requestId,
+                ]);
+            $pdo->commit();
+        } catch (Throwable $exception) {
+            if ($pdo->inTransaction()) {
+                $pdo->rollBack();
+            }
+            failure('ADMIN_WITHDRAWAL_EDIT_FAILED', 'Withdrawal request update failed');
+        }
+        audit($pdo, 'admin', 'withdrawal_request_edited', 'admin', (int) $admin['admin_user_id'], 'withdrawal_request', $requestId, $adminNote, $requestItem, [
+            'amount' => number_format($amount, 8, '.', ''),
+            'asset_code' => $assetCode,
+            'payout_address' => $payoutAddress,
+            'payout_usdt_network' => $payoutNetwork,
+            'fund_category' => $fundCategory,
+        ]);
+        success('ADMIN_WITHDRAWAL_REQUEST_EDITED', 'ok', []);
+    }
     if (($requestItem['status'] ?? '') !== 'pending') {
         failure('ADMIN_WITHDRAWAL_STATUS_INVALID', 'Withdrawal request status is invalid');
     }
@@ -12273,6 +12949,14 @@ if (preg_match('#^/api/admin/withdrawal-requests/(\d+)$#', $path, $matches) && $
     };
     $walletDelta = null;
     $reviewedAt = now_iso();
+    $fundCategory = [
+        'category' => (string) ($requestItem['fund_category'] ?? 'test'),
+        'reason' => (string) ($requestItem['fund_category_reason'] ?? ''),
+        'is_anomaly' => (int) ($requestItem['fund_category_is_anomaly'] ?? 0),
+    ];
+    if ($action === 'approve') {
+        $fundCategory = admin_review_fund_category_payload($pdo, (int) $requestItem['user_id'], $input);
+    }
     try {
         $pdo->beginTransaction();
 
@@ -12316,16 +13000,22 @@ if (preg_match('#^/api/admin/withdrawal-requests/(\d+)$#', $path, $matches) && $
         }
 
         $pdo->prepare('UPDATE withdrawal_requests
-            SET status = :status, admin_note = :admin_note, reviewed_by_admin_id = :reviewed_by_admin_id, reviewed_at = :reviewed_at, updated_at = :updated_at
+            SET status = :status, fund_category = :fund_category, fund_category_reason = :fund_category_reason, fund_category_is_anomaly = :fund_category_is_anomaly, admin_note = :admin_note, reviewed_by_admin_id = :reviewed_by_admin_id, reviewed_at = :reviewed_at, updated_at = :updated_at
             WHERE id = :id')
             ->execute([
                 ':status' => $nextStatus,
+                ':fund_category' => $fundCategory['category'],
+                ':fund_category_reason' => $fundCategory['reason'] !== '' ? $fundCategory['reason'] : null,
+                ':fund_category_is_anomaly' => $fundCategory['is_anomaly'],
                 ':admin_note' => $reason,
                 ':reviewed_by_admin_id' => (int) $admin['admin_user_id'],
                 ':reviewed_at' => $reviewedAt,
                 ':updated_at' => $reviewedAt,
                 ':id' => $requestId,
             ]);
+        if ($action === 'approve') {
+            apply_user_fund_category_tag($pdo, (int) $requestItem['user_id'], $fundCategory['category'], $reviewedAt);
+        }
 
         $pdo->commit();
     } catch (Throwable $exception) {
@@ -12349,6 +13039,9 @@ if (preg_match('#^/api/admin/withdrawal-requests/(\d+)$#', $path, $matches) && $
             'action' => $action,
             'wallet_code' => $requestItem['source_wallet_code'],
             'amount' => $requestItem['amount'],
+            'fund_category' => $fundCategory['category'],
+            'fund_category_reason' => $fundCategory['reason'],
+            'fund_category_is_anomaly' => $fundCategory['is_anomaly'],
             'wallet_delta' => $walletDelta,
         ]
     );
@@ -13162,12 +13855,179 @@ if (preg_match('#^/api/admin/kyc-applications/(\d+)$#', $path, $matches) && $met
     success('ADMIN_KYC_APPLICATION_REVIEWED', 'ok', []);
 }
 
+if ($path === '/api/admin/commission-summary' && $method === 'GET') {
+    $admin = require_admin($pdo);
+    require_root_admin($admin);
+    $dateFrom = trim((string) ($_GET['date_from'] ?? ''));
+    $dateTo = trim((string) ($_GET['date_to'] ?? ''));
+    $rates = asset_usdt_rates($pdo);
+    $periodDateFrom = $dateFrom !== '' ? $dateFrom : null;
+    $periodDateTo = $dateTo !== '' ? $dateTo : null;
+
+    $dateWhere = '';
+    $params = [];
+    if ($dateFrom !== '') {
+        $dateWhere .= ' AND x.reviewed_at >= :date_from';
+        $params[':date_from'] = $dateFrom;
+    }
+    if ($dateTo !== '') {
+        $dateWhere .= ' AND x.reviewed_at <= :date_to';
+        $params[':date_to'] = $dateTo;
+    }
+
+    $rowsByGroup = [];
+    $ensureGroup = static function (?string $groupCode, ?string $groupName) use (&$rowsByGroup): string {
+        $code = normalize_admin_group_code($groupCode ?? '');
+        $key = $code !== '' ? $code : '__ungrouped__';
+        if (!isset($rowsByGroup[$key])) {
+            $rowsByGroup[$key] = [
+                'group_code' => $code !== '' ? $code : null,
+                'group_name' => normalize_admin_group_name($groupName ?? '') ?: ($code !== '' ? $code : '未分組'),
+                'deposit_usdt' => 0.0,
+                'withdrawal_usdt' => 0.0,
+                'paid_usdt' => 0.0,
+            ];
+        }
+        return $key;
+    };
+
+    foreach ([
+        ['table' => 'deposit_requests', 'side' => 'deposit_usdt'],
+        ['table' => 'withdrawal_requests', 'side' => 'withdrawal_usdt'],
+    ] as $source) {
+        $sql = "SELECT x.amount, x.asset_code, u.admin_group_code, ag.group_name
+            FROM {$source['table']} x
+            JOIN users u ON u.id = x.user_id
+            LEFT JOIN admin_groups ag ON ag.group_code = u.admin_group_code
+            WHERE x.status = 'approved'
+              AND x.fund_category = 'customer'
+              {$dateWhere}";
+        $stmt = $pdo->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value, PDO::PARAM_STR);
+        }
+        $stmt->execute();
+        foreach ($stmt->fetchAll() as $row) {
+            $key = $ensureGroup($row['admin_group_code'] ?? null, $row['group_name'] ?? null);
+            $rowsByGroup[$key][$source['side']] += money_request_usdt_value($row, $rates);
+        }
+    }
+
+    $paymentsStmt = $pdo->prepare('SELECT p.admin_group_code, ag.group_name, SUM(CAST(p.amount_usdt AS DECIMAL(32, 8))) AS paid_usdt
+        FROM commission_payments p
+        LEFT JOIN admin_groups ag ON ag.group_code = p.admin_group_code
+        WHERE ((:period_date_from_null IS NULL AND p.period_date_from IS NULL) OR p.period_date_from = :period_date_from_value)
+          AND ((:period_date_to_null IS NULL AND p.period_date_to IS NULL) OR p.period_date_to = :period_date_to_value)
+        GROUP BY p.admin_group_code, ag.group_name');
+    $paymentsStmt->execute([
+        ':period_date_from_null' => $periodDateFrom,
+        ':period_date_from_value' => $periodDateFrom,
+        ':period_date_to_null' => $periodDateTo,
+        ':period_date_to_value' => $periodDateTo,
+    ]);
+    foreach ($paymentsStmt->fetchAll() as $paymentRow) {
+        $key = $ensureGroup($paymentRow['admin_group_code'] ?? null, $paymentRow['group_name'] ?? null);
+        $rowsByGroup[$key]['paid_usdt'] += (float) ($paymentRow['paid_usdt'] ?? 0);
+    }
+
+    $items = array_values(array_map(static function (array $row): array {
+        $net = $row['deposit_usdt'] - $row['withdrawal_usdt'];
+        $payable = max(0.0, $net * 0.1);
+        $paid = (float) ($row['paid_usdt'] ?? 0);
+        $owed = $payable - $paid;
+        return [
+            'group_code' => $row['group_code'],
+            'group_name' => $row['group_name'],
+            'deposit_usdt' => number_format($row['deposit_usdt'], 8, '.', ''),
+            'withdrawal_usdt' => number_format($row['withdrawal_usdt'], 8, '.', ''),
+            'payable_usdt' => number_format($payable, 8, '.', ''),
+            'paid_usdt' => number_format($paid, 8, '.', ''),
+            'owed_usdt' => number_format($owed, 8, '.', ''),
+        ];
+    }, $rowsByGroup));
+    usort($items, static fn (array $a, array $b): int => strcmp((string) ($a['group_name'] ?? ''), (string) ($b['group_name'] ?? '')));
+
+    success('ADMIN_COMMISSION_SUMMARY_SUCCESS', 'ok', [
+        'items' => $items,
+        'rates' => $rates,
+    ]);
+}
+
+if ($path === '/api/admin/commission-payments' && $method === 'POST') {
+    $admin = require_admin($pdo);
+    require_root_admin($admin);
+
+    $groupCode = normalize_admin_group_code($input['group_code'] ?? '');
+    if ($groupCode === '') {
+        failure('ADMIN_INVALID_PARAMS', '請選擇分組');
+    }
+    $groupStmt = $pdo->prepare('SELECT group_code, group_name FROM admin_groups WHERE group_code = :group_code LIMIT 1');
+    $groupStmt->execute([':group_code' => $groupCode]);
+    $group = $groupStmt->fetch();
+    if (!$group) {
+        failure('ADMIN_GROUP_NOT_FOUND', '分組不存在');
+    }
+
+    $amount = (float) str_replace(',', '', (string) ($input['amount_usdt'] ?? ''));
+    if (!is_finite($amount) || $amount <= 0) {
+        failure('ADMIN_INVALID_PARAMS', '繳納金額必須大於 0');
+    }
+    $periodDateFrom = trim((string) ($input['date_from'] ?? ''));
+    $periodDateTo = trim((string) ($input['date_to'] ?? ''));
+    $note = trim((string) ($input['note'] ?? ''));
+    $now = now_iso();
+    $amountFormatted = number_format($amount, 8, '.', '');
+
+    $pdo->prepare('INSERT INTO commission_payments (
+        admin_group_code, period_date_from, period_date_to, amount_usdt, note, paid_by_admin_id, paid_at, created_at, updated_at
+    ) VALUES (
+        :admin_group_code, :period_date_from, :period_date_to, :amount_usdt, :note, :paid_by_admin_id, :paid_at, :created_at, :updated_at
+    )')->execute([
+        ':admin_group_code' => $groupCode,
+        ':period_date_from' => $periodDateFrom !== '' ? $periodDateFrom : null,
+        ':period_date_to' => $periodDateTo !== '' ? $periodDateTo : null,
+        ':amount_usdt' => $amountFormatted,
+        ':note' => $note !== '' ? $note : null,
+        ':paid_by_admin_id' => (int) ($admin['admin_user_id'] ?? $admin['id'] ?? 0),
+        ':paid_at' => $now,
+        ':created_at' => $now,
+        ':updated_at' => $now,
+    ]);
+    $paymentId = (int) $pdo->lastInsertId();
+
+    audit(
+        $pdo,
+        'admin',
+        'commission_payment_created',
+        'admin',
+        (int) ($admin['admin_user_id'] ?? $admin['id'] ?? 0),
+        'commission_payment',
+        $paymentId,
+        $note !== '' ? $note : null,
+        null,
+        [
+            'id' => $paymentId,
+            'admin_group_code' => $groupCode,
+            'admin_group_name' => (string) ($group['group_name'] ?? $groupCode),
+            'amount_usdt' => $amountFormatted,
+            'period_date_from' => $periodDateFrom !== '' ? $periodDateFrom : null,
+            'period_date_to' => $periodDateTo !== '' ? $periodDateTo : null,
+        ]
+    );
+
+    success('ADMIN_COMMISSION_PAYMENT_CREATED', 'ok', [
+        'id' => $paymentId,
+        'amount_usdt' => $amountFormatted,
+    ]);
+}
+
 if ($path === '/api/admin/payout-methods' && $method === 'GET') {
     $admin = require_admin($pdo);
     $page = max(1, (int) ($_GET['page'] ?? 1));
     $pageSize = min(100, max(1, (int) ($_GET['page_size'] ?? 20)));
     $status = trim((string) ($_GET['status'] ?? ''));
     $userLookup = trim((string) ($_GET['user_id'] ?? ''));
+    $exactUserId = trim((string) ($_GET['exact_user_id'] ?? ''));
     $channelType = trim((string) ($_GET['channel_type'] ?? ''));
     $keyword = trim((string) ($_GET['keyword'] ?? ''));
 
@@ -13177,7 +14037,15 @@ if ($path === '/api/admin/payout-methods' && $method === 'GET') {
         $where[] = 'p.status = :status';
         $params[':status'] = $status;
     }
-    apply_admin_lookup_filter($where, $params, $userLookup, ['p.user_id'], ['u.username', 'u.email', 'u.mobile_e164', 'u.invitation_code'], 'payout_user');
+    if ($exactUserId !== '') {
+        if (!preg_match('/^\d+$/', $exactUserId)) {
+            failure('ADMIN_INVALID_PARAMS', 'Invalid exact user ID');
+        }
+        $where[] = 'p.user_id = :exact_user_id';
+        $params[':exact_user_id'] = (int) $exactUserId;
+    } else {
+        apply_admin_lookup_filter($where, $params, $userLookup, ['p.user_id'], ['u.username', 'u.email', 'u.mobile_e164', 'u.invitation_code'], 'payout_user');
+    }
     if ($channelType !== '') {
         $where[] = 'p.channel_type = :channel_type';
         $params[':channel_type'] = $channelType;
@@ -13201,7 +14069,7 @@ if ($path === '/api/admin/payout-methods' && $method === 'GET') {
     $total = (int) $countStmt->fetchColumn();
 
     $offset = ($page - 1) * $pageSize;
-    $stmt = $pdo->prepare("SELECT p.id, p.user_id, u.username, u.email, u.mobile_e164, u.invitation_code, u.admin_group_code, p.channel_type, p.status, p.bank_name, p.account_holder, p.account_no_masked, p.account_no, p.currency_code, p.bank_swift, p.holder_address, p.usdt_network, p.payout_address, p.pix_key, p.is_default, p.created_at, p.reviewed_at
+    $stmt = $pdo->prepare("SELECT p.id, p.user_id, u.username, u.email, u.mobile_e164, u.invitation_code, u.admin_group_code, p.channel_type, p.status, p.bank_name, p.account_holder, p.account_no_masked, p.account_no, p.currency_code, p.bank_swift, p.holder_address, p.asset_code, p.usdt_network, p.payout_address, p.pix_key, p.is_default, p.created_at, p.reviewed_at
         FROM user_payout_methods p
         JOIN users u ON u.id = p.user_id
         {$whereSql}
@@ -13253,6 +14121,34 @@ if (preg_match('#^/api/admin/payout-methods/(\d+)$#', $path, $matches) && $metho
     success('ADMIN_PAYOUT_METHOD_DETAIL_SUCCESS', 'ok', ['method' => $methodItem]);
 }
 
+if (preg_match('#^/api/admin/payout-methods/(\d+)$#', $path, $matches) && $method === 'DELETE') {
+    $admin = require_admin($pdo);
+    $methodId = (int) $matches[1];
+    $stmt = $pdo->prepare('SELECT * FROM user_payout_methods WHERE id = :id LIMIT 1');
+    $stmt->execute([':id' => $methodId]);
+    $methodItem = $stmt->fetch();
+    if (!$methodItem) {
+        failure('ADMIN_PAYOUT_METHOD_NOT_FOUND', 'Payout method not found');
+    }
+    require_admin_can_access_user($pdo, $admin, (int) $methodItem['user_id']);
+
+    backfill_withdrawal_payout_snapshot_for_method($pdo, $methodItem);
+    $pdo->prepare('DELETE FROM user_payout_methods WHERE id = :id')->execute([':id' => $methodId]);
+    audit($pdo, 'admin', 'payout_method_deleted', 'admin', (int) $admin['admin_user_id'], 'payout_method', $methodId, '', [
+        'user_id' => (int) $methodItem['user_id'],
+        'channel_type' => $methodItem['channel_type'] ?? null,
+        'status' => $methodItem['status'] ?? null,
+        'bank_name' => $methodItem['bank_name'] ?? null,
+        'account_holder' => $methodItem['account_holder'] ?? null,
+        'account_no_masked' => $methodItem['account_no_masked'] ?? null,
+        'currency_code' => $methodItem['currency_code'] ?? null,
+        'asset_code' => $methodItem['asset_code'] ?? null,
+        'usdt_network' => $methodItem['usdt_network'] ?? null,
+        'payout_address' => $methodItem['payout_address'] ?? null,
+    ], null);
+    success('ADMIN_PAYOUT_METHOD_DELETED', 'ok', []);
+}
+
 if (preg_match('#^/api/admin/payout-methods/(\d+)$#', $path, $matches) && $method === 'PATCH') {
     $admin = require_admin($pdo);
     $methodId = (int) $matches[1];
@@ -13285,6 +14181,7 @@ if (preg_match('#^/api/admin/payout-methods/(\d+)$#', $path, $matches) && $metho
         $usdtNetwork = trim((string) ($input['usdt_network'] ?? ($methodItem['usdt_network'] ?? '')));
         $payoutAddress = trim((string) ($input['payout_address'] ?? ($methodItem['payout_address'] ?? '')));
         $pixKey = trim((string) ($input['pix_key'] ?? ($methodItem['pix_key'] ?? '')));
+        $assetCode = strtoupper(trim((string) ($input['asset_code'] ?? ($methodItem['asset_code'] ?? 'USDT'))));
         $currencyCode = strtoupper(trim((string) ($input['currency_code'] ?? ($methodItem['currency_code'] ?? ''))));
         $bankSwift = strtoupper((string) preg_replace('/\s+/', '', (string) ($input['bank_swift'] ?? ($methodItem['bank_swift'] ?? ''))));
         $holderAddress = trim((string) ($input['holder_address'] ?? ($methodItem['holder_address'] ?? '')));
@@ -13303,8 +14200,17 @@ if (preg_match('#^/api/admin/payout-methods/(\d+)$#', $path, $matches) && $metho
                 failure('ADMIN_INVALID_PARAMS', 'Invalid BIC/SWIFT');
             }
         }
-        if ($channelType === 'usdt' && $payoutAddress === '') {
-            failure('ADMIN_INVALID_PARAMS', 'USDT payout address is required');
+        if ($channelType === 'usdt') {
+            $usdtNetwork = strtoupper($usdtNetwork);
+            $assetNetworks = payout_crypto_asset_networks();
+            if ($payoutAddress === '' || $usdtNetwork === '') {
+                failure('ADMIN_INVALID_PARAMS', 'Crypto payout address and network are required');
+            }
+            if (!isset($assetNetworks[$assetCode]) || !in_array($usdtNetwork, $assetNetworks[$assetCode], true)) {
+                failure('ADMIN_INVALID_PARAMS', 'Unsupported asset or network');
+            }
+        } else {
+            $assetCode = '';
         }
         if ($channelType === 'pix' && $pixKey === '') {
             failure('ADMIN_INVALID_PARAMS', 'PIX key is required');
@@ -13319,6 +14225,7 @@ if (preg_match('#^/api/admin/payout-methods/(\d+)$#', $path, $matches) && $metho
                 currency_code = :currency_code,
                 bank_swift = :bank_swift,
                 holder_address = :holder_address,
+                asset_code = :asset_code,
                 usdt_network = :usdt_network,
                 payout_address = :payout_address,
                 pix_key = :pix_key,
@@ -13332,6 +14239,7 @@ if (preg_match('#^/api/admin/payout-methods/(\d+)$#', $path, $matches) && $metho
                 ':currency_code' => $channelType === 'bank' && $currencyCode !== '' ? $currencyCode : null,
                 ':bank_swift' => $channelType === 'bank' && $bankSwift !== '' ? $bankSwift : null,
                 ':holder_address' => $channelType === 'bank' && $holderAddress !== '' ? $holderAddress : null,
+                ':asset_code' => $channelType === 'usdt' && $assetCode !== '' ? $assetCode : null,
                 ':usdt_network' => $usdtNetwork !== '' ? $usdtNetwork : null,
                 ':payout_address' => $payoutAddress !== '' ? $payoutAddress : null,
                 ':pix_key' => $pixKey !== '' ? $pixKey : null,
@@ -13345,6 +14253,7 @@ if (preg_match('#^/api/admin/payout-methods/(\d+)$#', $path, $matches) && $metho
             'currency_code' => $currencyCode,
             'bank_swift' => $bankSwift,
             'holder_address' => $holderAddress,
+            'asset_code' => $assetCode,
             'usdt_network' => $usdtNetwork,
             'payout_address' => $payoutAddress,
             'pix_key' => $pixKey,

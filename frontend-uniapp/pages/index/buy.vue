@@ -115,6 +115,7 @@
 
 <script>
 import { userApi } from '@/utils/api'
+import { formatTruncatedAmount, trimTruncatedNumber } from '@/utils/amountFormat'
 import { pickBestOneClickListing } from '@/utils/listingPick'
 
 /**
@@ -214,11 +215,11 @@ export default {
     },
     fillBuyMax: function () {
       if (this.mode === "EUR") {
-        this.amountInput = this.maxEurBalance.toFixed(2);
+        this.amountInput = trimTruncatedNumber(this.maxEurBalance, 2);
         return;
       }
       var cap = Math.min(this.maxTradableUsdt, this.maxEurBalance / this.unitEurPerUsdt);
-      this.amountInput = (Math.floor(cap * 100) / 100).toFixed(2);
+      this.amountInput = trimTruncatedNumber(cap, 2);
     },
     normalizeDecimalInput: function (value) {
       var raw = String(value == null ? "" : value)
@@ -240,10 +241,7 @@ export default {
       if (event && event.target && event.target.value !== next) event.target.value = next;
     },
     formatAmount: function (value, digits) {
-      return Number(value || 0).toLocaleString("en-GB", {
-        minimumFractionDigits: digits,
-        maximumFractionDigits: digits
-      });
+      return formatTruncatedAmount(value, digits);
     },
     currentListingId: function () {
       var hash = window.location.hash || "";

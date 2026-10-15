@@ -297,6 +297,7 @@ import profileWithdrawIcon from '@/static/icons/profile/withdraw-white.svg'
 import profileLogoutIcon from '@/static/icons/profile/logout-white.svg'
 import { getOrCreateUserAvatar } from '@/common/avatarPool'
 import { logout, me, userApi } from '@/utils/api'
+import { formatTruncatedAmount } from '@/utils/amountFormat'
 import { getStoredUser } from '@/utils/session'
 
 /**
@@ -317,6 +318,20 @@ var BODY_CLASSES = [
   "selection:bg-primary/30",
   "selection:text-primary"
 ];
+var PROFILE_CRYPTO_ASSETS = [
+  { code: "USDT", wallet: "cash_usdt" },
+  { code: "USDC", wallet: "spot_usdc" },
+  { code: "BTC", wallet: "spot_btc" },
+  { code: "ETH", wallet: "spot_eth" },
+  { code: "TRX", wallet: "spot_trx" }
+];
+var DEFAULT_CRYPTO_USDT_PRICES = {
+  USDT: 1,
+  USDC: 1,
+  BTC: 67432,
+  ETH: 3492,
+  TRX: 0.34
+};
 
 export default {
   name: "UserH5",
@@ -353,6 +368,7 @@ export default {
       tierLevel: 1,
       fiatAvailableBalance: 0,
       usdtAvailableBalance: 0,
+      cryptoUsdtPrices: Object.assign({}, DEFAULT_CRYPTO_USDT_PRICES),
       avatarUploading: false,
       fitBalanceResizeHandler: null,
       currentUserProfile: null,
@@ -428,16 +444,38 @@ export default {
     splitMoney: function (value) {
       var n = Number(value || 0);
       if (!isFinite(n) || n < 0) n = 0;
-      var parts = n.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 }).split(".");
+      var parts = formatTruncatedAmount(n, 2).split(".");
       return { main: parts[0] || "0", decimal: parts[1] || "00" };
+    },
+    walletAvailable: function (walletMap, walletCode) {
+      var wallet = (walletMap && walletMap[walletCode]) || {};
+      var amount = Number(wallet.available_balance || 0);
+      return isFinite(amount) ? amount : 0;
+    },
+    applyMarketSnapshot: function (snapshot) {
+      var next = Object.assign({}, DEFAULT_CRYPTO_USDT_PRICES);
+      var items = (snapshot && snapshot.items) || [];
+      items.forEach(function (item) {
+        var code = String((item && item.code) || "").toUpperCase();
+        var price = Number(String((item && item.price) || "").replace(/,/g, ""));
+        if (code && isFinite(price) && price > 0) next[code] = price;
+      });
+      this.cryptoUsdtPrices = next;
+    },
+    cryptoAssetsUsdtValue: function (walletMap) {
+      var self = this;
+      return PROFILE_CRYPTO_ASSETS.reduce(function (total, asset) {
+        var price = Number(self.cryptoUsdtPrices[asset.code] || 0);
+        if (!isFinite(price) || price <= 0) return total;
+        return total + self.walletAvailable(walletMap, asset.wallet) * price;
+      }, 0);
     },
     applyOverview: function (overview) {
       var map = (overview && overview.wallet_map) || {};
       var eur = map.eur || {};
-      var usdt = map.cash_usdt || {};
       var tier = (overview && overview.tier_profile) || {};
       this.fiatAvailableBalance = Number(eur.available_balance || 0) || 0;
-      this.usdtAvailableBalance = Number(usdt.available_balance || 0) || 0;
+      this.usdtAvailableBalance = this.cryptoAssetsUsdtValue(map);
       if (tier.level != null) this.tierLevel = Number(tier.level) || 1;
       if (tier.score != null) this.creditScore = Number(tier.score) || 0;
       this.$nextTick(this.fitBalanceAmounts);
@@ -467,9 +505,15 @@ export default {
       me()
         .then(function (user) {
           self.applyUserProfile(user);
-          return userApi.overview();
+          return Promise.all([
+            userApi.overview(),
+            userApi.marketSnapshot().catch(function () { return null; })
+          ]);
         })
-        .then(function (overview) {
+        .then(function (result) {
+          var overview = result[0];
+          var snapshot = result[1];
+          self.applyMarketSnapshot(snapshot);
           self.applyOverview(overview);
         })
         .catch(function () {

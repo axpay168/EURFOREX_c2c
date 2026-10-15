@@ -110,11 +110,6 @@
             <dd class="font-headline text-lg font-bold tabular-nums text-primary-dim" id="fiat-net">{{ netDisplay }}</dd>
           </div>
         </dl>
-        <div class="mt-4 rounded-2xl bg-surface-container-low px-4 py-3 text-xs leading-relaxed text-on-surface-variant">
-          <span class="font-semibold text-on-surface">{{ localizedText("今日剩餘額度", "Remaining quota today") }}</span> {{ selectedFiat.code }} 1,520 / 2,000 · {{ localizedText("完成", "Completed") }}
-          <a class="font-bold text-primary-dim" href="#/pages/setting/kycVerification">{{ localizedText("身份認證", "Identity verification") }}</a>
-          {{ localizedText("可申請提高。", "You may increase it after verification.") }}
-        </div>
         <button
           type="button"
           class="usdt-confirm mt-5 flex h-[52px] w-full items-center justify-center rounded-full font-headline text-base font-bold tracking-wide"
@@ -198,6 +193,7 @@
 
 <script>
 import { userApi } from '@/utils/api'
+import { formatTruncatedAmount, trimTruncatedNumber } from '@/utils/amountFormat'
 import { getStoredLang } from '@/common/langStorage'
 import { normalizeFiatCode } from '@/common/fiatCurrencies'
 
@@ -221,12 +217,6 @@ var BODY_CLASSES = [
 ];
 
 var STORAGE_KEY = "eurforex-fiat-withdraw-bank-id";
-function kycRequiredMessage() {
-  var lang = getStoredLang();
-  if (lang === "zh-Hant") return "尚未完成實名認證。";
-  if (lang === "zh-Hans") return "尚未完成实名认证。";
-  return "Identity verification has not been completed.";
-}
 export default {
   name: "WithdrawH5",
   data: function () {
@@ -316,7 +306,7 @@ export default {
       }
     },
     formatFiat: function (n) {
-      return this.selectedFiat.code + " " + n.toLocaleString("en-GB", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      return this.selectedFiat.code + " " + formatTruncatedAmount(n, 2);
     },
     selectFiat: function (code) {
       this.fiatCode = String(code || "EUR").toUpperCase();
@@ -396,7 +386,6 @@ export default {
     withdrawalErrorMessage: function (error) {
       var code = error && error.payload && error.payload.error_code;
       var msg = error && error.payload && error.payload.msg ? String(error.payload.msg) : "";
-      if (code === "AUTH_KYC_REQUIRED" || /KYC/i.test(msg)) return kycRequiredMessage();
       if (code === "AUTH_TOKEN_INVALID" || code === "AUTH_TOKEN_EXPIRED" || code === "AUTH_UNAUTHORIZED") return this.localizedText("登入狀態已失效，請重新登入後再提交。", "Your login has expired. Please sign in again before submit.");
       if (code === "AUTH_INVALID_PARAMS" && /Insufficient balance/i.test(msg)) return this.localizedText("可用餘額不足，請確認提現金額與手續費。", "Insufficient balance. Please check the amount and withdrawal fee.");
       return (error && error.message) || this.localizedText("提現申請提交失敗，請稍後再試。", "Withdrawal request submission failed. Please try again later.");
@@ -409,7 +398,7 @@ export default {
       this.hideModal();
     },
     fillMax: function () {
-      this.amount = this.maxBal.toFixed(2);
+      this.amount = trimTruncatedNumber(this.maxBal, 2);
     },
     goWithdrawDetailFiat: function () {
       var n = parseFloat(String(this.amount || "").replace(/,/g, "").trim());

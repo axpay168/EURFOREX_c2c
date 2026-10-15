@@ -20,6 +20,26 @@ function buildUrl(path) {
   return getApiBaseUrl() + (path.charAt(0) === '/' ? path : '/' + path)
 }
 
+const inFlightGetRequests = new Map()
+const publicResponseCache = new Map()
+
+function getRequestKey(path) {
+  return getToken() + '::' + buildUrl(path)
+}
+
+function cachedPublicRequest(path, ttlMs) {
+  const key = buildUrl(path)
+  const cached = publicResponseCache.get(key)
+  if (cached && cached.expiresAt > Date.now()) return Promise.resolve(cached.data)
+  return apiRequest(path).then(data => {
+    publicResponseCache.set(key, {
+      data,
+      expiresAt: Date.now() + ttlMs
+    })
+    return data
+  })
+}
+
 const API_ERROR_MESSAGES = {
   'zh-Hant': {
     AUTH_INVALID_PARAMS: '請確認輸入資料是否完整',
@@ -171,6 +191,7 @@ function parseResponse(response) {
 }
 
 export function apiRequest(path, options = {}) {
+  const method = String(options.method || 'GET').toUpperCase()
   const headers = {
     'Content-Type': 'application/json',
     ...(options.headers || {})
@@ -180,8 +201,11 @@ export function apiRequest(path, options = {}) {
   const token = getToken()
   if (token) headers.Authorization = 'Bearer ' + token
 
-  return fetch(buildUrl(path), {
-    method: options.method || 'GET',
+  const requestKey = method === 'GET' ? getRequestKey(path) : ''
+  if (requestKey && inFlightGetRequests.has(requestKey)) return inFlightGetRequests.get(requestKey)
+
+  const request = fetch(buildUrl(path), {
+    method,
     headers,
     body: options.body ? JSON.stringify(options.body) : undefined
   }).then(parseResponse).catch(rawError => {
@@ -190,6 +214,16 @@ export function apiRequest(path, options = {}) {
     if (code === 'AUTH_TOKEN_INVALID' || code === 'AUTH_TOKEN_EXPIRED' || code === 'AUTH_UNAUTHORIZED') {
       clearSession()
     }
+    throw error
+  })
+
+  if (!requestKey) return request
+  inFlightGetRequests.set(requestKey, request)
+  return request.then(data => {
+    inFlightGetRequests.delete(requestKey)
+    return data
+  }, error => {
+    inFlightGetRequests.delete(requestKey)
     throw error
   })
 }
@@ -306,6 +340,7 @@ export const userApi = {
   updateAvatarUrl,
   overview: () => apiRequest('/api/user/overview'),
   homeSnapshot: () => apiRequest('/api/user/home-snapshot'),
+  c2cConfig: () => apiRequest('/api/user/c2c-config'),
   listings: query => apiRequest('/api/user/listings' + (query || '')),
   listingDetail: id => apiRequest('/api/user/listings/' + id),
   createOrder: body => apiRequest('/api/user/orders', { method: 'POST', body }),
@@ -328,12 +363,13 @@ export const userApi = {
   submitKyc: body => apiRequest('/api/user/kyc-applications', { method: 'POST', body }),
   payoutMethods: () => apiRequest('/api/user/payout-methods'),
   createPayoutMethod: body => apiRequest('/api/user/payout-methods', { method: 'POST', body }),
+  deletePayoutMethod: id => apiRequest('/api/user/payout-methods/' + encodeURIComponent(id), { method: 'DELETE' }),
   completePayoutMethodAccount: (id, body) => apiRequest('/api/user/payout-methods/' + encodeURIComponent(id) + '/account-no', { method: 'POST', body }),
   inviteTeam: () => apiRequest('/api/user/invite-team'),
   tradeFeed: query => apiRequest('/api/user/trade-feed-events' + (query || '')),
   /** CoinDesk 最新加密新聞，依目前語言取對應站點（後端快取約 6 小時，無需登入） */
-  coindeskNews: lang => apiRequest('/api/public/coindesk-news?lang=' + encodeURIComponent(lang || getStoredLang())),
-  coindeskZhNews: () => apiRequest('/api/public/coindesk-news?lang=zh-Hant'),
+  coindeskNews: lang => cachedPublicRequest('/api/public/coindesk-news?lang=' + encodeURIComponent(lang || getStoredLang()), 5 * 60 * 1000),
+  coindeskZhNews: () => cachedPublicRequest('/api/public/coindesk-news?lang=zh-Hant', 5 * 60 * 1000),
   /** 首頁行情快照（後端代理/快取，避免瀏覽器直接打第三方 API 造成 CORS） */
-  marketSnapshot: () => apiRequest('/api/public/market-snapshot')
+  marketSnapshot: () => cachedPublicRequest('/api/public/market-snapshot', 30 * 1000)
 }

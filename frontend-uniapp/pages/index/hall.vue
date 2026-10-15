@@ -198,6 +198,7 @@
 
 <script>
 import { userApi } from '@/utils/api'
+import { formatTruncatedAmount } from '@/utils/amountFormat'
 import { brandMarkLogo, hallCertifiedBadge } from '@/assets/images'
 /**
  * EURFOREX - 交易大廳 (純 H5 Vue2 Options API)
@@ -231,7 +232,7 @@ export default {
       listingsHasMore: true,
       amountFilter: "",
       selectedFiat: "EUR",
-      supportedFiats: ["EUR", "CHF", "USD", "GBP"],
+      supportedFiats: [],
       usdtAvailableBalance: 0,
       activeOrderCount: 0,
       certifiedBadgeSrc: hallCertifiedBadge
@@ -295,25 +296,31 @@ export default {
   },
   methods: {
     fetchHallData: function () {
-      this.fetchAccountSnapshot(true);
-    },
-    fetchAccountSnapshot: function (loadListingsAfter) {
       var self = this;
-      userApi
-        .overview()
-        .then(function (data) {
-          var preferredFiat = String((data && data.user && data.user.preferred_fiat) || "EUR").toUpperCase();
-          if (self.supportedFiats.indexOf(preferredFiat) !== -1) self.selectedFiat = preferredFiat;
-          var map = (data && data.wallet_map) || {};
-          var usdt = map.cash_usdt || {};
-          self.usdtAvailableBalance = parseFloat(usdt.available_balance || "0") || 0;
+      Promise.all([
+        userApi.overview().catch(function () {
+          return null;
+        }),
+        userApi.c2cConfig().catch(function () {
+          return { fiat_codes: ["EUR", "CHF", "USD", "GBP"] };
         })
-        .catch(function () {
-          self.usdtAvailableBalance = 0;
-        })
-        .finally(function () {
-          if (loadListingsAfter) self.fetchListings();
+      ]).then(function (results) {
+        var overview = results[0] || {};
+        var config = results[1] || {};
+        var allowed = ["EUR", "CHF", "USD", "GBP"];
+        var configured = Array.isArray(config.fiat_codes) ? config.fiat_codes : [];
+        self.supportedFiats = allowed.filter(function (code) {
+          return configured.indexOf(code) !== -1;
         });
+        if (!self.supportedFiats.length) self.supportedFiats = allowed.slice();
+
+        var preferredFiat = String((overview.user && overview.user.preferred_fiat) || "EUR").toUpperCase();
+        self.selectedFiat = self.supportedFiats.indexOf(preferredFiat) !== -1 ? preferredFiat : self.supportedFiats[0];
+        var map = overview.wallet_map || {};
+        var usdt = map.cash_usdt || {};
+        self.usdtAvailableBalance = parseFloat(usdt.available_balance || "0") || 0;
+        self.fetchListings();
+      });
       userApi
         .ordersSummary()
         .then(function (data) {
@@ -396,10 +403,7 @@ export default {
       return this.formatListingAmount(s);
     },
     formatMoney: function (value, digits) {
-      return Number(value || 0).toLocaleString("en-GB", {
-        minimumFractionDigits: digits,
-        maximumFractionDigits: digits
-      });
+      return formatTruncatedAmount(value, digits);
     },
     avatarLetter: function (name) {
       var s = String(name || "").trim();

@@ -80,20 +80,24 @@
           {{ boundError }}
           <button type="button" class="mt-2 text-xs font-bold text-primary-dim underline" @click="loadBoundAddresses">{{ localizedText("重試", "Retry") }}</button>
         </div>
-        <div v-else-if="!boundUsdtItems.length" class="mt-4 rounded-2xl border border-outline-variant/15 bg-surface-bright/80 px-4 py-10 text-center text-sm text-on-surface-variant">{{ localizedText("尚無已綁定的 USDT 鏈上地址。提交上方表單並通過審核後會顯示於此。", "No bound USDT withdrawal addresses yet. Submit the form above and it will appear here after approval.") }}</div>
+        <div v-else-if="!boundUsdtItems.length" class="mt-4 rounded-2xl border border-outline-variant/15 bg-surface-bright/80 px-4 py-10 text-center text-sm text-on-surface-variant">{{ localizedText("尚無已綁定的鏈上提領地址。提交上方表單後會直接顯示於此。", "No bound crypto withdrawal addresses yet. Submit the form above and it will appear here.") }}</div>
         <div v-else class="mt-4 space-y-3">
           <div
             v-for="it in boundUsdtItems"
             :key="'bound-' + it.id"
             class="rounded-2xl border border-outline-variant/15 bg-surface-bright/80 px-4 py-3.5"
           >
-            <div class="flex flex-wrap items-center gap-2">
-              <p class="font-semibold text-on-surface">{{ boundRowTitle(it) }}</p>
-              <span v-if="it.is_default" class="rounded-md bg-primary-container/80 px-2 py-0.5 text-[10px] font-bold text-primary-dim">{{ localizedText("預設", "Default") }}</span>
-              <span
-                v-if="it.status && it.status !== 'approved'"
-                class="rounded-md border border-amber-300/80 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-900/90"
-              >{{ boundStatusLabel(it.status) }}</span>
+            <div class="flex flex-wrap items-center justify-between gap-2">
+              <div class="flex min-w-0 flex-wrap items-center gap-2">
+                <p class="font-semibold text-on-surface">{{ boundRowTitle(it) }}</p>
+                <span v-if="it.is_default" class="rounded-md bg-primary-container/80 px-2 py-0.5 text-[10px] font-bold text-primary-dim">{{ localizedText("預設", "Default") }}</span>
+              </div>
+              <button
+                type="button"
+                class="rounded-full border border-rose-200/80 bg-white/85 px-3 py-1 text-[11px] font-bold text-rose-600 shadow-sm transition hover:bg-rose-50 disabled:opacity-60"
+                :disabled="deletingId === Number(it.id)"
+                @click="deleteBoundAddress(it)"
+              >{{ deletingId === Number(it.id) ? localizedText("刪除中", "Deleting") : localizedText("刪除", "Delete") }}</button>
             </div>
             <p class="mt-2 font-mono text-[13px] leading-relaxed tracking-wide text-on-surface break-all">{{ it.payout_address }}</p>
             <p class="mt-1.5 text-xs font-medium text-on-surface-variant">{{ localizedText("網路：", "Network: ") }}{{ boundRowNetwork(it) }}</p>
@@ -164,7 +168,7 @@
 
 <script>
 import { userApi } from '@/utils/api'
-import { filterUsdtPayoutItems, usdtPayoutRowTitle, payoutMethodStatusLabel } from '@/utils/payoutUsdt'
+import { filterUsdtPayoutItems, usdtPayoutRowTitle } from '@/utils/payoutUsdt'
 import topupUsdtIcon from '@/static/icons/topup/usdt.svg'
 import topupUsdcIcon from '@/static/icons/topup/usdc.svg'
 import topupBtcIcon from '@/static/icons/topup/btc.svg'
@@ -175,7 +179,7 @@ import topupTrxIcon from '@/static/icons/topup/trx.svg'
  * EURFOREX - 提領地址綁定 (純 H5 Vue2 Options API)
  * 以 docs/previews/nnn/withdraw-address-binding.html 為唯一基準逐字遷移
  * 外部腳本：../shared/marble-bg.js、../shared/back-nav.js（資產／鏈改為底部抽層選擇，不再使用 eurforex-select.js）
- * 地址提交：POST /api/user/payout-methods → 平台審核後生效
+ * 地址提交：POST /api/user/payout-methods → 直接綁定生效
  * 已綁定地址：GET /api/user/payout-methods → 完整鏈上地址展示（不截斷）
  */
 var BODY_CLASSES = [
@@ -201,14 +205,14 @@ export default {
       pickerOpen: false,
       pickerType: null,
       assetOptions: [
-        { value: "USDT", label: "USDT", desc: "Tether · 與美元掛鉤的穩定幣", descEn: "Tether · USD-linked stablecoin", icon: topupUsdtIcon },
-        { value: "USDC", label: "USDC", desc: "USD Coin · 常用的美元穩定幣", descEn: "USD Coin · popular USD stablecoin", icon: topupUsdcIcon },
-        { value: "BTC", label: "BTC", desc: "Bitcoin · 比特幣主鏈資產", descEn: "Bitcoin · Bitcoin mainnet asset", icon: topupBtcIcon },
-        { value: "ETH", label: "ETH", desc: "Ethereum · 以太幣主鏈資產", descEn: "Ethereum · Ethereum mainnet asset", icon: topupEthIcon },
-        { value: "TRX", label: "TRX", desc: "TRON · TRC20 常用網路資產", descEn: "TRON · popular TRC20 network asset", icon: topupTrxIcon }
+        { value: "USDT", label: "USDT", desc: "Tether · 與美元掛鉤的穩定幣", descEn: "Tether · USD-linked stablecoin", icon: topupUsdtIcon, networks: ["TRC20", "ERC20", "BEP20"] },
+        { value: "USDC", label: "USDC", desc: "USD Coin · 常用的美元穩定幣", descEn: "USD Coin · popular USD stablecoin", icon: topupUsdcIcon, networks: ["TRC20", "ERC20", "BEP20"] },
+        { value: "BTC", label: "BTC", desc: "Bitcoin · 比特幣主鏈資產", descEn: "Bitcoin · Bitcoin mainnet asset", icon: topupBtcIcon, networks: ["BTC"] },
+        { value: "ETH", label: "ETH", desc: "Ethereum · 以太幣主鏈資產", descEn: "Ethereum · Ethereum mainnet asset", icon: topupEthIcon, networks: ["ERC20"] },
+        { value: "TRX", label: "TRX", desc: "TRON · TRC20 常用網路資產", descEn: "TRON · popular TRC20 network asset", icon: topupTrxIcon, networks: ["TRC20"] }
       ],
       networkOptions: [
-        { value: "TRC20", label: "TRC20（Tron）", desc: "手續費低、到帳快，適合 USDT 小額", descEn: "Low fees and fast settlement, suitable for USDT micro transactions", labelEn: "TRC20 (Tron)" },
+        { value: "TRC20", label: "TRC20（Tron）", desc: "手續費低、到帳快，適合 Tron 網路資產", descEn: "Low fees and fast settlement on the Tron network", labelEn: "TRC20 (Tron)" },
         { value: "ERC20", label: "ERC20（Ethereum）", desc: "以太坊生態，相容性最廣", descEn: "Ethereum ecosystem, most compatible", labelEn: "ERC20 (Ethereum)" },
         { value: "BEP20", label: "BEP20（BSC）", desc: "幣安智能鏈，速度與費用均衡", descEn: "Binance Smart Chain, balanced speed and fees", labelEn: "BEP20 (BSC)" },
         { value: "BTC", label: "Bitcoin 主網", desc: "BTC 原生鏈轉帳", descEn: "Native BTC mainnet transfer", labelEn: "Bitcoin Mainnet" }
@@ -216,6 +220,7 @@ export default {
       payoutItems: [],
       boundLoading: false,
       boundError: "",
+      deletingId: null,
       submitting: false
     };
   },
@@ -229,7 +234,12 @@ export default {
         : this.localizedText("選擇資產", "Select asset");
     },
     activePickerOptions: function () {
-      return this.pickerType === "network" ? this.networkOptions : this.assetOptions;
+      if (this.pickerType !== "network") return this.assetOptions;
+      var asset = this.findOption(this.assetOptions, this.asset);
+      var supported = asset && asset.networks ? asset.networks : [];
+      return this.networkOptions.filter(function (option) {
+        return supported.indexOf(option.value) !== -1;
+      });
     },
     pickerSubtitle: function () {
       return this.pickerType === "network"
@@ -331,14 +341,15 @@ export default {
     },
     applyPickerOption: function (opt) {
       if (this.pickerType === "network") this.network = opt.value;
-      else this.asset = opt.value;
+      else {
+        this.asset = opt.value;
+        if (opt.networks && opt.networks.indexOf(this.network) === -1) {
+          this.network = opt.networks[0];
+        }
+      }
       this.closePicker();
     },
     submitAddress: function () {
-      if (this.asset !== "USDT") {
-        alert(this.$t("phrases.目前後端僅支援 USDT 鏈上提領地址。"));
-        return;
-      }
       var address = String(this.addr || "").trim();
       if (!address) {
         alert(this.$t("phrases.請填寫提領地址。"));
@@ -350,6 +361,7 @@ export default {
       userApi
         .createPayoutMethod({
           channel_type: "usdt",
+          asset_code: this.asset,
           usdt_network: this.network,
           payout_address: address,
           pix_key: "",
@@ -359,7 +371,7 @@ export default {
           self.addr = "";
           self.memo = "";
           self.addrLabel = "";
-          alert(self.$t("phrases.已提交，待平台審核通過後可用於提領。"));
+          alert(self.localizedText("地址已綁定，可用於提領。", "Address bound and available for withdrawal."));
           return self.loadBoundAddresses();
         })
         .catch(function (error) {
@@ -373,8 +385,24 @@ export default {
     boundRowNetwork: function (it) {
       return it.usdt_network ? String(it.usdt_network).toUpperCase() : "—";
     },
-    boundStatusLabel: function (status) {
-      return payoutMethodStatusLabel(status);
+    deleteBoundAddress: function (it) {
+      var id = Number(it && it.id);
+      if (!id || this.deletingId) return;
+      var message = this.localizedText("確定要刪除此提領地址嗎？刪除後可重新綁定。", "Delete this withdrawal address? You can bind it again later.");
+      if (!window.confirm(message)) return;
+      var self = this;
+      this.deletingId = id;
+      userApi
+        .deletePayoutMethod(id)
+        .then(function () {
+          return self.loadBoundAddresses();
+        })
+        .catch(function (error) {
+          alert((error && error.message) || self.localizedText("刪除失敗", "Delete failed"));
+        })
+        .finally(function () {
+          self.deletingId = null;
+        });
     },
     loadBoundAddresses: function () {
       var self = this;

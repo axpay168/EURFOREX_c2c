@@ -778,10 +778,35 @@ body[data-nc2c-page="home"] :is(
 }
 
 body[data-nc2c-page="home"] .eurforex-page-home__shortcut-label {
-  display: block;
+  box-sizing: border-box;
+  display: -webkit-box;
   width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 3.6em;
+  padding: 0 0.125rem;
+  overflow: hidden;
   text-align: center;
-  line-height: 1.18;
+  font-size: clamp(0.65625rem, 2.9vw, 0.8125rem);
+  line-height: 1.2;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-word;
+  hyphens: auto;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+}
+
+body[data-nc2c-page="home"] .eurforex-page-home__shortcut {
+  min-width: 0;
+  overflow: hidden;
+}
+
+@media (max-width: 340px) {
+  body[data-nc2c-page="home"] .eurforex-page-home__shortcut-label {
+    min-height: 4.8em;
+    -webkit-line-clamp: 4;
+  }
 }
 
 body[data-nc2c-page="home"] .eurforex-page-home__feed-hall {

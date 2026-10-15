@@ -130,7 +130,7 @@
           </button>
         </div>
         <div class="min-h-0 flex-1 space-y-2 overflow-y-auto px-3 py-2">
-          <p v-if="!addressOptions.length" class="py-8 text-center text-sm text-on-surface-variant">{{ localizedText("尚無已審核通過的 USDT 地址，請先新增地址並等待平台審核。", "No approved USDT address yet. Please add an address and wait for platform review.").split("USDT").join(targetAsset) }}</p>
+          <p v-if="!addressOptions.length" class="py-8 text-center text-sm text-on-surface-variant">{{ localizedText("尚無 USDT 地址，請先新增地址。", "No USDT address yet. Please add an address first.").split("USDT").join(targetAsset) }}</p>
           <button
             v-for="(item, idx) in addressOptions"
             :key="idx"
@@ -160,6 +160,8 @@
 
 <script>
 import { userApi } from '@/utils/api'
+import { formatTruncatedAmount, trimTruncatedNumber } from '@/utils/amountFormat'
+import { filterUsdtPayoutItems } from '@/utils/payoutUsdt'
 
 /**
  * EURFOREX - 換匯提領 (純 H5 Vue2 Options API)
@@ -217,10 +219,10 @@ export default {
       var gross = this._eur * this.rate;
       var fee = this.feeMode === "fixed_usdt" ? this.feeFixedUsdt : gross * (this.feePct / 100);
       var net = gross - fee;
-      return net.toFixed(2) + " " + this.targetAsset;
+      return formatTruncatedAmount(net, 2) + " " + this.targetAsset;
     },
     addressPlaceholder: function () {
-      return this.localizedText("TRC20 USDT 地址（以 T 開頭）", "TRC20 USDT address (starts with T)").split("USDT").join(this.targetAsset);
+      return this.localizedText("TRC20/ERC20 USDT 地址", "TRC20/ERC20 USDT address").split("USDT").join(this.targetAsset);
     }
   },
   mounted: function () {
@@ -255,13 +257,10 @@ export default {
       }
     },
     fillMax: function () {
-      this.eurAmount = this.maxEur.toFixed(2);
+      this.eurAmount = trimTruncatedNumber(this.maxEur, 2);
     },
     formatAmount: function (value, digits) {
-      return Number(value || 0).toLocaleString("en-GB", {
-        minimumFractionDigits: digits,
-        maximumFractionDigits: digits
-      });
+      return formatTruncatedAmount(value, digits);
     },
     selectTargetAsset: function (asset) {
       var next = String(asset || "USDT").toUpperCase();
@@ -302,9 +301,9 @@ export default {
         .payoutMethods()
         .then(function (data) {
           var rows = (data && data.items) || [];
-          self.addressOptions = rows
+          self.addressOptions = filterUsdtPayoutItems(rows, self.targetAsset)
             .filter(function (it) {
-              return String(it.channel_type || "") === "usdt" && String(it.status || "") === "approved" && it.payout_address;
+              return String(it.status || "") === "approved";
             })
             .map(function (it) {
               return {

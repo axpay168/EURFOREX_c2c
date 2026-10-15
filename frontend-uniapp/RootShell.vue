@@ -1,6 +1,8 @@
 <template>
   <div class="eurforex-shell">
-    <component :is="currentView" />
+    <transition name="eurforex-route" mode="out-in" appear>
+      <component :is="currentView" :key="currentPath" />
+    </transition>
     <nav
       v-if="showMainNav"
       class="eurforex-home-bottom-nav eurforex-shell-tabbar"
@@ -54,6 +56,21 @@ function defineAsyncPage(importFn) {
     delay: 60,
     timeout: 120000
   })
+}
+
+const MAIN_NAV_PRELOADERS = [
+  () => import(/* webpackChunkName: "page-home" */ './pages/index/index.vue'),
+  () => import(/* webpackChunkName: "page-hall" */ './pages/index/hall.vue'),
+  () => import(/* webpackChunkName: "page-myTask" */ './pages/setting/myTask.vue'),
+  () => import(/* webpackChunkName: "page-user" */ './pages/setting/user.vue')
+]
+
+let mainNavPreloadPromise = null
+
+function preloadMainNavRoutes() {
+  if (mainNavPreloadPromise) return mainNavPreloadPromise
+  mainNavPreloadPromise = Promise.all(MAIN_NAV_PRELOADERS.map(loader => loader().catch(() => null)))
+  return mainNavPreloadPromise
 }
 
 const DEFAULT_ROUTE = '#/pages/common/login'
@@ -149,7 +166,8 @@ export default {
     return {
       currentRoute: DEFAULT_ROUTE,
       iconFillStyle: { fontVariationSettings: "'FILL' 1" },
-      mainNavItems: MAIN_NAV_ITEMS
+      mainNavItems: MAIN_NAV_ITEMS,
+      mainNavPreloadHandle: null
     }
   },
   computed: {
@@ -174,10 +192,20 @@ export default {
     this.ensureDefaultRoute()
     this.installUniNavigationShim()
     window.addEventListener('hashchange', this.syncRoute)
+    window.addEventListener('popstate', this.syncRoute)
   },
   beforeDestroy() {
     if (typeof window === 'undefined') return
     window.removeEventListener('hashchange', this.syncRoute)
+    window.removeEventListener('popstate', this.syncRoute)
+    if (this.mainNavPreloadHandle != null) {
+      if (typeof window.cancelIdleCallback === 'function') {
+        window.cancelIdleCallback(this.mainNavPreloadHandle)
+      } else {
+        window.clearTimeout(this.mainNavPreloadHandle)
+      }
+      this.mainNavPreloadHandle = null
+    }
   },
   methods: {
     ensureDefaultRoute() {
@@ -189,6 +217,7 @@ export default {
       if (AUTH_ENTRY_ROUTES[path] && hasSession()) {
         this.currentRoute = HOME_ROUTE
         if (window.location.hash !== HOME_ROUTE) window.location.hash = HOME_ROUTE
+        this.scheduleMainNavPreload()
         return
       }
       if (!PUBLIC_ROUTES[path] && !hasSession()) {
@@ -197,16 +226,32 @@ export default {
         return
       }
       this.currentRoute = nextRoute
+      this.scheduleMainNavPreload()
+    },
+    scheduleMainNavPreload() {
+      if (typeof window === 'undefined' || !hasSession() || !MAIN_NAV_ROUTES[this.currentPath]) return
+      if (mainNavPreloadPromise || this.mainNavPreloadHandle != null) return
+      const run = () => {
+        this.mainNavPreloadHandle = null
+        preloadMainNavRoutes()
+      }
+      if (typeof window.requestIdleCallback === 'function') {
+        this.mainNavPreloadHandle = window.requestIdleCallback(run, { timeout: 1200 })
+      } else {
+        this.mainNavPreloadHandle = window.setTimeout(run, 350)
+      }
     },
     navigate(url, replace) {
       const nextHash = normalizeHash(toHash(url))
+      const base = window.location.pathname + window.location.search
       if (replace) {
-        const base = window.location.pathname + window.location.search
         window.history.replaceState(null, '', base + nextHash)
         this.syncRoute()
         return
       }
-      window.location.hash = nextHash
+      if (window.location.hash === nextHash) return
+      window.history.pushState(null, '', base + nextHash)
+      this.syncRoute()
     },
     installUniNavigationShim() {
       const api = window.uni || (window.uni = {})
@@ -236,6 +281,20 @@ export default {
   --eurforex-tabbar-item-x: clamp(0.5rem, 2.8vw, 0.75rem);
   min-height: 100vh;
   min-height: 100dvh;
+}
+
+.eurforex-route-enter-active {
+  transition: opacity 0.18s ease-out, transform 0.18s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.eurforex-route-leave-active {
+  transition: opacity 0.09s ease-in, transform 0.09s ease-in;
+}
+
+.eurforex-route-enter,
+.eurforex-route-leave-to {
+  opacity: 0;
+  transform: translate3d(0, 5px, 0);
 }
 
 /*
@@ -294,6 +353,7 @@ export default {
 .eurforex-shell-tabbar__icon {
   font-size: var(--eurforex-tabbar-icon);
   line-height: 1;
+  transition: transform 0.24s cubic-bezier(0.22, 1, 0.36, 1), color 0.2s ease;
 }
 
 .eurforex-shell-tabbar__brand-icon {
@@ -301,6 +361,7 @@ export default {
   width: var(--eurforex-tabbar-icon);
   height: var(--eurforex-tabbar-icon);
   object-fit: contain;
+  transition: transform 0.24s cubic-bezier(0.22, 1, 0.36, 1), filter 0.2s ease;
 }
 
 .eurforex-shell-tabbar__label {
@@ -309,6 +370,16 @@ export default {
   font-weight: 700;
   line-height: 1.2;
   letter-spacing: 0.02em;
+  transition: color 0.2s ease, opacity 0.2s ease, transform 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.eurforex-shell-tabbar__item--active .eurforex-shell-tabbar__icon,
+.eurforex-shell-tabbar__item--active .eurforex-shell-tabbar__brand-icon {
+  transform: translate3d(0, -2px, 0) scale(1.05);
+}
+
+.eurforex-shell-tabbar__item--active .eurforex-shell-tabbar__label {
+  transform: translate3d(0, -1px, 0);
 }
 
 @media (max-height: 700px) {
@@ -323,6 +394,25 @@ export default {
     --eurforex-tabbar-core-h: 3.25rem;
     --eurforex-tabbar-icon: 1.125rem;
     --eurforex-tabbar-label: 0.5625rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eurforex-route-enter-active,
+  .eurforex-route-leave-active,
+  .eurforex-shell-tabbar__item,
+  .eurforex-shell-tabbar__icon,
+  .eurforex-shell-tabbar__brand-icon,
+  .eurforex-shell-tabbar__label {
+    transition-duration: 0.01ms !important;
+  }
+
+  .eurforex-route-enter,
+  .eurforex-route-leave-to,
+  .eurforex-shell-tabbar__item--active .eurforex-shell-tabbar__icon,
+  .eurforex-shell-tabbar__item--active .eurforex-shell-tabbar__brand-icon,
+  .eurforex-shell-tabbar__item--active .eurforex-shell-tabbar__label {
+    transform: none;
   }
 }
 </style>

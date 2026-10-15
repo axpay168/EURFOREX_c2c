@@ -94,6 +94,7 @@
 
 <script>
 import { userApi } from '@/utils/api'
+import { formatTruncatedAmount } from '@/utils/amountFormat'
 import { pickBestOneClickListing } from '@/utils/listingPick'
 
 /**
@@ -202,10 +203,7 @@ export default {
       if (event && event.target && event.target.value !== next) event.target.value = next;
     },
     formatAmount: function (value, digits) {
-      return Number(value || 0).toLocaleString("en-GB", {
-        minimumFractionDigits: digits,
-        maximumFractionDigits: digits
-      });
+      return formatTruncatedAmount(value, digits);
     },
     currentListingId: function () {
       var hash = window.location.hash || "";

@@ -1,0 +1,43 @@
+# Build output and generated frontend bundles
+frontend-uniapp/dist/
+frontend-uniapp/build/
+frontend-uniapp/out/
+
+# Dependency and tool caches
+node_modules/
+.cache/
+.vite/
+.previewjs/
+.playwright-mcp/
+frontend-uniapp/node_modules/
+frontend-uniapp/test-results/
+frontend-uniapp/playwright-report/
+
+# Runtime data, uploads, and caches
+backend-api/storage/
+backend-api/storage/uploads/
+backend-api/storage/cache/
+
+# Local environment and editor state
+.env
+.env.*
+!.env.example
+.cursor/
+.idea/
+.vscode/
+
+# Large binary/data artifacts
+*.log
+*.tmp
+*.bak
+*.sqlite
+*.sqlite3
+*.db
+*.sql
+*.dump
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.7z
+*.rar

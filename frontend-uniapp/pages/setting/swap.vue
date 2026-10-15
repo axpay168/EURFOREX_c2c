@@ -50,8 +50,8 @@
       <section class="swap-rate-card">
         <div class="swap-rate-card__shine" aria-hidden="true"></div>
         <span class="swap-rate-card__icon" aria-hidden="true"><img :src="profileIcons.swap" alt="" /></span>
-        <span>{{ localizedText('匯率', 'Rate') }}</span>
-        <strong>{{ rateDisplay }}</strong>
+        <span class="swap-rate-card__label">{{ localizedText('匯率', 'Rate') }}</span>
+        <strong class="swap-rate-card__value">{{ rateDisplay }}</strong>
         <span class="swap-rate-card__info" :title="rateSourceLabel" aria-hidden="true">ⓘ</span>
       </section>
 
@@ -127,6 +127,7 @@ import topupBtcIcon from '@/static/icons/topup/btc.svg'
 import topupEthIcon from '@/static/icons/topup/eth.svg'
 import topupTrxIcon from '@/static/icons/topup/trx.svg'
 import { userApi } from '@/utils/api'
+import { formatTruncatedAmount, trimTruncatedNumber } from '@/utils/amountFormat'
 
 var BODY_CLASSES = ['nc2c-page', 'nc2c-page--swap', 'font-body', 'min-h-screen', 'bg-background', 'pb-32', 'text-on-surface', 'antialiased']
 var ASSETS = [
@@ -192,10 +193,21 @@ export default {
     this.loadSharedScript('/static/previews/shared/marble-bg.js', 'eurforexMarbleBgJs')
     this.loadBalances()
     this.loadRates()
+    this._balanceRefreshHandler = this.refreshBalancesWhenVisible.bind(this)
+    try {
+      window.addEventListener('focus', this._balanceRefreshHandler)
+      window.addEventListener('pageshow', this._balanceRefreshHandler)
+      document.addEventListener('visibilitychange', this._balanceRefreshHandler)
+    } catch (e) {}
     this.$nextTick(this.fitAmountInputs)
   },
   beforeDestroy: function () {
     try {
+      if (this._balanceRefreshHandler) {
+        window.removeEventListener('focus', this._balanceRefreshHandler)
+        window.removeEventListener('pageshow', this._balanceRefreshHandler)
+        document.removeEventListener('visibilitychange', this._balanceRefreshHandler)
+      }
       document.body.style.overflow = ''
       for (var i = 0; i < BODY_CLASSES.length; i++) document.body.classList.remove(BODY_CLASSES[i])
       document.body.removeAttribute('data-nc2c-page')
@@ -205,6 +217,15 @@ export default {
   methods: {
     assetByCode: function (code) { return this.assets.find(function (asset) { return asset.code === code }) || this.assets[0] },
     balanceFor: function (code) { return Number(this.balances[code] || 0) },
+    refreshBalancesWhenVisible: function () {
+      try {
+        if (typeof document !== 'undefined' && document.hidden) return
+      } catch (e) {}
+      var now = Date.now()
+      if (this._lastBalanceRefreshAt && now - this._lastBalanceRefreshAt < 800) return
+      this._lastBalanceRefreshAt = now
+      this.loadBalances()
+    },
     loadBalances: function () {
       var self = this
       userApi.overview().then(function (data) {
@@ -305,8 +326,7 @@ export default {
       })
     },
     formatAmount: function (value, digits) {
-      var n = Number(value || 0)
-      return n.toLocaleString('en-GB', { minimumFractionDigits: digits > 2 ? 0 : 2, maximumFractionDigits: digits })
+      return formatTruncatedAmount(value, digits, { minimumFractionDigits: digits > 2 ? 0 : 2 })
     },
     formatRate: function (value) {
       var n = Number(value || 0)
@@ -315,8 +335,7 @@ export default {
       return n.toLocaleString('en-GB', { maximumFractionDigits: 8 })
     },
     trimNumber: function (value, digits) {
-      var n = Number(value || 0)
-      return n.toFixed(digits).replace(/\.0+$/, '').replace(/(\.\d*?)0+$/, '$1')
+      return trimTruncatedNumber(value, digits)
     }
   }
 }
@@ -349,14 +368,15 @@ export default {
 .swap-balance--muted { margin-top: 10px; }
 .swap-note { align-items: flex-start; color: #738397; display: flex; font-size: 12px; gap: 8px; line-height: 1.45; margin-top: 18px; }
 .swap-flip-btn { align-items: center; background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(244,249,255,.94)); border: 1px solid rgba(205,224,242,.82); border-radius: 999px; box-shadow: 0 12px 28px rgba(33,79,131,.14), inset 0 0 0 6px rgba(244,249,255,.9); color: #416bed; display: flex; font-size: 34px; font-weight: 800; height: 64px; justify-content: center; margin: -18px auto -18px; position: relative; width: 64px; z-index: 5; }
-.swap-rate-card { align-items: center; display: grid; gap: 14px; grid-template-columns: 42px auto minmax(0, 1fr) auto; margin-top: 24px; min-height: 104px; overflow: hidden; padding: 22px 22px; position: relative; }
+.swap-rate-card { align-items: center; display: grid; column-gap: 14px; grid-template-areas: "icon label info" "icon value info"; grid-template-columns: 42px minmax(0, 1fr) auto; row-gap: 4px; margin-top: 24px; min-height: 104px; overflow: hidden; padding: 22px 22px; position: relative; }
 .swap-rate-card__shine { background: radial-gradient(circle at 15% 10%, rgba(255,255,255,.95), transparent 34%); inset: 0; pointer-events: none; position: absolute; }
 .swap-rate-card > *:not(.swap-rate-card__shine) { position: relative; z-index: 1; }
-.swap-rate-card__icon { align-items: center; background: linear-gradient(145deg, #ecf2ff, #dfe7ff); border-radius: 11px; box-shadow: inset 0 1px 0 rgba(255,255,255,.9); display: flex; height: 36px; justify-content: center; width: 36px; }
+.swap-rate-card__icon { align-items: center; background: linear-gradient(145deg, #ecf2ff, #dfe7ff); border-radius: 11px; box-shadow: inset 0 1px 0 rgba(255,255,255,.9); display: flex; grid-area: icon; height: 36px; justify-content: center; width: 36px; }
 .swap-rate-card__icon img { height: 22px; width: 22px; }
 .swap-rate-card span { color: #647789; font-size: 15px; }
-.swap-rate-card strong { color: #16293f; font-size: 14px; font-weight: 750; justify-self: end; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.swap-rate-card__info { color: #738397 !important; font-size: 18px !important; }
+.swap-rate-card__label { align-self: end; grid-area: label; line-height: 1.25; min-width: 0; }
+.swap-rate-card__value { align-self: start; color: #16293f; font-size: 14px; font-weight: 750; grid-area: value; justify-self: start; line-height: 1.3; min-width: 0; overflow-wrap: anywhere; }
+.swap-rate-card__info { color: #738397 !important; font-size: 18px !important; grid-area: info; }
 	.swap-preview-btn { background: linear-gradient(135deg, #6f86ff 0%, #416bed 100%); border: 0; border-radius: 999px; box-shadow: 0 20px 34px rgba(65,107,237,.27); color: #fff; font-family: Space Grotesk, Manrope, sans-serif; font-size: 17px; font-weight: 850; height: 62px; margin-top: 24px; width: 100%; }
 	.swap-preview-btn:disabled { cursor: not-allowed; filter: grayscale(.25); opacity: .68; }
 	.swap-error { background: rgba(255,241,240,.92); border: 1px solid rgba(239,81,72,.18); border-radius: 16px; color: #ef5148; font-size: 13px; font-weight: 700; line-height: 1.45; margin: 18px 2px -6px; padding: 11px 14px; text-align: center; }
@@ -389,5 +409,5 @@ export default {
 	.swap-confirm__primary { background: linear-gradient(180deg, #5f86f1, #2f57c8); box-shadow: 0 12px 24px rgba(51,86,197,.22); color: #fff; }
 	.swap-confirm__secondary { background: rgba(255,255,255,.86); border: 1px solid #cddcff; color: #416bd8; margin-top: 10px; }
 	.swap-confirm__primary:disabled, .swap-confirm__secondary:disabled { cursor: not-allowed; opacity: .62; }
-	@media (max-width: 374px) { .swap-panel { padding: 21px 18px 24px; } .swap-asset-select { min-width: 102px; padding-right: 10px; } .swap-asset-select img { height: 28px; width: 28px; } .swap-asset-select strong { font-size: 17px; } .swap-asset-select__chevron { height: 7px; width: 7px; } .swap-amount-field { padding-left: 12px; } .swap-amount-field input { font-size: 28px; } .swap-rate-card { grid-template-columns: 38px auto minmax(0, 1fr); } .swap-rate-card__info { display: none; } }
+	@media (max-width: 374px) { .swap-panel { padding: 21px 18px 24px; } .swap-asset-select { min-width: 102px; padding-right: 10px; } .swap-asset-select img { height: 28px; width: 28px; } .swap-asset-select strong { font-size: 17px; } .swap-asset-select__chevron { height: 7px; width: 7px; } .swap-amount-field { padding-left: 12px; } .swap-amount-field input { font-size: 28px; } .swap-rate-card { grid-template-areas: "icon label" "icon value"; grid-template-columns: 38px minmax(0, 1fr); } .swap-rate-card__info { display: none; } }
 </style>

@@ -78,6 +78,7 @@
 
 <script>
 import { userApi } from '@/utils/api'
+import { formatTruncatedAmount } from '@/utils/amountFormat'
 
 /*
  *  */
@@ -235,10 +236,7 @@ export default {
       return String(code || "EUR").toLowerCase();
     },
     formatAmount: function (value, digits) {
-      return Number(value || 0).toLocaleString("en-GB", {
-        minimumFractionDigits: digits,
-        maximumFractionDigits: digits
-      });
+      return formatTruncatedAmount(value, digits);
     }
   }
 };

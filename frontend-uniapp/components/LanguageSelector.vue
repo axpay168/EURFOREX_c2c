@@ -36,52 +36,54 @@
         <img class="language-icon-img language-icon-img--chevron" :src="icons.chevron" alt="" aria-hidden="true" />
       </div>
     </button>
-    <div
-      v-if="open"
-      ref="overlay"
-      class="eurforex-language-overlay"
-      :class="{ 'eurforex-language-overlay--profile': variant === 'menu-row' }"
-      @click.self="open = false"
-    >
+    <transition name="eur-language-dialog" appear>
       <div
-        class="eurforex-language-sheet"
-        :class="{ 'eurforex-language-sheet--profile': variant === 'menu-row' }"
-        role="dialog"
-        aria-modal="true"
+        v-show="open"
+        ref="overlay"
+        class="eurforex-language-overlay"
+        :class="{ 'eurforex-language-overlay--profile': variant === 'menu-row' }"
+        @click.self="open = false"
       >
-        <div class="eurforex-language-sheet__head">
-          <div>
-            <p>{{ $t('ui.currentLanguage') }}</p>
-            <h3>{{ $t('ui.selectLanguage') }}</h3>
+        <div
+          class="eurforex-language-sheet"
+          :class="{ 'eurforex-language-sheet--profile': variant === 'menu-row' }"
+          role="dialog"
+          aria-modal="true"
+        >
+          <div class="eurforex-language-sheet__head">
+            <div>
+              <p>{{ $t('ui.currentLanguage') }}</p>
+              <h3>{{ $t('ui.selectLanguage') }}</h3>
+            </div>
+            <button type="button" :aria-label="$t('ui.close')" @click="open = false">×</button>
           </div>
-          <button type="button" :aria-label="$t('ui.close')" @click="open = false">×</button>
-        </div>
-        <div class="language-current-card" v-if="variant === 'menu-row'">
-          <img class="language-icon-img language-icon-img--current" :src="icons.translate" alt="" aria-hidden="true" />
-          <div>
-            <small>{{ $t('ui.currentLanguage') }}</small>
-            <strong>{{ currentMeta.name }}</strong>
+          <div class="language-current-card" v-if="variant === 'menu-row'">
+            <img class="language-icon-img language-icon-img--current" :src="icons.translate" alt="" aria-hidden="true" />
+            <div>
+              <small>{{ $t('ui.currentLanguage') }}</small>
+              <strong>{{ currentMeta.name }}</strong>
+            </div>
           </div>
-        </div>
-        <div class="language-wheel" :class="{ 'language-wheel--profile': variant === 'menu-row' }">
-          <div class="language-wheel__focus"></div>
-          <div class="language-sheet__list">
-            <button
-              v-for="item in langs"
-              :key="item.value"
-              type="button"
-              class="language-sheet__item"
-              :class="{ 'language-sheet__item--active': item.value === currentLang }"
-              :data-lang-option="item.value"
-              @click="select(item.value)"
-            >
-              <span>{{ item.name }}</span>
-              <img v-if="variant === 'menu-row' && item.value === currentLang" class="language-sheet__check-img" :src="icons.check" alt="" aria-hidden="true" />
-            </button>
+          <div class="language-wheel" :class="{ 'language-wheel--profile': variant === 'menu-row' }">
+            <div class="language-wheel__focus"></div>
+            <div class="language-sheet__list">
+              <button
+                v-for="item in langs"
+                :key="item.value"
+                type="button"
+                class="language-sheet__item"
+                :class="{ 'language-sheet__item--active': item.value === currentLang }"
+                :data-lang-option="item.value"
+                @click="select(item.value)"
+              >
+                <span>{{ item.name }}</span>
+                <img v-if="variant === 'menu-row' && item.value === currentLang" class="language-sheet__check-img" :src="icons.check" alt="" aria-hidden="true" />
+              </button>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </transition>
   </div>
 </template>
 
@@ -243,6 +245,33 @@ export default {
   justify-content: center;
   background: rgba(15, 27, 45, 0.36);
   backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.eur-language-dialog-enter-active,
+.eur-language-dialog-leave-active {
+  transition: opacity 0.24s ease;
+}
+
+.eur-language-dialog-enter-active .eurforex-language-sheet,
+.eur-language-dialog-leave-active .eurforex-language-sheet {
+  transition: opacity 0.26s ease, transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.eur-language-dialog-enter,
+.eur-language-dialog-leave-to {
+  opacity: 0;
+}
+
+.eur-language-dialog-enter .eurforex-language-sheet,
+.eur-language-dialog-leave-to .eurforex-language-sheet {
+  opacity: 0;
+  transform: translate3d(0, 28px, 0) scale(0.985);
+}
+
+.eur-language-dialog-enter .eurforex-language-sheet--profile,
+.eur-language-dialog-leave-to .eurforex-language-sheet--profile {
+  transform: translate3d(0, 14px, 0) scale(0.96);
 }
 
 .eurforex-language-overlay.eurforex-language-overlay--profile {
@@ -488,6 +517,22 @@ export default {
 
   .eurforex-language-sheet {
     border-radius: 28px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .eur-language-dialog-enter-active,
+  .eur-language-dialog-leave-active,
+  .eur-language-dialog-enter-active .eurforex-language-sheet,
+  .eur-language-dialog-leave-active .eurforex-language-sheet {
+    transition-duration: 0.01ms !important;
+  }
+
+  .eur-language-dialog-enter .eurforex-language-sheet,
+  .eur-language-dialog-leave-to .eurforex-language-sheet,
+  .eur-language-dialog-enter .eurforex-language-sheet--profile,
+  .eur-language-dialog-leave-to .eurforex-language-sheet--profile {
+    transform: none;
   }
 }
 </style>

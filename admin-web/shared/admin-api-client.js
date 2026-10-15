@@ -31,6 +31,7 @@
     deposits: "/api/admin/deposit-requests?page=1&page_size=10",
     "deposit-addresses": "/api/admin/deposit-addresses?page=1&page_size=10",
     withdrawals: "/api/admin/withdrawal-requests?page=1&page_size=10",
+    commissions: "/api/admin/commission-summary",
     "eur-swap-withdraw-config": "/api/admin/withdrawal-settings/eur-swap",
     orders: "/api/admin/orders?page=1&page_size=10",
     "financial-products": "/api/admin/financial-products?page=1&page_size=10",

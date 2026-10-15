@@ -34,9 +34,7 @@
           <div class="withdraw-flow-card withdraw-flow-card--network">
             <div class="withdraw-flow-title">{{ localizedText("提現網絡", "Withdrawal network") }}</div>
             <div class="withdraw-network-pills" role="group" :aria-label="localizedText('鏈上網絡', 'On-chain network')">
-              <button type="button" class="usdt-pill" :class="{ 'usdt-pill--active': network === 'TRC20' }" data-network="TRC20" :aria-pressed="network === 'TRC20' ? 'true' : 'false'" @click="network = 'TRC20'">TRC20</button>
-              <button type="button" class="usdt-pill" :class="{ 'usdt-pill--active': network === 'ERC20' }" data-network="ERC20" :aria-pressed="network === 'ERC20' ? 'true' : 'false'" @click="network = 'ERC20'">ERC20</button>
-              <button type="button" class="usdt-pill" :class="{ 'usdt-pill--active': network === 'BEP20' }" data-network="BEP20" :aria-pressed="network === 'BEP20' ? 'true' : 'false'" @click="network = 'BEP20'">BEP20</button>
+              <button v-for="networkCode in availableNetworks" :key="'withdraw-network-' + networkCode" type="button" class="usdt-pill" :class="{ 'usdt-pill--active': network === networkCode }" :data-network="networkCode" :aria-pressed="network === networkCode ? 'true' : 'false'" @click="network = networkCode">{{ networkCode }}</button>
             </div>
           </div>
 
@@ -135,7 +133,7 @@
 
     <!-- 地址簿（與法幣選銀行共用 Nc2cCenterSheet 外殼） -->
     <Nc2cCenterSheet :visible.sync="addrBookOpen" :title="localizedText('選擇提領地址', 'Select withdrawal address')" title-id="usdt-addr-book-title">
-      <p class="mt-2 text-sm leading-relaxed text-slate-600">{{ localizedText("僅展示已保存的 USDT 鏈上地址；審核通過的地址可一鍵帶入。請確認與當前所選網絡一致。", "Only approved USDT on-chain addresses are shown. Approved addresses can be applied to this form with one tap. Please make sure the network matches the selected one.") }}</p>
+      <p class="mt-2 text-sm leading-relaxed text-slate-600">{{ localizedText("僅展示已保存的 USDT 鏈上地址，可一鍵帶入。請確認與當前所選網絡一致。", "Saved USDT on-chain addresses can be applied with one tap. Please make sure the network matches the selected one.").split("USDT").join(selectedAsset.code) }}</p>
       <a
         href="#/pages/setting/withdrawAddressBinding"
         class="mt-3 flex w-full items-center justify-center rounded-2xl border-2 border-primary/30 bg-primary/5 py-3 text-sm font-bold text-primary-dim shadow-sm transition-colors hover:bg-primary/10"
@@ -147,7 +145,7 @@
         <button type="button" class="mt-2 text-xs font-bold text-primary-dim underline" @click="loadPayoutMethodsForBook">{{ localizedText("重試", "Retry") }}</button>
       </div>
       <div v-else id="usdt-addr-book-list" class="mt-4 max-h-[min(52vh,360px)] space-y-2 overflow-y-auto">
-        <p v-if="!payoutUsdtItems.length" class="py-8 text-center text-sm text-on-surface-variant">{{ localizedText("尚無 USDT 提領地址，請先新增並完成審核。", "No approved USDT withdrawal address found. Please add one and pass verification first.") }}</p>
+        <p v-if="!payoutUsdtItems.length" class="py-8 text-center text-sm text-on-surface-variant">{{ localizedText("尚無 USDT 提領地址，請先新增地址。", "No USDT withdrawal address found. Please add one first.").split("USDT").join(selectedAsset.code) }}</p>
         <template v-else>
           <button
             v-for="it in payoutUsdtItems"
@@ -155,17 +153,12 @@
             type="button"
             class="bank-pick w-full rounded-2xl p-4 text-left transition-colors"
             :class="addrBookRowClass(it)"
-            :disabled="it.status !== 'approved'"
             @click="pickPayoutRow(it)"
           >
             <div class="min-w-0">
               <div class="flex flex-wrap items-center gap-2">
                 <span class="font-headline text-base font-bold text-slate-900">{{ payoutRowTitle(it) }}</span>
                 <span v-if="it.is_default" class="rounded-md border border-primary/35 bg-white px-2 py-0.5 text-[10px] font-bold text-primary-dim shadow-sm">{{ localizedText("預設", "Default") }}</span>
-                <span
-                  v-if="it.status !== 'approved'"
-                  class="rounded-md border border-amber-300/80 bg-amber-50 px-2 py-0.5 text-[10px] font-bold text-amber-900/90"
-                >{{ payoutStatusLabel(it.status) }}</span>
               </div>
               <p class="mt-2 font-mono text-[13px] leading-snug tracking-wide text-slate-800 break-all">{{ it.payout_address }}</p>
             </div>
@@ -186,7 +179,8 @@
 
 <script>
 import { userApi } from '@/utils/api'
-import { filterUsdtPayoutItems, usdtPayoutRowTitle, payoutMethodStatusLabel } from '@/utils/payoutUsdt'
+import { formatTruncatedAmount, trimTruncatedNumber } from '@/utils/amountFormat'
+import { filterUsdtPayoutItems, usdtPayoutRowTitle } from '@/utils/payoutUsdt'
 import topupUsdtIcon from '@/static/icons/topup/usdt.svg'
 import topupUsdcIcon from '@/static/icons/topup/usdc.svg'
 import topupBtcIcon from '@/static/icons/topup/btc.svg'
@@ -213,11 +207,11 @@ export default {
       network: "TRC20",
       assetCode: "USDT",
       cryptoAssets: [
-        { code: "USDT", name: "Tether USD", icon: topupUsdtIcon, wallet: "cash_usdt", decimals: 2, min: 10 },
-        { code: "USDC", name: "USD Coin", icon: topupUsdcIcon, wallet: "spot_usdc", decimals: 2, min: 10 },
-        { code: "BTC", name: "Bitcoin", icon: topupBtcIcon, wallet: "spot_btc", decimals: 8, min: 0.0001 },
-        { code: "ETH", name: "Ethereum", icon: topupEthIcon, wallet: "spot_eth", decimals: 6, min: 0.005 },
-        { code: "TRX", name: "TRON", icon: topupTrxIcon, wallet: "spot_trx", decimals: 2, min: 20 }
+        { code: "USDT", name: "Tether USD", icon: topupUsdtIcon, wallet: "cash_usdt", decimals: 2, min: 10, networks: ["TRC20", "ERC20", "BEP20"] },
+        { code: "USDC", name: "USD Coin", icon: topupUsdcIcon, wallet: "spot_usdc", decimals: 2, min: 10, networks: ["TRC20", "ERC20", "BEP20"] },
+        { code: "BTC", name: "Bitcoin", icon: topupBtcIcon, wallet: "spot_btc", decimals: 8, min: 0.0001, networks: ["BTC"] },
+        { code: "ETH", name: "Ethereum", icon: topupEthIcon, wallet: "spot_eth", decimals: 6, min: 0.005, networks: ["ERC20"] },
+        { code: "TRX", name: "TRON", icon: topupTrxIcon, wallet: "spot_trx", decimals: 2, min: 20, networks: ["TRC20"] }
       ],
       walletMap: {},
       address: "",
@@ -239,13 +233,16 @@ export default {
       }
       return this.cryptoAssets[0];
     },
+    availableNetworks: function () {
+      return this.selectedAsset.networks || ["TRC20"];
+    },
     fee: function () {
       var feeMap = {
         USDT: { TRC20: 1, ERC20: 5, BEP20: 0.8 },
         USDC: { TRC20: 1, ERC20: 5, BEP20: 0.8 },
-        BTC: { TRC20: 0.0001, ERC20: 0.0001, BEP20: 0.0001 },
-        ETH: { TRC20: 0.003, ERC20: 0.003, BEP20: 0.003 },
-        TRX: { TRC20: 1, ERC20: 1, BEP20: 1 }
+        BTC: { BTC: 0.0001 },
+        ETH: { ERC20: 0.003 },
+        TRX: { TRC20: 1 }
       };
       var m = feeMap[this.selectedAsset.code] || feeMap.USDT;
       return m[this.network] != null ? m[this.network] : 1;
@@ -257,6 +254,7 @@ export default {
       return this.formatAmount(this.selectedAsset.min, this.selectedAsset.decimals) + " " + this.selectedAsset.code;
     },
     addressPlaceholder: function () {
+      if (this.network === "BTC") return this.localizedText("貼上 Bitcoin 主網收款地址", "Paste your Bitcoin mainnet receiving address");
       if (this.network === "TRC20") return this.localizedText("貼上 TRC20 收款地址（以 T 開頭）", "Paste your TRC20 receiving address (starts with T)");
       if (this.network === "ERC20") return this.localizedText("貼上 ERC20 收款地址（以 0x 開頭，Ethereum 主網）", "Paste your ERC20 receiving address (starts with 0x on Ethereum)");
       return this.localizedText("貼上 BEP20 收款地址（以 0x 開頭，BSC）", "Paste your BEP20 receiving address (starts with 0x on BSC)");
@@ -270,7 +268,7 @@ export default {
       return this.formatAmount(net > 0 ? net : 0, this.selectedAsset.decimals) + " " + this.selectedAsset.code;
     },
     payoutUsdtItems: function () {
-      return filterUsdtPayoutItems(this.payoutItems);
+      return filterUsdtPayoutItems(this.payoutItems, this.selectedAsset.code);
     }
   },
   watch: {
@@ -313,17 +311,14 @@ export default {
       }
     },
     payoutRowTitle: usdtPayoutRowTitle,
-    payoutStatusLabel: function (status) {
-      return payoutMethodStatusLabel(status, "不可用");
-    },
     formatAmount: function (value, digits) {
-      return Number(value || 0).toLocaleString("en-GB", {
-        minimumFractionDigits: digits,
-        maximumFractionDigits: digits
-      });
+      return formatTruncatedAmount(value, digits);
     },
     selectAsset: function (code) {
       this.assetCode = String(code || "USDT").toUpperCase();
+      if (this.availableNetworks.indexOf(this.network) === -1) {
+        this.network = this.availableNetworks[0];
+      }
       this.amount = "";
       this.address = "";
       this.applyAssetBalance();
@@ -430,19 +425,23 @@ export default {
           break;
         }
       }
-      if (!it || it.status !== "approved") {
-        alert(this.$t("phrases.請選擇已審核通過的地址。"));
+      if (!it) {
+        alert(this.$t("phrases.請選擇一筆地址。"));
         return;
       }
-      this.address = String(it.payout_address || "").trim();
       var u = String(it.usdt_network || "").toUpperCase();
-      if (u === "TRC20" || u === "ERC20" || u === "BEP20") {
+      var selectedAddress = String(it.payout_address || "").trim();
+      if (this.availableNetworks.indexOf(u) !== -1) {
         this.network = u;
       }
+      var self = this;
+      this.$nextTick(function () {
+        self.address = selectedAddress;
+      });
       this.closeAddressBook();
     },
     fillMax: function () {
-      this.amount = this.maxBal.toFixed(2);
+      this.amount = trimTruncatedNumber(this.maxBal, this.selectedAsset.decimals);
     },
     pasteAddress: function () {
       var self = this;

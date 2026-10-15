@@ -10,6 +10,8 @@ let activeMessages = {}
 let fallbackMessages = {}
 let activeLocale = ''
 let scheduled = false
+let translateWholeDocument = false
+let pendingRoots = []
 
 function normalizeText(value) {
   return String(value || '').replace(/\s+/g, ' ').trim()
@@ -102,13 +104,32 @@ export function translateDom(root) {
 }
 
 export function scheduleTranslate(root) {
+  if (!root) {
+    translateWholeDocument = true
+    pendingRoots = []
+  } else if (!translateWholeDocument) {
+    const covered = pendingRoots.some(item => item === root || (item.contains && item.contains(root)))
+    if (!covered) {
+      pendingRoots = pendingRoots.filter(item => !(root.contains && root.contains(item)))
+      pendingRoots.push(root)
+    }
+  }
+  if (scheduled) return
+
   const run = () => {
     scheduled = false
-    translateDom(root)
-  }
-  if (scheduled) {
-    setTimeout(run, 0)
-    return
+    const shouldTranslateWholeDocument = translateWholeDocument
+    const roots = pendingRoots.slice()
+    translateWholeDocument = false
+    pendingRoots = []
+    if (shouldTranslateWholeDocument) {
+      translateDom()
+      return
+    }
+    roots.forEach(item => {
+      if (!item || item.isConnected === false) return
+      translateDom(item)
+    })
   }
   scheduled = true
   if (typeof window !== 'undefined' && window.requestAnimationFrame) {

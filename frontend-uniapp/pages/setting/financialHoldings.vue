@@ -108,6 +108,7 @@
 
 <script>
 import { userApi } from '@/utils/api'
+import { formatTruncatedAmount } from '@/utils/amountFormat'
 
 /**
  * EURNYSE - 我的持倉 (純 H5 Vue2 Options API)
@@ -220,10 +221,7 @@ export default {
         });
     },
     formatAmount: function (value, digits) {
-      return Number(value || 0).toLocaleString("en-GB", {
-        minimumFractionDigits: digits,
-        maximumFractionDigits: digits
-      });
+      return formatTruncatedAmount(value, digits);
     },
     formatPercent: function (value) {
       return Number(value || 0).toLocaleString("en-GB", { minimumFractionDigits: 1, maximumFractionDigits: 2 }) + "%";
